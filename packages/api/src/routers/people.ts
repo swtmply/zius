@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type { Context } from "../context";
 import { protectedProcedure, router } from "../index";
+import { personSchema } from "./schemas";
 
 type AuthenticatedSession = NonNullable<Context["session"]>;
 type Person = typeof person.$inferSelect;
@@ -89,12 +90,23 @@ export async function getOrCreateCurrentPerson(db: Context["db"], session: Authe
 
 export const peopleRouter = router({
   resolve: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/people/resolve",
+        tags: ["People"],
+        summary: "Resolve an email to a person",
+        description:
+          "Returns the person already registered for the email, creating a guest when none exists.",
+      },
+    })
     .input(
       z.object({
         email: z.string().trim().toLowerCase().email(),
         displayName: z.string().trim().min(1),
       }),
     )
+    .output(personSchema)
     .mutation(async ({ ctx, input }) => {
       await getOrCreateCurrentPerson(ctx.db, ctx.session);
 

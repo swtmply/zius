@@ -2,6 +2,7 @@ import { user } from "@zius/db/schema/auth";
 import { createTestDb } from "@zius/db/testing";
 
 import type { Context } from "./context";
+import { handleOpenApiRequest, OPENAPI_ENDPOINT } from "./openapi";
 import { appRouter } from "./routers/index";
 
 type TestDatabase = Awaited<ReturnType<typeof createTestDb>>;
@@ -70,6 +71,60 @@ export async function createAnonymousCaller(): Promise<TestCaller> {
   databases.push(testDatabase);
 
   return appRouter.createCaller({ auth: null, db: testDatabase.db, session: null });
+}
+
+export type RestResponse<T = unknown> = { status: number; body: T };
+
+export type RestClient = <T = unknown>(
+  method: string,
+  path: string,
+  body?: unknown,
+) => Promise<RestResponse<T>>;
+
+/**
+ * Drives the REST surface through the same handler the Hono server mounts, so
+ * the tests cover the adapter's routing, path parameters and serialization
+ * rather than only the procedures underneath it.
+ */
+export function restClientFor(context: Context): RestClient {
+  return async <T>(method: string, path: string, body?: unknown) => {
+    const request = new Request(`http://localhost${OPENAPI_ENDPOINT}${path}`, {
+      method,
+      ...(body === undefined
+        ? {}
+        : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
+    });
+    const response = await handleOpenApiRequest(request, () => context);
+
+    return { status: response.status, body: (await response.json()) as T };
+  };
+}
+
+export async function createRestClient(
+  id: string,
+  name: string,
+  email: string,
+): Promise<{ rest: RestClient; caller: TestCaller; db: TestDatabase["db"] }> {
+  const testDatabase = await createTestDb();
+  databases.push(testDatabase);
+
+  await testDatabase.db.insert(user).values({ id, name, email, emailVerified: true });
+
+  const context: Context = {
+    auth: null,
+    db: testDatabase.db,
+    session: sessionFor(id, name, email),
+  };
+
+  return {
+    rest: restClientFor(context),
+    caller: appRouter.createCaller(context),
+    db: testDatabase.db,
+  };
+}
+
+export function createAnonymousRestClient(db: TestDatabase["db"]): RestClient {
+  return restClientFor({ auth: null, db, session: null });
 }
 
 export async function closeTestDatabases() {

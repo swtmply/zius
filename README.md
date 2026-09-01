@@ -12,6 +12,7 @@ This project was created with [Better-T-Stack](https://github.com/AmanVarshney01
 - **Shared UI package** - shadcn/ui primitives live in `packages/ui`
 - **Hono** - Lightweight, performant server framework
 - **tRPC** - End-to-end type-safe APIs
+- **OpenAPI** - REST access to the same procedures, with a Scalar reference
 - **Bun** - Runtime environment
 - **Drizzle** - TypeScript-first ORM
 - **SQLite/Turso** - Database engine
@@ -54,6 +55,30 @@ bun run dev
 Open [http://localhost:3001](http://localhost:3001) in your browser to see the web application.
 Use the Expo Go app to run the mobile application.
 The API is running at [http://localhost:3000](http://localhost:3000).
+
+## REST API and OpenAPI
+
+Every expense, expense group and person procedure is also reachable as REST. The routes are
+generated from the tRPC procedures themselves via `trpc-to-openapi`, so there is one
+implementation and one set of tests behind both transports.
+
+| Surface           | Local                                | Deployed             |
+| ----------------- | ------------------------------------ | -------------------- |
+| REST routes       | `http://localhost:3000/v1/*`         | `/api/v1/*`          |
+| OpenAPI document  | `http://localhost:3000/openapi.json` | `/api/openapi.json`  |
+| Scalar reference  | `http://localhost:3000/docs`         | `/api/docs`          |
+
+Requests authenticate with the same Better-Auth session as tRPC — send the session cookie
+with `credentials: "include"`, or an `Authorization: Bearer` token from clients that cannot
+hold cookies.
+
+To expose a new procedure, add `.meta({ openapi: { method, path } })` and an `.output()` Zod
+schema to it. Procedures without both are served over tRPC only, which is why the `todo`
+scaffold does not appear in the document.
+
+The document advertises the base callers reach the server through. Behind the Vercel rewrite
+the `/api` prefix is stripped before the request arrives, so `SERVER_PUBLIC_URL` carries it;
+it defaults to `<deployment origin>/api` on Vercel and needs no local value.
 
 ## UI Customization
 

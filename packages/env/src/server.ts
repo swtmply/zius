@@ -20,6 +20,11 @@ const runtimeEnv = {
   BETTER_AUTH_URL:
     process.env.BETTER_AUTH_URL ?? (vercelOrigin ? `${vercelOrigin}/api/auth` : undefined),
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? vercelOrigin,
+  // Public base the server is reached at. The rewrite strips /api before the
+  // request arrives, so the OpenAPI document cannot infer the prefix from the
+  // request path the way it can when the server is run directly.
+  SERVER_PUBLIC_URL:
+    process.env.SERVER_PUBLIC_URL ?? (vercelOrigin ? `${vercelOrigin}/api` : undefined),
 };
 
 export const env = createEnv({
@@ -29,6 +34,7 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
     CORS_ORIGIN: z.url(),
+    SERVER_PUBLIC_URL: z.url().optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   },
   runtimeEnv: runtimeEnv,

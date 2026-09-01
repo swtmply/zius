@@ -26,7 +26,9 @@
     "@zius/env": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
-    "zod": "catalog:"
+    "trpc-to-openapi": "^3.3.0",
+    "zod": "catalog:",
+    "zod-openapi": "^5.4.4"
   },
   "devDependencies": {
     "@zius/config": "workspace:*",

@@ -11,6 +11,7 @@ import { z } from "zod";
 
 import type { Context } from "../context";
 import { protectedProcedure, router } from "../index";
+import { expenseSchema } from "./schemas";
 
 const participantInput = z.object({
   personId: z.string().min(1),
@@ -30,7 +31,16 @@ const expenseWriteFields = z.object({
     .regex(/^[A-Z]{3}$/)
     .optional(),
   splitMethod: z.enum(["equal", "exact", "percentage", "shares"]).default("exact"),
-  occurredAt: z.coerce.date().default(() => new Date()),
+  occurredAt: z.coerce
+    .date()
+    .default(() => new Date())
+    // The generated default would otherwise bake the document's build time into the spec.
+    .meta({
+      type: "string",
+      format: "date-time",
+      default: undefined,
+      description: "Defaults to the time the request is handled.",
+    }),
   participants: z.array(participantInput).min(1),
 });
 
@@ -299,103 +309,163 @@ function participantRows(expenseId: string, participants: ExpenseWrite["particip
 }
 
 export const expensesRouter = router({
-  create: protectedProcedure.input(expenseWriteInput).mutation(async ({ ctx, input }) => {
-    let currency = input.currency ?? "PHP";
+  create: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/expenses",
+        tags: ["Expenses"],
+        summary: "Record an expense",
+        description:
+          "Participant paid and owed amounts must each sum to the expense total. Send a null groupId for an expense outside any group.",
+      },
+    })
+    .input(expenseWriteInput)
+    .output(expenseSchema)
+    .mutation(async ({ ctx, input }) => {
+      let currency = input.currency ?? "PHP";
 
-    if (input.groupId) {
-      const group = await requireGroup(ctx.db, input.groupId);
-      await requireActiveMembership(ctx.db, group.id, ctx.session.user.id);
-      currency = groupCurrency(group, input.currency);
-    }
+      if (input.groupId) {
+        const group = await requireGroup(ctx.db, input.groupId);
+        await requireActiveMembership(ctx.db, group.id, ctx.session.user.id);
+        currency = groupCurrency(group, input.currency);
+      }
 
-    await requireEligibleParticipants(ctx.db, input.groupId, input.participants);
+      await requireEligibleParticipants(ctx.db, input.groupId, input.participants);
 
-    const expenseId = crypto.randomUUID();
-    const [createdExpenseRows] = await ctx.db.batch([
-      ctx.db
-        .insert(expense)
-        .values({
-          id: expenseId,
-          groupId: input.groupId,
-          createdById: ctx.session.user.id,
-          title: input.title,
-          note: input.note ?? null,
-          totalMinor: input.totalMinor,
-          currency,
-          splitMethod: input.splitMethod,
-          occurredAt: input.occurredAt,
-        })
-        .returning(),
-      ctx.db.insert(expenseParticipant).values(participantRows(expenseId, input.participants)),
-    ]);
+      const expenseId = crypto.randomUUID();
+      const [createdExpenseRows] = await ctx.db.batch([
+        ctx.db
+          .insert(expense)
+          .values({
+            id: expenseId,
+            groupId: input.groupId,
+            createdById: ctx.session.user.id,
+            title: input.title,
+            note: input.note ?? null,
+            totalMinor: input.totalMinor,
+            currency,
+            splitMethod: input.splitMethod,
+            occurredAt: input.occurredAt,
+          })
+          .returning(),
+        ctx.db.insert(expenseParticipant).values(participantRows(expenseId, input.participants)),
+      ]);
 
-    const createdExpense = requiredResult(createdExpenseRows[0], "Could not create the expense");
-    const [result] = await withParticipants(ctx.db, [createdExpense]);
-    return requiredResult(result, "Could not load the created expense");
-  }),
+      const createdExpense = requiredResult(createdExpenseRows[0], "Could not create the expense");
+      const [result] = await withParticipants(ctx.db, [createdExpense]);
+      return requiredResult(result, "Could not load the created expense");
+    }),
 
-  list: protectedProcedure.input(expenseListInput).query(async ({ ctx, input }) => {
-    if (input.groupId) {
-      await requireGroup(ctx.db, input.groupId);
-    }
+  list: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/expenses",
+        tags: ["Expenses"],
+        summary: "List the expenses visible to the caller",
+        description: "Pass groupId to restrict the list to a single expense group.",
+      },
+    })
+    .input(expenseListInput)
+    .output(z.array(expenseSchema))
+    .query(async ({ ctx, input }) => {
+      if (input.groupId) {
+        await requireGroup(ctx.db, input.groupId);
+      }
 
-    const expenses = await ctx.db
-      .select()
-      .from(expense)
-      .where(
-        and(
-          input.groupId ? eq(expense.groupId, input.groupId) : undefined,
-          visibleToUser(ctx.db, ctx.session.user.id),
-        ),
-      )
-      .orderBy(desc(expense.occurredAt), desc(expense.id));
+      const expenses = await ctx.db
+        .select()
+        .from(expense)
+        .where(
+          and(
+            input.groupId ? eq(expense.groupId, input.groupId) : undefined,
+            visibleToUser(ctx.db, ctx.session.user.id),
+          ),
+        )
+        .orderBy(desc(expense.occurredAt), desc(expense.id));
 
-    return withParticipants(ctx.db, expenses);
-  }),
+      return withParticipants(ctx.db, expenses);
+    }),
 
-  get: protectedProcedure.input(expenseIdInput).query(({ ctx, input }) => {
-    return visibleExpense(ctx.db, ctx.session.user.id, input.id);
-  }),
+  get: protectedProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/expenses/{id}",
+        tags: ["Expenses"],
+        summary: "Read an expense",
+      },
+    })
+    .input(expenseIdInput)
+    .output(expenseSchema)
+    .query(({ ctx, input }) => {
+      return visibleExpense(ctx.db, ctx.session.user.id, input.id);
+    }),
 
-  update: protectedProcedure.input(expenseUpdateInput).mutation(async ({ ctx, input }) => {
-    const existing = await requireExpenseWriteAccess(ctx.db, ctx.session.user.id, input.id);
+  update: protectedProcedure
+    .meta({
+      openapi: {
+        method: "PUT",
+        path: "/expenses/{id}",
+        tags: ["Expenses"],
+        summary: "Replace an expense and its participants",
+        description: "An expense cannot move between groups.",
+      },
+    })
+    .input(expenseUpdateInput)
+    .output(expenseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const existing = await requireExpenseWriteAccess(ctx.db, ctx.session.user.id, input.id);
 
-    if (input.groupId !== existing.groupId) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: "An expense cannot move between groups",
-      });
-    }
+      if (input.groupId !== existing.groupId) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "An expense cannot move between groups",
+        });
+      }
 
-    const currency = existing.groupId
-      ? groupCurrency(await requireGroup(ctx.db, existing.groupId), input.currency)
-      : (input.currency ?? "PHP");
+      const currency = existing.groupId
+        ? groupCurrency(await requireGroup(ctx.db, existing.groupId), input.currency)
+        : (input.currency ?? "PHP");
 
-    await requireEligibleParticipants(ctx.db, existing.groupId, input.participants);
+      await requireEligibleParticipants(ctx.db, existing.groupId, input.participants);
 
-    await ctx.db.batch([
-      ctx.db
-        .update(expense)
-        .set({
-          title: input.title,
-          note: input.note ?? null,
-          totalMinor: input.totalMinor,
-          currency,
-          splitMethod: input.splitMethod,
-          occurredAt: input.occurredAt,
-        })
-        .where(eq(expense.id, input.id)),
-      ctx.db.delete(expenseParticipant).where(eq(expenseParticipant.expenseId, input.id)),
-      ctx.db.insert(expenseParticipant).values(participantRows(input.id, input.participants)),
-    ]);
+      await ctx.db.batch([
+        ctx.db
+          .update(expense)
+          .set({
+            title: input.title,
+            note: input.note ?? null,
+            totalMinor: input.totalMinor,
+            currency,
+            splitMethod: input.splitMethod,
+            occurredAt: input.occurredAt,
+          })
+          .where(eq(expense.id, input.id)),
+        ctx.db.delete(expenseParticipant).where(eq(expenseParticipant.expenseId, input.id)),
+        ctx.db.insert(expenseParticipant).values(participantRows(input.id, input.participants)),
+      ]);
 
-    return visibleExpense(ctx.db, ctx.session.user.id, input.id);
-  }),
+      return visibleExpense(ctx.db, ctx.session.user.id, input.id);
+    }),
 
-  cancel: protectedProcedure.input(expenseIdInput).mutation(async ({ ctx, input }) => {
-    await requireExpenseWriteAccess(ctx.db, ctx.session.user.id, input.id);
-    await ctx.db.update(expense).set({ status: "cancelled" }).where(eq(expense.id, input.id));
+  cancel: protectedProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/expenses/{id}/cancel",
+        tags: ["Expenses"],
+        summary: "Cancel an expense",
+        description: "The expense is retained as financial history rather than deleted.",
+      },
+    })
+    .input(expenseIdInput)
+    .output(expenseSchema)
+    .mutation(async ({ ctx, input }) => {
+      await requireExpenseWriteAccess(ctx.db, ctx.session.user.id, input.id);
+      await ctx.db.update(expense).set({ status: "cancelled" }).where(eq(expense.id, input.id));
 
-    return visibleExpense(ctx.db, ctx.session.user.id, input.id);
-  }),
+      return visibleExpense(ctx.db, ctx.session.user.id, input.id);
+    }),
 });
