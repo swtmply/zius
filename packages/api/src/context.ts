@@ -19,3 +19,5 @@ export async function createContext({ context, db = appDatabase }: CreateContext
 }
 
 export type Context = Awaited<ReturnType<typeof createContext>>;
+
+export type AuthenticatedContext = Context & { session: NonNullable<Context["session"]> };

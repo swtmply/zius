@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import type { Context } from "../context";
+import type { AuthenticatedContext } from "../context";
 import { protectedProcedure, router } from "../index";
 import { getOrCreateCurrentPerson } from "./people";
 
@@ -26,8 +26,6 @@ const membershipInput = z.object({
   groupId: z.string().min(1),
   personId: z.string().min(1),
 });
-
-type AuthenticatedContext = Context & { session: NonNullable<Context["session"]> };
 
 async function requireGroupOwner(ctx: AuthenticatedContext, groupId: string) {
   const [group] = await ctx.db
