@@ -2,23 +2,28 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { expenseParticipant } from "@zius/db/schema/expenses";
 import { eq } from "drizzle-orm";
 
-import { addCaller, closeTestDatabases, createCaller, type TestCaller } from "../testing";
+import { addCaller, closeTestDatabases, createCaller } from "../testing";
 
 afterEach(closeTestDatabases);
 
-async function currentPerson(caller: TestCaller, displayName: string, email: string) {
-  return caller.people.resolve({ displayName, email });
-}
-
-async function groupFixture() {
+async function groupFixture(defaultCurrency = "PHP") {
   const { caller: ownerCaller, db } = await createCaller("owner", "Owner", "owner@example.com");
   const memberCaller = await addCaller(db, "member", "Member", "member@example.com");
   const outsiderCaller = await addCaller(db, "outsider", "Outsider", "outsider@example.com");
 
-  const group = await ownerCaller.groups.create({ name: "Trip", defaultCurrency: "PHP" });
-  const owner = await currentPerson(ownerCaller, "Owner", "owner@example.com");
-  const member = await currentPerson(memberCaller, "Member", "member@example.com");
-  const outsider = await currentPerson(outsiderCaller, "Outsider", "outsider@example.com");
+  const group = await ownerCaller.groups.create({ name: "Trip", defaultCurrency });
+  const owner = await ownerCaller.people.resolve({
+    displayName: "Owner",
+    email: "owner@example.com",
+  });
+  const member = await memberCaller.people.resolve({
+    displayName: "Member",
+    email: "member@example.com",
+  });
+  const outsider = await outsiderCaller.people.resolve({
+    displayName: "Outsider",
+    email: "outsider@example.com",
+  });
   const guest = await ownerCaller.people.resolve({
     displayName: "Guest",
     email: "guest@example.com",
@@ -34,17 +39,15 @@ type ExpenseInputOverrides = {
   groupId?: string | null;
   title?: string;
   currency?: string;
-  participants?: { personId: string; paidMinor: number; owedMinor: number }[];
+  participants: { personId: string; paidMinor: number; owedMinor: number }[];
 };
 
-function expenseInput(overrides: ExpenseInputOverrides = {}) {
+function expenseInput(overrides: ExpenseInputOverrides) {
   return {
     groupId: null,
     title: "Dinner",
     totalMinor: 10_000,
-    currency: "PHP",
     splitMethod: "exact" as const,
-    participants: [],
     ...overrides,
   };
 }
@@ -111,17 +114,33 @@ describe("group expense creation", () => {
   });
 
   test("a group expense must use the group default currency", async () => {
-    const { group, ownerCaller, owner, member } = await groupFixture();
+    const { group, ownerCaller, owner, member } = await groupFixture("USD");
 
     await expect(
       ownerCaller.expenses.create(
         expenseInput({
           groupId: group.id,
-          currency: "USD",
+          currency: "PHP",
           participants: evenSplit(owner.id, member.id),
         }),
       ),
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    const created = await ownerCaller.expenses.create(
+      expenseInput({ groupId: group.id, participants: evenSplit(owner.id, member.id) }),
+    );
+
+    expect(created).toMatchObject({ currency: "USD" });
+  });
+
+  test("an expense without a group falls back to PHP", async () => {
+    const { ownerCaller, owner, member } = await groupFixture("USD");
+
+    const created = await ownerCaller.expenses.create(
+      expenseInput({ participants: evenSplit(owner.id, member.id) }),
+    );
+
+    expect(created).toMatchObject({ groupId: null, currency: "PHP" });
   });
 
   test("a missing group returns a typed error", async () => {
@@ -381,6 +400,27 @@ describe("group expense updates", () => {
     ).rejects.toMatchObject({ code: "BAD_REQUEST" });
     expect(await ownerCaller.expenses.get({ id: created.id })).toMatchObject({
       totalMinor: 10_000,
+    });
+  });
+
+  test("a removed member cannot change the group expenses they recorded", async () => {
+    const { group, ownerCaller, memberCaller, owner, member, guest } = await groupFixture();
+
+    const recorded = await memberCaller.expenses.create(
+      expenseInput({ groupId: group.id, participants: evenSplit(member.id, owner.id) }),
+    );
+
+    await ownerCaller.groups.removeMember({ groupId: group.id, personId: member.id });
+
+    expect(await memberCaller.expenses.get({ id: recorded.id })).toMatchObject({ id: recorded.id });
+    await expect(
+      memberCaller.expenses.update({
+        ...expenseInput({ groupId: group.id, participants: evenSplit(owner.id, guest.id) }),
+        id: recorded.id,
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(memberCaller.expenses.cancel({ id: recorded.id })).rejects.toMatchObject({
+      code: "FORBIDDEN",
     });
   });
 

@@ -19,7 +19,7 @@ const participantInput = z.object({
 });
 
 const expenseWriteFields = z.object({
-  groupId: z.string().min(1).nullable().default(null),
+  groupId: z.string().min(1).nullable(),
   title: z.string().trim().min(1),
   note: z.string().trim().nullable().optional(),
   totalMinor: z.number().int().positive(),
@@ -28,7 +28,7 @@ const expenseWriteFields = z.object({
     .trim()
     .toUpperCase()
     .regex(/^[A-Z]{3}$/)
-    .default("PHP"),
+    .optional(),
   splitMethod: z.enum(["equal", "exact", "percentage", "shares"]).default("exact"),
   occurredAt: z.coerce.date().default(() => new Date()),
   participants: z.array(participantInput).min(1),
@@ -180,12 +180,7 @@ async function requireGroup(db: Context["db"], groupId: string) {
   return group;
 }
 
-async function findActiveMembership(
-  db: Context["db"],
-  groupId: string,
-  userId: string,
-  role?: "owner" | "member",
-) {
+async function findActiveMembership(db: Context["db"], groupId: string, userId: string) {
   const [membership] = await db
     .select({ role: expenseGroupMember.role })
     .from(expenseGroupMember)
@@ -195,7 +190,6 @@ async function findActiveMembership(
         eq(expenseGroupMember.groupId, groupId),
         eq(person.userId, userId),
         isNull(expenseGroupMember.removedAt),
-        role ? eq(expenseGroupMember.role, role) : undefined,
       ),
     )
     .limit(1);
@@ -203,24 +197,25 @@ async function findActiveMembership(
   return membership;
 }
 
-async function requireWritableGroup(db: Context["db"], groupId: string, userId: string) {
-  const group = await requireGroup(db, groupId);
-  const membership = await findActiveMembership(db, group.id, userId);
+async function requireActiveMembership(db: Context["db"], groupId: string, userId: string) {
+  const membership = await findActiveMembership(db, groupId, userId);
 
   if (!membership) {
     throw new TRPCError({ code: "FORBIDDEN", message: "Active group membership required" });
   }
 
-  return group;
+  return membership;
 }
 
-function requireGroupCurrency(group: { defaultCurrency: string }, currency: string) {
-  if (currency !== group.defaultCurrency) {
+function groupCurrency(group: { defaultCurrency: string }, requested: string | undefined) {
+  if (requested && requested !== group.defaultCurrency) {
     throw new TRPCError({
       code: "BAD_REQUEST",
       message: "A group expense must use the group default currency",
     });
   }
+
+  return group.defaultCurrency;
 }
 
 async function requireExpenseWriteAccess(db: Context["db"], userId: string, id: string) {
@@ -234,25 +229,58 @@ async function requireExpenseWriteAccess(db: Context["db"], userId: string, id: 
     throw new TRPCError({ code: "NOT_FOUND", message: "Expense not found" });
   }
 
-  if (match.createdById === userId) {
-    return match;
-  }
-
-  if (match.groupId && (await findActiveMembership(db, match.groupId, userId, "owner"))) {
-    return match;
-  }
-
-  throw new TRPCError({
+  const deniedError = new TRPCError({
     code: "FORBIDDEN",
     message: "Only the expense creator or the group owner can change this expense",
   });
+
+  if (!match.groupId) {
+    if (match.createdById !== userId) {
+      throw deniedError;
+    }
+
+    return match;
+  }
+
+  const membership = await requireActiveMembership(db, match.groupId, userId);
+
+  if (match.createdById !== userId && membership.role !== "owner") {
+    throw deniedError;
+  }
+
+  return match;
 }
 
-async function requireResolvedParticipants(
+// Participant person ids are unique by the time this runs, so a count comparison is enough.
+async function requireEligibleParticipants(
   db: Context["db"],
+  groupId: string | null,
   participants: ExpenseWrite["participants"],
 ) {
   const personIds = participants.map(({ personId }) => personId);
+
+  if (groupId) {
+    const memberships = await db
+      .select({ personId: expenseGroupMember.personId })
+      .from(expenseGroupMember)
+      .where(
+        and(
+          eq(expenseGroupMember.groupId, groupId),
+          inArray(expenseGroupMember.personId, personIds),
+          isNull(expenseGroupMember.removedAt),
+        ),
+      );
+
+    if (memberships.length !== personIds.length) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "Every participant must be an active group member",
+      });
+    }
+
+    return;
+  }
+
   const resolvedPeople = await db
     .select({ id: person.id })
     .from(person)
@@ -266,55 +294,21 @@ async function requireResolvedParticipants(
   }
 }
 
-async function requireParticipantMemberships(
-  db: Context["db"],
-  groupId: string,
-  participants: ExpenseWrite["participants"],
-) {
-  const personIds = participants.map(({ personId }) => personId);
-  const memberships = await db
-    .select({ personId: expenseGroupMember.personId })
-    .from(expenseGroupMember)
-    .where(
-      and(
-        eq(expenseGroupMember.groupId, groupId),
-        inArray(expenseGroupMember.personId, personIds),
-        isNull(expenseGroupMember.removedAt),
-      ),
-    );
-
-  if (memberships.length !== personIds.length) {
-    throw new TRPCError({
-      code: "BAD_REQUEST",
-      message: "Every participant must be an active group member",
-    });
-  }
-}
-
-async function requireWritableParticipants(
-  db: Context["db"],
-  groupId: string | null,
-  participants: ExpenseWrite["participants"],
-) {
-  await requireResolvedParticipants(db, participants);
-
-  if (groupId) {
-    await requireParticipantMemberships(db, groupId, participants);
-  }
-}
-
 function participantRows(expenseId: string, participants: ExpenseWrite["participants"]) {
   return participants.map((participant) => ({ expenseId, ...participant }));
 }
 
 export const expensesRouter = router({
   create: protectedProcedure.input(expenseWriteInput).mutation(async ({ ctx, input }) => {
+    let currency = input.currency ?? "PHP";
+
     if (input.groupId) {
-      const group = await requireWritableGroup(ctx.db, input.groupId, ctx.session.user.id);
-      requireGroupCurrency(group, input.currency);
+      const group = await requireGroup(ctx.db, input.groupId);
+      await requireActiveMembership(ctx.db, group.id, ctx.session.user.id);
+      currency = groupCurrency(group, input.currency);
     }
 
-    await requireWritableParticipants(ctx.db, input.groupId, input.participants);
+    await requireEligibleParticipants(ctx.db, input.groupId, input.participants);
 
     const expenseId = crypto.randomUUID();
     const [createdExpenseRows] = await ctx.db.batch([
@@ -327,7 +321,7 @@ export const expensesRouter = router({
           title: input.title,
           note: input.note ?? null,
           totalMinor: input.totalMinor,
-          currency: input.currency,
+          currency,
           splitMethod: input.splitMethod,
           occurredAt: input.occurredAt,
         })
@@ -373,11 +367,11 @@ export const expensesRouter = router({
       });
     }
 
-    if (existing.groupId) {
-      requireGroupCurrency(await requireGroup(ctx.db, existing.groupId), input.currency);
-    }
+    const currency = existing.groupId
+      ? groupCurrency(await requireGroup(ctx.db, existing.groupId), input.currency)
+      : (input.currency ?? "PHP");
 
-    await requireWritableParticipants(ctx.db, existing.groupId, input.participants);
+    await requireEligibleParticipants(ctx.db, existing.groupId, input.participants);
 
     await ctx.db.batch([
       ctx.db
@@ -386,7 +380,7 @@ export const expensesRouter = router({
           title: input.title,
           note: input.note ?? null,
           totalMinor: input.totalMinor,
-          currency: input.currency,
+          currency,
           splitMethod: input.splitMethod,
           occurredAt: input.occurredAt,
         })
