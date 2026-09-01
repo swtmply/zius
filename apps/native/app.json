@@ -2,7 +2,7 @@
   "expo": {
     "name": "zius",
     "slug": "zius",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zius",
@@ -44,6 +44,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1cd3d173-ac50-4baa-b475-a9163ddaf71b"
+      }
+    },
+    "owner": "allenwhun"
   }
 }

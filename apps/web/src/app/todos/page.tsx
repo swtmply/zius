@@ -11,10 +11,11 @@ import {
 } from "@zius/ui/components/card";
 import { Checkbox } from "@zius/ui/components/checkbox";
 import { Input } from "@zius/ui/components/input";
-import { Loader2, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { trpc } from "@/utils/trpc";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Loading03Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 
 type TodoId = number;
 
@@ -76,13 +77,25 @@ export default function TodosPage() {
               disabled={createMutation.isPending}
             />
             <Button type="submit" disabled={createMutation.isPending || !newTodoText.trim()}>
-              {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+              {createMutation.isPending ? (
+                <HugeiconsIcon
+                  icon={Loading03Icon}
+                  strokeWidth={2}
+                  className="h-4 w-4 animate-spin"
+                />
+              ) : (
+                "Add"
+              )}
             </Button>
           </form>
 
           {todos.isLoading ? (
             <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <HugeiconsIcon
+                icon={Loading03Icon}
+                strokeWidth={2}
+                className="h-6 w-6 animate-spin"
+              />
             </div>
           ) : todos.data?.length === 0 ? (
             <p className="py-4 text-center">No todos yet. Add one above!</p>
@@ -112,7 +125,7 @@ export default function TodosPage() {
                     onClick={() => handleDeleteTodo(todo.id)}
                     aria-label="Delete todo"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} className="h-4 w-4" />
                   </Button>
                 </li>
               ))}
