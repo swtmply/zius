@@ -1,4 +1,5 @@
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { expensesRouter } from "./expenses";
 import { groupsRouter } from "./groups";
 import { peopleRouter } from "./people";
 import { todoRouter } from "./todo";
@@ -13,6 +14,7 @@ export const appRouter = router({
       user: ctx.session.user,
     };
   }),
+  expenses: expensesRouter,
   groups: groupsRouter,
   people: peopleRouter,
   todo: todoRouter,
