@@ -14,3 +14,5 @@ export function createDb() {
 }
 
 export const db = createDb();
+
+export type Database = typeof db;
