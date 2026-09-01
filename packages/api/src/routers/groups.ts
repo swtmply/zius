@@ -3,6 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
+import type { Context } from "../context";
 import { protectedProcedure, router } from "../index";
 import { getOrCreateCurrentPerson } from "./people";
 
@@ -20,6 +21,55 @@ const groupFields = {
 const groupIdInput = z.object({
   id: z.string().min(1),
 });
+
+const membershipInput = z.object({
+  groupId: z.string().min(1),
+  personId: z.string().min(1),
+});
+
+type AuthenticatedContext = Context & { session: NonNullable<Context["session"]> };
+
+async function requireGroupOwner(ctx: AuthenticatedContext, groupId: string) {
+  const [group] = await ctx.db
+    .select({ id: expenseGroup.id })
+    .from(expenseGroup)
+    .where(eq(expenseGroup.id, groupId))
+    .limit(1);
+
+  if (!group) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+  }
+
+  const currentPerson = await getOrCreateCurrentPerson(ctx.db, ctx.session);
+  const [ownerMembership] = await ctx.db
+    .select({ personId: expenseGroupMember.personId })
+    .from(expenseGroupMember)
+    .where(
+      and(
+        eq(expenseGroupMember.groupId, groupId),
+        eq(expenseGroupMember.personId, currentPerson.id),
+        eq(expenseGroupMember.role, "owner"),
+        isNull(expenseGroupMember.removedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!ownerMembership) {
+    throw new TRPCError({ code: "FORBIDDEN", message: "Only the group owner can manage members" });
+  }
+}
+
+async function requirePerson(ctx: AuthenticatedContext, personId: string) {
+  const [resolvedPerson] = await ctx.db
+    .select({ id: person.id })
+    .from(person)
+    .where(eq(person.id, personId))
+    .limit(1);
+
+  if (!resolvedPerson) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "Person not found" });
+  }
+}
 
 export const groupsRouter = router({
   create: protectedProcedure
@@ -127,5 +177,83 @@ export const groupsRouter = router({
       );
 
     return { ...group, members };
+  }),
+
+  addMember: protectedProcedure.input(membershipInput).mutation(async ({ ctx, input }) => {
+    await requireGroupOwner(ctx, input.groupId);
+    await requirePerson(ctx, input.personId);
+
+    const [membership] = await ctx.db
+      .insert(expenseGroupMember)
+      .values({
+        groupId: input.groupId,
+        personId: input.personId,
+        role: "member",
+      })
+      .onConflictDoUpdate({
+        target: [expenseGroupMember.groupId, expenseGroupMember.personId],
+        set: { removedAt: null },
+      })
+      .returning();
+
+    if (!membership) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could not add group member",
+      });
+    }
+
+    return membership;
+  }),
+
+  removeMember: protectedProcedure.input(membershipInput).mutation(async ({ ctx, input }) => {
+    await requireGroupOwner(ctx, input.groupId);
+    await requirePerson(ctx, input.personId);
+
+    const [membership] = await ctx.db
+      .select()
+      .from(expenseGroupMember)
+      .where(
+        and(
+          eq(expenseGroupMember.groupId, input.groupId),
+          eq(expenseGroupMember.personId, input.personId),
+        ),
+      )
+      .limit(1);
+
+    if (!membership) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Membership not found" });
+    }
+
+    if (membership.role === "owner") {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: "The group owner cannot remove their owner membership",
+      });
+    }
+
+    if (membership.removedAt) {
+      return membership;
+    }
+
+    const [removedMembership] = await ctx.db
+      .update(expenseGroupMember)
+      .set({ removedAt: new Date() })
+      .where(
+        and(
+          eq(expenseGroupMember.groupId, input.groupId),
+          eq(expenseGroupMember.personId, input.personId),
+        ),
+      )
+      .returning();
+
+    if (!removedMembership) {
+      throw new TRPCError({
+        code: "INTERNAL_SERVER_ERROR",
+        message: "Could not remove group member",
+      });
+    }
+
+    return removedMembership;
   }),
 });
