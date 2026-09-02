@@ -1,7 +1,10 @@
 import BalanceCard from "@/components/dashboard/balance-card";
 import DashboardHeader from "@/components/dashboard/header";
 import DashboardLoading from "@/components/dashboard/loading";
-import { ActiveTransactions, TransactionsEmptyState } from "@/components/dashboard/transactions";
+import {
+  ActiveTransactions,
+  TransactionsEmptyState,
+} from "@/components/dashboard/transactions";
 import { SectionHeader } from "@/components/section-header";
 import { formatCurrency, formatDate } from "@/utils";
 import { trpc } from "@/utils/trpc";
@@ -48,7 +51,9 @@ export default function Home() {
                       })
                     }
                   >
-                    <Typography className="text-sm text-muted">See All</Typography>
+                    <Typography className="text-sm text-muted">
+                      See All
+                    </Typography>
                   </Button>
                 ) : null
               }
