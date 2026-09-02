@@ -23,7 +23,10 @@ const trpcClient = createTRPCClient<AppRouter>({
       async headers() {
         const headers = new Map<string, string>();
         if (env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET) {
-          headers.set("x-vercel-protection-bypass", env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET);
+          headers.set(
+            "x-vercel-protection-bypass",
+            env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET,
+          );
         }
         if (Platform.OS === "web") {
           return Object.fromEntries(headers);
