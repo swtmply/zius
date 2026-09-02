@@ -52,7 +52,9 @@
     "deploy": "vercel deploy",
     "deploy:prod": "vercel deploy --prod",
     "deploy:check": "vercel deploy --dry",
-    "check": "oxlint && oxfmt --write"
+    "check": "oxlint && oxfmt --write",
+    "clean": "git clean -Xdf -e \"!.env*\"",
+    "clean:preview": "git clean -Xdn -e \"!.env*\""
   },
   "dependencies": {
     "@zius/env": "workspace:*",
