@@ -26,12 +26,14 @@
     "@zius/env": "workspace:*",
     "dotenv": "catalog:",
     "drizzle-orm": "catalog:",
-    "zod": "catalog:"
+    "trpc-to-openapi": "3.3.0",
+    "zod": "catalog:",
+    "zod-openapi": "5.4.6"
   },
   "devDependencies": {
     "@zius/config": "workspace:*",
     "hono": "catalog:",
-    "typescript": "^6.0.3",
-    "tsdown": "^0.22.14"
+    "tsdown": "^0.22.14",
+    "typescript": "^6.0.3"
   }
 }

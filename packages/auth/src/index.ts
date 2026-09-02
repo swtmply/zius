@@ -4,6 +4,7 @@ import * as schema from "@zius/db/schema/auth";
 import { env } from "@zius/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { openAPI } from "better-auth/plugins";
 
 export function createAuth() {
   const db = createDb();
@@ -33,7 +34,7 @@ export function createAuth() {
         httpOnly: true,
       },
     },
-    plugins: [expo()],
+    plugins: [expo(), openAPI()],
   });
 }
 
