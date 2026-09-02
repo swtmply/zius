@@ -72,32 +72,53 @@ export const dashboardRouter = router({
       .where(eq(billParticipant.participantId, participantId));
 
     const involvedBillIds = involvedBillRows.map((row) => row.billId);
+    const involvementCondition =
+      involvedBillIds.length > 0
+        ? or(eq(bill.payerId, participantId), inArray(bill.id, involvedBillIds))
+        : eq(bill.payerId, participantId);
 
-    const activeTransactions = await db
+    const activeBills = await db
       .select(dashboardBillColumns)
       .from(bill)
-      .where(
-        and(
-          eq(bill.status, "active"),
-          involvedBillIds.length > 0
-            ? or(eq(bill.payerId, participantId), inArray(bill.id, involvedBillIds))
-            : eq(bill.payerId, participantId),
-        ),
-      )
+      .where(and(eq(bill.status, "active"), involvementCondition))
       .orderBy(desc(bill.occurredAt))
       .limit(10);
+
+    const activeBillIds = activeBills.map((item) => item.id);
+    const activeParticipantRows =
+      activeBillIds.length === 0
+        ? []
+        : await db
+            .select({
+              billId: billParticipant.billId,
+              id: participant.id,
+              name: participant.name,
+              email: participant.email,
+            })
+            .from(billParticipant)
+            .innerJoin(participant, eq(participant.id, billParticipant.participantId))
+            .where(inArray(billParticipant.billId, activeBillIds));
+
+    const participantsByBillId = new Map<
+      string,
+      Array<{ id: string; name: string; email: string }>
+    >();
+
+    for (const row of activeParticipantRows) {
+      const current = participantsByBillId.get(row.billId) ?? [];
+      current.push({ id: row.id, name: row.name, email: row.email });
+      participantsByBillId.set(row.billId, current);
+    }
+
+    const activeTransactions = activeBills.map((item) => ({
+      ...item,
+      participants: participantsByBillId.get(item.id) ?? [],
+    }));
 
     const recentTransactions = await db
       .select(dashboardBillColumns)
       .from(bill)
-      .where(
-        and(
-          eq(bill.status, "settled"),
-          involvedBillIds.length > 0
-            ? or(eq(bill.payerId, participantId), inArray(bill.id, involvedBillIds))
-            : eq(bill.payerId, participantId),
-        ),
-      )
+      .where(and(eq(bill.status, "settled"), involvementCondition))
       .orderBy(desc(bill.occurredAt))
       .limit(5);
 
