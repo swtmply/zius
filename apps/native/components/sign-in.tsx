@@ -1,66 +1,103 @@
 import { useForm } from "@tanstack/react-form";
+import { useRouter } from "expo-router";
+import { useRef, useState, type RefObject } from "react";
 import {
-  Button,
-  FieldError,
-  Input,
-  Label,
-  Spinner,
-  Surface,
-  TextField,
-  useToast,
-} from "heroui-native";
-import { useRef } from "react";
-import { Text, TextInput, View } from "react-native";
-import z from "zod";
+  ActivityIndicator,
+  Pressable,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+} from "react-native";
+import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
-import { queryClient } from "@/utils/trpc";
 
 const signInSchema = z.object({
-  email: z.string().trim().min(1, "Email is required").email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required").min(8, "Use at least 8 characters"),
+  email: z.email("Enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-function getErrorMessage(error: unknown): string | null {
-  if (!error) return null;
+const signUpSchema = signInSchema.extend({
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
+});
 
-  if (typeof error === "string") {
-    return error;
-  }
+type AuthMode = "sign-in" | "sign-up";
 
-  if (Array.isArray(error)) {
-    for (const issue of error) {
-      const message = getErrorMessage(issue);
-      if (message) {
-        return message;
-      }
-    }
-    return null;
-  }
+type AuthFieldProps = TextInputProps & {
+  inputRef?: RefObject<TextInput | null>;
+  label: string;
+};
 
-  if (typeof error === "object" && error !== null) {
-    const maybeError = error as { message?: unknown };
-    if (typeof maybeError.message === "string") {
-      return maybeError.message;
-    }
-  }
-
-  return null;
+function AuthField({ inputRef, label, ...inputProps }: AuthFieldProps) {
+  return (
+    <View
+      style={{
+        height: 54,
+        flexDirection: "row",
+        alignItems: "center",
+        borderRadius: 16,
+        borderCurve: "continuous",
+        paddingHorizontal: 16,
+        backgroundColor: "#FFFFFF",
+        boxShadow: "0 9px 26px rgba(0, 0, 0, 0.12)",
+      }}
+    >
+      <Text style={{ width: 82, color: "#171717", fontSize: 14 }}>{label}</Text>
+      <TextInput
+        ref={inputRef}
+        placeholderTextColor="#C4C4C7"
+        style={{ flex: 1, height: "100%", color: "#171717", fontSize: 14 }}
+        {...inputProps}
+      />
+    </View>
+  );
 }
 
-function SignIn() {
+export function SignIn() {
+  const router = useRouter();
+  const nameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
-  const { toast } = useToast();
+  const [mode, setMode] = useState<AuthMode>("sign-in");
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   const form = useForm({
     defaultValues: {
+      name: "",
       email: "",
       password: "",
     },
-    validators: {
-      onSubmit: signInSchema,
-    },
-    onSubmit: async ({ value, formApi }) => {
+    onSubmit: async ({ value }) => {
+      setSubmissionError(null);
+
+      const result =
+        mode === "sign-up" ? signUpSchema.safeParse(value) : signInSchema.safeParse(value);
+
+      if (!result.success) {
+        setSubmissionError(result.error.issues[0]?.message ?? "Check your details and try again");
+        return;
+      }
+
+      if (mode === "sign-up") {
+        await authClient.signUp.email(
+          {
+            name: value.name.trim(),
+            email: value.email.trim(),
+            password: value.password,
+          },
+          {
+            onError(error) {
+              setSubmissionError(error.error.message ?? "Unable to create your account");
+            },
+            onSuccess() {
+              router.replace("/home");
+            },
+          },
+        );
+        return;
+      }
+
       await authClient.signIn.email(
         {
           email: value.email.trim(),
@@ -68,101 +105,156 @@ function SignIn() {
         },
         {
           onError(error) {
-            toast.show({
-              variant: "danger",
-              label: error.error?.message || "Failed to sign in",
-            });
+            setSubmissionError(error.error.message ?? "Unable to log in");
           },
           onSuccess() {
-            formApi.reset();
-            toast.show({
-              variant: "success",
-              label: "Signed in successfully",
-            });
-            queryClient.refetchQueries();
+            router.replace("/home");
           },
         },
       );
     },
   });
 
+  const isSignUp = mode === "sign-up";
+
+  function switchMode() {
+    setMode(isSignUp ? "sign-in" : "sign-up");
+    setSubmissionError(null);
+    form.reset();
+  }
+
   return (
-    <Surface variant="secondary" className="p-4 rounded-lg">
-      <Text className="text-foreground font-medium mb-4">Sign In</Text>
-
-      <form.Subscribe
-        selector={(state) => ({
-          isSubmitting: state.isSubmitting,
-          validationError: getErrorMessage(state.errorMap.onSubmit),
-        })}
-      >
-        {({ isSubmitting, validationError }) => {
-          const formError = validationError;
-
-          return (
-            <>
-              <FieldError isInvalid={!!formError} className="mb-3">
-                {formError}
-              </FieldError>
-
-              <View className="gap-3">
-                <form.Field name="email">
-                  {(field) => (
-                    <TextField>
-                      <Label>Email</Label>
-                      <Input
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChangeText={field.handleChange}
-                        placeholder="email@example.com"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        autoComplete="email"
-                        textContentType="emailAddress"
-                        returnKeyType="next"
-                        blurOnSubmit={false}
-                        onSubmitEditing={() => {
-                          passwordInputRef.current?.focus();
-                        }}
-                      />
-                    </TextField>
-                  )}
-                </form.Field>
-
-                <form.Field name="password">
-                  {(field) => (
-                    <TextField>
-                      <Label>Password</Label>
-                      <Input
-                        ref={passwordInputRef}
-                        value={field.state.value}
-                        onBlur={field.handleBlur}
-                        onChangeText={field.handleChange}
-                        placeholder="••••••••"
-                        secureTextEntry
-                        autoComplete="password"
-                        textContentType="password"
-                        returnKeyType="go"
-                        onSubmitEditing={form.handleSubmit}
-                      />
-                    </TextField>
-                  )}
-                </form.Field>
-
-                <Button onPress={form.handleSubmit} isDisabled={isSubmitting} className="mt-1">
-                  {isSubmitting ? (
-                    <Spinner size="sm" color="default" />
-                  ) : (
-                    <Button.Label>Sign In</Button.Label>
-                  )}
-                </Button>
-              </View>
-            </>
-          );
+    <View style={{ width: "100%", maxWidth: 420, gap: 60 }}>
+      <Text
+        selectable
+        style={{
+          color: "#000000",
+          fontSize: 46,
+          fontWeight: "700",
+          letterSpacing: -2.8,
+          textAlign: "center",
         }}
-      </form.Subscribe>
-    </Surface>
+      >
+        Zius
+      </Text>
+
+      <View style={{ gap: 16 }}>
+        {isSignUp ? (
+          <form.Field name="name">
+            {(field) => (
+              <AuthField
+                inputRef={nameInputRef}
+                label="Name"
+                value={field.state.value}
+                onBlur={field.handleBlur}
+                onChangeText={field.handleChange}
+                onSubmitEditing={() => emailInputRef.current?.focus()}
+                placeholder="Email"
+                autoComplete="name"
+                textContentType="name"
+                returnKeyType="next"
+                blurOnSubmit={false}
+              />
+            )}
+          </form.Field>
+        ) : null}
+
+        <form.Field name="email">
+          {(field) => (
+            <AuthField
+              inputRef={emailInputRef}
+              label="Email"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChangeText={field.handleChange}
+              onSubmitEditing={() => passwordInputRef.current?.focus()}
+              placeholder="Email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              blurOnSubmit={false}
+            />
+          )}
+        </form.Field>
+
+        <form.Field name="password">
+          {(field) => (
+            <AuthField
+              inputRef={passwordInputRef}
+              label="Password"
+              value={field.state.value}
+              onBlur={field.handleBlur}
+              onChangeText={field.handleChange}
+              onSubmitEditing={() => void form.handleSubmit()}
+              placeholder="Password"
+              secureTextEntry
+              autoComplete={isSignUp ? "new-password" : "password"}
+              textContentType={isSignUp ? "newPassword" : "password"}
+              returnKeyType="go"
+            />
+          )}
+        </form.Field>
+
+        <form.Subscribe selector={(state) => state.isSubmitting}>
+          {(isSubmitting) => (
+            <>
+              {submissionError ? (
+                <Text selectable style={{ color: "#DC2626", fontSize: 12 }}>
+                  {submissionError}
+                </Text>
+              ) : null}
+
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSubmitting}
+                onPress={() => void form.handleSubmit()}
+                style={({ pressed }) => ({
+                  height: 54,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 16,
+                  borderCurve: "continuous",
+                  backgroundColor: "#000000",
+                  opacity: pressed || isSubmitting ? 0.72 : 1,
+                })}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={{ color: "#FFFFFF", fontSize: 14 }}>
+                    {isSignUp ? "Create Account" : "Login your account"}
+                  </Text>
+                )}
+              </Pressable>
+
+              <Text selectable style={{ color: "#929292", fontSize: 12 }}>
+                {isSignUp ? "Already have an account?" : "Don't have an account yet?"}
+              </Text>
+
+              <Pressable
+                accessibilityRole="button"
+                disabled={isSubmitting}
+                onPress={switchMode}
+                style={({ pressed }) => ({
+                  height: 52,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: 15,
+                  borderCurve: "continuous",
+                  backgroundColor: "#ECECEC",
+                  opacity: pressed || isSubmitting ? 0.72 : 1,
+                })}
+              >
+                <Text style={{ color: "#111111", fontSize: 14 }}>
+                  {isSignUp ? "Login your account" : "Create account"}
+                </Text>
+              </Pressable>
+            </>
+          )}
+        </form.Subscribe>
+      </View>
+    </View>
   );
 }
-
-export { SignIn };
