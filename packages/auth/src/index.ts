@@ -1,6 +1,7 @@
 import { expo } from "@better-auth/expo";
 import { createDb } from "@zius/db";
 import * as schema from "@zius/db/schema/auth";
+import { participant } from "@zius/db/schema/billing";
 import { env } from "@zius/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -15,6 +16,20 @@ export function createAuth() {
 
       schema: schema,
     }),
+    databaseHooks: {
+      user: {
+        create: {
+          after: async (user) => {
+            await db.insert(participant).values({
+              userId: user.id,
+              name: user.name,
+              email: user.email,
+              claimedAt: new Date(),
+            });
+          },
+        },
+      },
+    },
     trustedOrigins: [
       env.CORS_ORIGIN,
 
