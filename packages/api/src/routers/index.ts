@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { protectedProcedure, publicProcedure, router } from "../index";
+import { dashboardRouter } from "./dashboard";
 import { todoRouter } from "./todo";
 
 export const appRouter = router({
@@ -22,6 +23,7 @@ export const appRouter = router({
       user: ctx.session.user,
     };
   }),
+  dashboard: dashboardRouter,
   todo: todoRouter,
 });
 export type AppRouter = typeof appRouter;

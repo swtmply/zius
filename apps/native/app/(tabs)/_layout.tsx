@@ -1,31 +1,43 @@
-import { Ionicons } from "@expo/vector-icons";
+import {
+  Add,
+  Home04Icon,
+  Notification,
+  Scan,
+  Settings,
+} from "@hugeicons/core-free-icons";
+import type { HugeiconsProps } from "@hugeicons/react-native";
+import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Redirect, Tabs } from "expo-router";
-import type { ComponentProps } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, ColorValue, View } from "react-native";
 
 import { authClient } from "@/lib/auth-client";
 
-type TabIconName = ComponentProps<typeof Ionicons>["name"];
-
-type Tab = {
-  name: "home" | "scan" | "add" | "notifications" | "settings";
-  title: string;
-  focusedIcon: TabIconName;
-  icon: TabIconName;
+type TabIconProps = {
+  icon: HugeiconsProps["icon"];
+  name: string;
+  size: number;
+  focused: boolean;
+  color?: ColorValue;
 };
 
-const tabs: Tab[] = [
-  { name: "home", title: "Home", focusedIcon: "home", icon: "home-outline" },
-  { name: "scan", title: "Scan", focusedIcon: "scan", icon: "scan-outline" },
-  { name: "add", title: "Add", focusedIcon: "add-circle", icon: "add-circle-outline" },
-  {
-    name: "notifications",
-    title: "Notifications",
-    focusedIcon: "notifications",
-    icon: "notifications-outline",
-  },
-  { name: "settings", title: "Settings", focusedIcon: "settings", icon: "settings-outline" },
+const tabs: TabIconProps[] = [
+  { icon: Home04Icon, name: "home", size: 24, focused: false },
+  { icon: Scan, name: "scan", size: 24, focused: false },
+  { icon: Add, name: "add", size: 24, focused: false },
+  { icon: Notification, name: "notifications", size: 24, focused: false },
+  { icon: Settings, name: "settings", size: 24, focused: false },
 ];
+
+export function TabIcon({ icon, color, size, focused }: TabIconProps) {
+  return (
+    <HugeiconsIcon
+      icon={icon}
+      color={color}
+      size={size}
+      strokeWidth={focused ? 2.5 : 1.8}
+    />
+  );
+}
 
 export default function TabsLayout() {
   const { data: session, isPending } = authClient.useSession();
@@ -54,9 +66,13 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: "#FAFAF8" },
-        tabBarActiveTintColor: "#171717",
-        tabBarInactiveTintColor: "#A3A3A3",
-        tabBarStyle: { borderTopColor: "#E5E5E5" },
+        tabBarActiveTintColor: "#000000",
+        tabBarInactiveTintColor: "#8A8A8E",
+        tabBarStyle: {
+          borderTopColor: "#E5E5E5",
+          paddingTop: 16,
+          height: 75,
+        },
       }}
     >
       {tabs.map((tab) => (
@@ -64,9 +80,15 @@ export default function TabsLayout() {
           key={tab.name}
           name={tab.name}
           options={{
-            title: tab.title,
+            tabBarShowLabel: false,
             tabBarIcon: ({ color, focused, size }) => (
-              <Ionicons name={focused ? tab.focusedIcon : tab.icon} size={size} color={color} />
+              <TabIcon
+                name={tab.name}
+                icon={tab.icon}
+                color={color}
+                size={size}
+                focused={focused}
+              />
             ),
           }}
         />
