@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 
 export const authClient = createAuthClient({
-  baseURL: env.EXPO_PUBLIC_SERVER_URL,
+  baseURL: new URL("/api/auth", env.EXPO_PUBLIC_SERVER_URL).toString(),
   fetchOptions: {
     headers: env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET
       ? { "x-vercel-protection-bypass": env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET }

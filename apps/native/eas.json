@@ -6,14 +6,24 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "preview": {
+      "autoIncrement": true,
       "distribution": "internal",
-      "environment": "preview"
+      "environment": "preview",
+      "channel": "staging"
+    },
+    "development-preview": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "preview",
+      "channel": "development-preview"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production"
     }
   },
   "submit": {

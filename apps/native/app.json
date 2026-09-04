@@ -2,7 +2,10 @@
   "expo": {
     "name": "zius",
     "slug": "zius",
-    "version": "0.0.1",
+    "version": "0.0.2",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "zius",
@@ -54,6 +57,9 @@
         "projectId": "1cd3d173-ac50-4baa-b475-a9163ddaf71b"
       }
     },
-    "owner": "allenwhun"
+    "owner": "allenwhun",
+    "updates": {
+      "url": "https://u.expo.dev/1cd3d173-ac50-4baa-b475-a9163ddaf71b"
+    }
   }
 }
