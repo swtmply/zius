@@ -1,14 +1,9 @@
-import {
-  Add,
-  Home04Icon,
-  Notification,
-  Scan,
-  Settings,
-} from "@hugeicons/core-free-icons";
+import { Add, Home04Icon, Notification, Scan, Settings } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Redirect, Tabs } from "expo-router";
-import { ActivityIndicator, ColorValue, View } from "react-native";
+import { Redirect, Tabs, useRouter } from "expo-router";
+import type { ColorValue } from "react-native";
+import DashboardLoading from "@/components/dashboard/loading";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -29,32 +24,15 @@ const tabs: TabIconProps[] = [
 ];
 
 export function TabIcon({ icon, color, size, focused }: TabIconProps) {
-  return (
-    <HugeiconsIcon
-      icon={icon}
-      color={color}
-      size={size}
-      strokeWidth={focused ? 2.5 : 1.8}
-    />
-  );
+  return <HugeiconsIcon icon={icon} color={color} size={size} strokeWidth={focused ? 2.5 : 1.8} />;
 }
 
 export default function TabsLayout() {
   const { data: session, isPending } = authClient.useSession();
+  const router = useRouter();
 
   if (isPending) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FAFAF8",
-        }}
-      >
-        <ActivityIndicator color="#171717" />
-      </View>
-    );
+    return <DashboardLoading />;
   }
 
   if (!session?.user) {
@@ -79,14 +57,24 @@ export default function TabsLayout() {
         <Tabs.Screen
           key={tab.name}
           name={tab.name}
+          listeners={
+            tab.name === "add"
+              ? {
+                  tabPress: (event) => {
+                    event.preventDefault();
+                    router.push("/create-transaction");
+                  },
+                }
+              : undefined
+          }
           options={{
             tabBarShowLabel: false,
-            tabBarIcon: ({ color, focused, size }) => (
+            tabBarIcon: ({ color, focused }) => (
               <TabIcon
                 name={tab.name}
                 icon={tab.icon}
                 color={color}
-                size={size}
+                size={tab.size}
                 focused={focused}
               />
             ),

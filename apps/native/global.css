@@ -1,3 +1,109 @@
 @import "tailwindcss";
 @import "uniwind";
 @import "heroui-native/styles";
+
+/* Shared controls follow the dashboard's text and spacing scale. */
+.button__root--size-sm,
+.button__root--size-md,
+.button__root--size-lg {
+  gap: calc(var(--spacing) * 4);
+}
+
+.button__label--size-sm,
+.button__label--size-md,
+.button__label--size-lg,
+.card__label {
+  font-size: var(--text-sm);
+  line-height: var(--text-sm--line-height);
+}
+
+.card__description {
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+}
+
+@layer theme {
+  :root {
+    @variant light {
+      --background: var(--white);
+      --foreground: var(--black);
+
+      --surface: var(--white);
+      --surface-foreground: var(--black);
+      --surface-secondary: oklch(96% 0 0);
+      --surface-secondary-foreground: var(--black);
+      --surface-tertiary: oklch(92% 0 0);
+      --surface-tertiary-foreground: var(--black);
+
+      --overlay: var(--white);
+      --overlay-foreground: var(--black);
+      --backdrop: oklch(0% 0 0 / 40%);
+      --muted: oklch(45% 0 0);
+
+      --default: oklch(92% 0 0);
+      --default-foreground: var(--black);
+      --accent: var(--black);
+      --accent-foreground: var(--white);
+
+      --field-background: var(--white);
+      --field-foreground: var(--black);
+      --field-placeholder: var(--muted);
+      --field-border: oklch(82% 0 0);
+
+      --success: var(--black);
+      --success-foreground: var(--white);
+      --warning: var(--black);
+      --warning-foreground: var(--white);
+      --danger: oklch(0.6532 0.2328 25.74);
+      --danger-foreground: var(--white);
+
+      --segment: var(--white);
+      --segment-foreground: var(--black);
+      --border: oklch(85% 0 0);
+      --separator: oklch(70% 0 0);
+      --focus: var(--black);
+      --link: var(--black);
+    }
+
+    @variant dark {
+      --background: var(--black);
+      --foreground: var(--white);
+
+      --surface: oklch(12% 0 0);
+      --surface-foreground: var(--white);
+      --surface-secondary: oklch(18% 0 0);
+      --surface-secondary-foreground: var(--white);
+      --surface-tertiary: oklch(24% 0 0);
+      --surface-tertiary-foreground: var(--white);
+
+      --overlay: oklch(12% 0 0);
+      --overlay-foreground: var(--white);
+      --backdrop: oklch(0% 0 0 / 60%);
+      --muted: oklch(65% 0 0);
+
+      --default: oklch(20% 0 0);
+      --default-foreground: var(--white);
+      --accent: var(--white);
+      --accent-foreground: var(--black);
+
+      --field-background: oklch(12% 0 0);
+      --field-foreground: var(--white);
+      --field-placeholder: var(--muted);
+      --field-border: oklch(32% 0 0);
+
+      --success: var(--white);
+      --success-foreground: var(--black);
+      --warning: var(--white);
+      --warning-foreground: var(--black);
+      --danger: oklch(0.594 0.1967 24.63);
+      --danger-foreground: var(--white);
+
+      --segment: oklch(25% 0 0);
+      --segment-foreground: var(--white);
+      --border: oklch(30% 0 0);
+      --separator: oklch(45% 0 0);
+      --focus: var(--white);
+      --link: var(--white);
+    }
+  }
+}

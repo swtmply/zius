@@ -124,14 +124,14 @@ export function SignIn() {
   }
 
   return (
-    <View style={{ width: "100%", maxWidth: 420, gap: 60 }}>
+    <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
       <Text
         selectable
         style={{
           color: "#000000",
-          fontSize: 46,
-          fontWeight: "700",
-          letterSpacing: -2.8,
+          fontSize: 24,
+          fontWeight: "600",
+          letterSpacing: -0.5,
           textAlign: "center",
         }}
       >

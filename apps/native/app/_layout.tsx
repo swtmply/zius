@@ -15,10 +15,16 @@ export default function RootLayout() {
         <KeyboardProvider>
           <AppThemeProvider>
             <HeroUINativeProvider>
-              <StatusBar style="inverted" />
+              <StatusBar style="auto" />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="(forms)/create-transaction" />
+                <Stack.Screen name="(forms)/create-group" />
+                <Stack.Screen name="(modals)/groups/index" />
+                <Stack.Screen name="(modals)/groups/[groupId]" />
+                <Stack.Screen name="(modals)/transactions" />
+                <Stack.Screen name="(modals)/transactions/[transactionId]" />
               </Stack>
             </HeroUINativeProvider>
           </AppThemeProvider>

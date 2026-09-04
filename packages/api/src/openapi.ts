@@ -24,6 +24,6 @@ export function createOpenApiDocument(baseUrl: string) {
     version: "1.0.0",
     openApiVersion: "3.1.0",
     baseUrl: `${baseUrl}${OPENAPI_ENDPOINT}`,
-    tags: ["Health"],
+    tags: ["Health", "Bills", "Groups", "Participants"],
   });
 }
