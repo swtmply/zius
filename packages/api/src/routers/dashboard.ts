@@ -96,7 +96,10 @@ export const dashboardRouter = router({
               email: participant.email,
             })
             .from(billParticipant)
-            .innerJoin(participant, eq(participant.id, billParticipant.participantId))
+            .innerJoin(
+              participant,
+              eq(participant.id, billParticipant.participantId),
+            )
             .where(inArray(billParticipant.billId, activeBillIds));
 
     const participantsByBillId = new Map<
@@ -118,9 +121,9 @@ export const dashboardRouter = router({
     const recentTransactions = await db
       .select(dashboardBillColumns)
       .from(bill)
-      .where(and(eq(bill.status, "settled"), involvementCondition))
+      .where(involvementCondition)
       .orderBy(desc(bill.occurredAt))
-      .limit(5);
+      .limit(10);
 
     const owedToYouMinor = Number(owedToYou?.amountMinor ?? 0);
     const youOweMinor = Number(youOwe?.amountMinor ?? 0);

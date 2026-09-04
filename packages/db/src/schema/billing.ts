@@ -112,6 +112,7 @@ export const bill = sqliteTable(
     index("bill_group_id_idx").on(table.groupId),
     index("bill_payer_id_idx").on(table.payerId),
     index("bill_status_idx").on(table.status),
+    index("bill_occurred_at_idx").on(table.occurredAt),
   ],
 );
 

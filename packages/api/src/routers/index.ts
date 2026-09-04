@@ -3,6 +3,9 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { dashboardRouter } from "./dashboard";
 import { todoRouter } from "./todo";
+import { billRouter } from "./bill";
+import { participantRouter } from "./participant";
+import { groupRouter } from "./group";
 
 export const appRouter = router({
   healthCheck: publicProcedure
@@ -24,6 +27,9 @@ export const appRouter = router({
     };
   }),
   dashboard: dashboardRouter,
+  bill: billRouter,
+  participant: participantRouter,
+  group: groupRouter,
   todo: todoRouter,
 });
 export type AppRouter = typeof appRouter;

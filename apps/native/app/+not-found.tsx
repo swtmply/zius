@@ -13,18 +13,18 @@ export default function NotFoundScreen() {
         backgroundColor: "#FAFAF8",
       }}
     >
-      <View style={{ width: "100%", maxWidth: 360, alignItems: "center", gap: 12 }}>
-        <Text selectable style={{ color: "#171717", fontSize: 28, fontWeight: "800" }}>
+      <View style={{ width: "100%", maxWidth: 360, alignItems: "center", gap: 16 }}>
+        <Text selectable style={{ color: "#171717", fontSize: 24, fontWeight: "600" }}>
           Page not found
         </Text>
-        <Text selectable style={{ color: "#737373", fontSize: 16, textAlign: "center" }}>
+        <Text selectable style={{ color: "#737373", fontSize: 12, textAlign: "center" }}>
           This page does not exist.
         </Text>
         <Link href="/" asChild>
           <Pressable
             style={({ pressed }) => ({
               height: 48,
-              marginTop: 12,
+              marginTop: 0,
               paddingHorizontal: 24,
               alignItems: "center",
               justifyContent: "center",
@@ -34,7 +34,7 @@ export default function NotFoundScreen() {
               opacity: pressed ? 0.72 : 1,
             })}
           >
-            <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "700" }}>Go home</Text>
+            <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}>Go home</Text>
           </Pressable>
         </Link>
       </View>

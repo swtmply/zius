@@ -40,7 +40,7 @@ export const AppThemeProvider = ({
 
   const value = useMemo(
     () => ({
-      currentTheme: "light",
+      currentTheme: theme,
       isLight,
       isDark,
       setTheme,
