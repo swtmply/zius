@@ -100,6 +100,19 @@ If you want to add app-specific blocks instead of shared primitives, run the sha
 
 For more details, see the guide on [Deploying to Vercel](https://www.better-t-stack.dev/docs/guides/vercel).
 
+## EAS preview builds against Vercel
+
+The native `preview` build profile uses the EAS `preview` environment. Set these variables in your Expo project's environment variables before building:
+
+- `EXPO_PUBLIC_SERVER_URL`: `https://your-project.vercel.app/api`, with no trailing slash. Use Plain text visibility.
+- `EXPO_PUBLIC_VERCEL_BYPASS_SECRET`: an optional Vercel Protection Bypass for Automation secret. Use Sensitive visibility and only set it for trusted internal builds.
+
+Generate the bypass secret under Vercel Project Settings > Deployment Protection > Protection Bypass for Automation. When configured, the native auth and tRPC clients send it in the `x-vercel-protection-bypass` header while preserving normal app authentication. Leave it unset for an unprotected backend.
+
+The bypass value is embedded in the app and can be extracted even with EAS Sensitive visibility. Do not commit it or include it in public releases. A preview app pointing at the production domain uses production data.
+
+From `apps/native`, run `eas build --profile preview --platform android`, or use `ios`. Changing a bundled environment value requires a new build or a compatible EAS Update; it does not change an already installed bundle.
+
 ## Git Hooks and Formatting
 
 - Run checks: `bun run check`
