@@ -1,10 +1,4 @@
-import {
-  Add,
-  Home04Icon,
-  Notification,
-  Scan,
-  Settings,
-} from "@hugeicons/core-free-icons";
+import { Add, Home04Icon, Notification, Scan, Settings } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Redirect, Tabs, useRouter } from "expo-router";
@@ -30,14 +24,7 @@ const tabs: TabIconProps[] = [
 ];
 
 export function TabIcon({ icon, color, size, focused }: TabIconProps) {
-  return (
-    <HugeiconsIcon
-      icon={icon}
-      color={color}
-      size={size}
-      strokeWidth={focused ? 2.5 : 1.8}
-    />
-  );
+  return <HugeiconsIcon icon={icon} color={color} size={size} strokeWidth={focused ? 2.5 : 1.8} />;
 }
 
 export default function TabsLayout() {

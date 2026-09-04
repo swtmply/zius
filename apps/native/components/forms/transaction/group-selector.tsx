@@ -35,7 +35,11 @@ export function GroupSelector({
       contentContainerClassName="gap-1 items-center"
       showsHorizontalScrollIndicator={false}
       onEndReached={() => {
-        if (query.hasNextPage && !query.isFetching && !query.isFetchNextPageError) {
+        if (
+          query.hasNextPage &&
+          !query.isFetching &&
+          !query.isFetchNextPageError
+        ) {
           void query.fetchNextPage();
         }
       }}
@@ -43,11 +47,15 @@ export function GroupSelector({
       ListHeaderComponent={
         query.isPending ? (
           <View className="items-center justify-center pr-2">
-            <Typography className="text-xs text-muted">Loading groups…</Typography>
+            <Typography className="text-xs text-muted">
+              Loading groups…
+            </Typography>
           </View>
         ) : query.isError && !query.data ? (
           <View className="flex-row items-center gap-1 pr-2">
-            <Typography className="text-xs text-muted">Unable to load groups.</Typography>
+            <Typography className="text-xs text-muted">
+              Unable to load groups.
+            </Typography>
             <Button
               size="sm"
               variant="secondary"
@@ -59,14 +67,18 @@ export function GroupSelector({
           </View>
         ) : groups.length === 0 ? (
           <View className="items-center justify-center pr-2">
-            <Typography className="text-xs text-muted">No groups available.</Typography>
+            <Typography className="text-xs text-muted">
+              No groups available.
+            </Typography>
           </View>
         ) : null
       }
       ListFooterComponent={
         query.isFetchNextPageError ? (
           <View className="flex-row items-center gap-1 pl-2">
-            <Typography className="text-xs text-muted">Unable to load more.</Typography>
+            <Typography className="text-xs text-muted">
+              Unable to load more.
+            </Typography>
             <Button
               size="sm"
               variant="secondary"
@@ -78,7 +90,9 @@ export function GroupSelector({
           </View>
         ) : query.isFetchingNextPage ? (
           <View className="items-center justify-center pl-2">
-            <Typography className="text-xs text-muted">Loading more…</Typography>
+            <Typography className="text-xs text-muted">
+              Loading more…
+            </Typography>
           </View>
         ) : null
       }

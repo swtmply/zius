@@ -1,8 +1,25 @@
 import { db } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
-import { bill, billParticipant, group, groupMember, participant } from "@zius/db/schema/billing";
+import {
+  bill,
+  billParticipant,
+  group,
+  groupMember,
+  participant,
+} from "@zius/db/schema/billing";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, exists, gt, inArray, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gt,
+  inArray,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -26,7 +43,10 @@ const createSchema = z
       .trim()
       .length(3)
       .transform((currency) => currency.toUpperCase())
-      .refine((currency) => /^[A-Z]{3}$/.test(currency), "Invalid currency code")
+      .refine(
+        (currency) => /^[A-Z]{3}$/.test(currency),
+        "Invalid currency code",
+      )
       .default("PHP"),
     splitMethod: z.enum(["equal", "fixed", "percentage"]),
     payer: z.email().transform((email) => email.toLowerCase()),
@@ -83,13 +103,18 @@ function divideEvenly(total: number, count: number) {
   const baseAmount = Math.floor(total / count);
   const remainder = total % count;
 
-  return Array.from({ length: count }, (_, index) => baseAmount + (index < remainder ? 1 : 0));
+  return Array.from(
+    { length: count },
+    (_, index) => baseAmount + (index < remainder ? 1 : 0),
+  );
 }
 
 function percentageOf(totalMinor: number, basisPoints: number) {
   const numerator = BigInt(totalMinor) * BigInt(basisPoints);
   const roundingOffset = BigInt(FULL_PERCENTAGE_BASIS_POINTS / 2);
-  return Number((numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS));
+  return Number(
+    (numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS),
+  );
 }
 
 function calculateParticipantAmounts(
@@ -97,7 +122,10 @@ function calculateParticipantAmounts(
   totalMinor: number,
   splitMethod: z.infer<typeof createSchema>["splitMethod"],
 ) {
-  const providedTotal = participants.reduce((total, entry) => total + entry.owedMinor, 0);
+  const providedTotal = participants.reduce(
+    (total, entry) => total + entry.owedMinor,
+    0,
+  );
 
   if (splitMethod === "equal") {
     const amounts = divideEvenly(totalMinor, participants.length);
@@ -108,7 +136,8 @@ function calculateParticipantAmounts(
     }));
   }
 
-  const maximumTotal = splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
+  const maximumTotal =
+    splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
 
   if (providedTotal > maximumTotal) {
     throw new TRPCError({
@@ -120,7 +149,9 @@ function calculateParticipantAmounts(
     });
   }
 
-  const hasAutomaticParticipants = participants.some((entry) => entry.owedMinor === 0);
+  const hasAutomaticParticipants = participants.some(
+    (entry) => entry.owedMinor === 0,
+  );
 
   if (providedTotal < maximumTotal && !hasAutomaticParticipants) {
     throw new TRPCError({
@@ -270,7 +301,9 @@ const billGetOutputSchema = z.object({
     .number()
     .int()
     .nonnegative()
-    .describe("Unpaid shares owed to the current payer, or the current participant's owedMinor"),
+    .describe(
+      "Unpaid shares owed to the current payer, or the current participant's owedMinor",
+    ),
   currency: z.string(),
   status: z.enum(["active", "settled"]),
   splitMethod: z.enum(["equal", "fixed", "percentage"]),
@@ -318,7 +351,9 @@ export const billRouter = router({
         input.totalMinor,
         input.splitMethod,
       );
-      const payerEntry = participants.find((entry) => entry.email === input.payer);
+      const payerEntry = participants.find(
+        (entry) => entry.email === input.payer,
+      );
 
       if (!payerEntry) {
         throw new TRPCError({
@@ -327,7 +362,9 @@ export const billRouter = router({
         });
       }
 
-      const otherParticipants = participants.filter((entry) => entry.email !== input.payer);
+      const otherParticipants = participants.filter(
+        (entry) => entry.email !== input.payer,
+      );
 
       return db.transaction(async (tx) => {
         if (input.groupId) {
@@ -351,7 +388,10 @@ export const billRouter = router({
         }
 
         const emails = [
-          ...new Set([...input.participants.map((entry) => entry.email), input.payer]),
+          ...new Set([
+            ...input.participants.map((entry) => entry.email),
+            input.payer,
+          ]),
         ];
         const existingParticipants = await tx
           .select({
@@ -361,7 +401,10 @@ export const billRouter = router({
           .from(participant)
           .where(inArray(sql<string>`lower(${participant.email})`, emails));
         const participantIdsByEmail = new Map(
-          existingParticipants.map((entry) => [entry.email.toLowerCase(), entry.id]),
+          existingParticipants.map((entry) => [
+            entry.email.toLowerCase(),
+            entry.id,
+          ]),
         );
 
         if (input.groupId) {
@@ -378,10 +421,15 @@ export const billRouter = router({
                     ),
                   )
               : [];
-          const memberParticipantIds = new Set(memberships.map((entry) => entry.participantId));
+          const memberParticipantIds = new Set(
+            memberships.map((entry) => entry.participantId),
+          );
           const outsiders = emails.filter((email) => {
             const participantId = participantIdsByEmail.get(email);
-            return participantId === undefined || !memberParticipantIds.has(participantId);
+            return (
+              participantId === undefined ||
+              !memberParticipantIds.has(participantId)
+            );
           });
 
           if (outsiders.length > 0) {
@@ -432,7 +480,9 @@ export const billRouter = router({
           });
         }
 
-        const createdGroupId = input.createGroup ? crypto.randomUUID() : undefined;
+        const createdGroupId = input.createGroup
+          ? crypto.randomUUID()
+          : undefined;
 
         if (createdGroupId) {
           await tx.insert(group).values({
@@ -441,21 +491,28 @@ export const billRouter = router({
             createdByUserId: ctx.session.user.id,
           });
 
-          const memberIds = new Set([currentParticipant.id, ...participantIdsByEmail.values()]);
+          const memberIds = new Set([
+            currentParticipant.id,
+            ...participantIdsByEmail.values(),
+          ]);
 
           await tx.insert(groupMember).values(
             [...memberIds].map((participantId) => ({
               groupId: createdGroupId,
               participantId,
               role:
-                participantId === currentParticipant.id ? ("owner" as const) : ("member" as const),
+                participantId === currentParticipant.id
+                  ? ("owner" as const)
+                  : ("member" as const),
             })),
           );
         }
 
         const now = new Date();
         const id = crypto.randomUUID();
-        const isSettled = otherParticipants.every((entry) => entry.status === "paid");
+        const isSettled = otherParticipants.every(
+          (entry) => entry.status === "paid",
+        );
 
         await tx.insert(bill).values({
           id,
@@ -580,7 +637,11 @@ export const billRouter = router({
 
         for (const entry of input.participants) {
           if (!persistedParticipantIds.has(entry.id)) {
-            if (entry.id === currentBill.payerId && !hasStoredPayer && entry.status === "paid") {
+            if (
+              entry.id === currentBill.payerId &&
+              !hasStoredPayer &&
+              entry.status === "paid"
+            ) {
               continue;
             }
 
@@ -608,7 +669,9 @@ export const billRouter = router({
           .select({ status: billParticipant.status })
           .from(billParticipant)
           .where(eq(billParticipant.billId, currentBill.id));
-        const isSettled = updatedParticipants.every((entry) => entry.status === "paid");
+        const isSettled = updatedParticipants.every(
+          (entry) => entry.status === "paid",
+        );
         const status = isSettled ? ("settled" as const) : ("active" as const);
 
         await tx
@@ -708,7 +771,10 @@ export const billRouter = router({
           status: billParticipant.status,
         })
         .from(billParticipant)
-        .innerJoin(participant, eq(billParticipant.participantId, participant.id))
+        .innerJoin(
+          participant,
+          eq(billParticipant.participantId, participant.id),
+        )
         .leftJoin(user, eq(user.id, participant.userId))
         .where(eq(billParticipant.billId, transaction.id));
 
@@ -724,7 +790,8 @@ export const billRouter = router({
                 : total,
             0,
           )
-        : (billParticipants.find((entry) => entry.id === currentParticipant.id)?.owedMinor ?? 0);
+        : (billParticipants.find((entry) => entry.id === currentParticipant.id)
+            ?.owedMinor ?? 0);
       const payer =
         storedPayer ??
         ({
@@ -753,7 +820,9 @@ export const billRouter = router({
         settledAt: transaction.settledAt?.toISOString() ?? null,
         participants: [
           payer,
-          ...billParticipants.filter((billParticipant) => billParticipant.id !== payer.id),
+          ...billParticipants.filter(
+            (billParticipant) => billParticipant.id !== payer.id,
+          ),
         ],
       };
     }),
@@ -796,18 +865,27 @@ export const billRouter = router({
             ),
         ),
       );
-      const statusFilter = input.status === "all" ? undefined : eq(bill.status, input.status);
-      const cursorDate = input.cursor ? new Date(input.cursor.occurredAt) : undefined;
+      const statusFilter =
+        input.status === "all" ? undefined : eq(bill.status, input.status);
+      const cursorDate = input.cursor
+        ? new Date(input.cursor.occurredAt)
+        : undefined;
       const cursorFilter =
         input.cursor && cursorDate
           ? input.sort === "newest"
             ? or(
                 lt(bill.occurredAt, cursorDate),
-                and(eq(bill.occurredAt, cursorDate), lt(bill.id, input.cursor.id)),
+                and(
+                  eq(bill.occurredAt, cursorDate),
+                  lt(bill.id, input.cursor.id),
+                ),
               )
             : or(
                 gt(bill.occurredAt, cursorDate),
-                and(eq(bill.occurredAt, cursorDate), gt(bill.id, input.cursor.id)),
+                and(
+                  eq(bill.occurredAt, cursorDate),
+                  gt(bill.id, input.cursor.id),
+                ),
               )
           : undefined;
       const orderBy =
@@ -838,7 +916,9 @@ export const billRouter = router({
       }
 
       const billIds = pageRows.map((transaction) => transaction.id);
-      const payerIds = [...new Set(pageRows.map((transaction) => transaction.payerId))];
+      const payerIds = [
+        ...new Set(pageRows.map((transaction) => transaction.payerId)),
+      ];
 
       const participantRows = await db
         .select({
@@ -851,7 +931,10 @@ export const billRouter = router({
           status: billParticipant.status,
         })
         .from(billParticipant)
-        .innerJoin(participant, eq(billParticipant.participantId, participant.id))
+        .innerJoin(
+          participant,
+          eq(billParticipant.participantId, participant.id),
+        )
         .leftJoin(user, eq(user.id, participant.userId))
         .where(inArray(billParticipant.billId, billIds));
 
