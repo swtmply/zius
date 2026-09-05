@@ -1,9 +1,6 @@
-import { participant } from "@zius/db/schema/expense";
-import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { protectedProcedure, router } from "../index";
+import { participantProcedure, requireParticipant, router } from "../index";
 
 const currentParticipantOutputSchema = z.object({
   id: z.string(),
@@ -13,7 +10,7 @@ const currentParticipantOutputSchema = z.object({
 });
 
 export const participantRouter = router({
-  current: protectedProcedure
+  current: participantProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -27,22 +24,7 @@ export const participantRouter = router({
     .input(z.void())
     .output(currentParticipantOutputSchema)
     .query(async ({ ctx }) => {
-      const [currentParticipant] = await ctx.db
-        .select({
-          id: participant.id,
-          name: participant.name,
-          email: participant.email,
-        })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       return {
         ...currentParticipant,

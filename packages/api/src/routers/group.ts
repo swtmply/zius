@@ -10,7 +10,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { protectedProcedure, router } from "../index";
+import { participantProcedure, requireParticipant, router } from "../index";
 
 const groupParticipantInputSchema = z.object({
   id: z.string().optional(),
@@ -128,7 +128,7 @@ const groupGetOutputSchema = z.object({
 });
 
 export const groupRouter = router({
-  create: protectedProcedure
+  create: participantProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -142,18 +142,7 @@ export const groupRouter = router({
     .input(createSchema)
     .output(groupMutationOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
         const emails = input.participants.map((entry) => entry.email);
@@ -214,7 +203,7 @@ export const groupRouter = router({
       });
     }),
 
-  list: protectedProcedure
+  list: participantProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -228,15 +217,11 @@ export const groupRouter = router({
     .input(listSchema)
     .output(groupListOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
+      if (!ctx.participant) {
         return { items: [], nextCursor: null };
       }
+
+      const currentParticipant = ctx.participant;
 
       const cursorDate = input.cursor ? new Date(input.cursor.createdAt) : undefined;
       const cursorFilter =
@@ -311,7 +296,7 @@ export const groupRouter = router({
       };
     }),
 
-  get: protectedProcedure
+  get: participantProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -325,18 +310,7 @@ export const groupRouter = router({
     .input(groupIdInputSchema)
     .output(groupGetOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       const [currentGroup] = await ctx.db
         .select({ id: group.id, name: group.name, createdAt: group.createdAt })
@@ -447,7 +421,7 @@ export const groupRouter = router({
       };
     }),
 
-  update: protectedProcedure
+  update: participantProcedure
     .meta({
       openapi: {
         method: "PATCH",
@@ -461,18 +435,7 @@ export const groupRouter = router({
     .input(updateSchema)
     .output(groupMutationOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       const [membership] = await ctx.db
         .select({ id: group.id, role: groupMember.role })

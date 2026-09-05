@@ -1,3 +1,4 @@
+import type { Database } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import {
   expense,
@@ -10,7 +11,7 @@ import { TRPCError } from "@trpc/server";
 import { and, asc, desc, eq, exists, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
-import { protectedProcedure, router } from "../index";
+import { participantProcedure, requireParticipant, router } from "../index";
 
 const FULL_PERCENTAGE_BASIS_POINTS = 10_000;
 
@@ -280,8 +281,32 @@ const expenseGetOutputSchema = z.object({
   participants: z.array(expenseParticipantSchema),
 });
 
+/**
+ * Matches the expenses a participant is involved in: the ones they paid for,
+ * and the ones they are listed on.
+ *
+ * Takes the database handle so the same filter can be built against a
+ * transaction as well as against the request-scoped database.
+ */
+function buildInvolvementFilter(db: Pick<Database, "select">, participantId: string) {
+  return or(
+    eq(expense.payerId, participantId),
+    exists(
+      db
+        .select({ expenseId: expenseParticipant.expenseId })
+        .from(expenseParticipant)
+        .where(
+          and(
+            eq(expenseParticipant.expenseId, expense.id),
+            eq(expenseParticipant.participantId, participantId),
+          ),
+        ),
+    ),
+  );
+}
+
 export const expenseRouter = router({
-  create: protectedProcedure
+  create: participantProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -295,20 +320,7 @@ export const expenseRouter = router({
     .input(createSchema)
     .output(expenseCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({
-          id: participant.id,
-        })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       const participants = calculateParticipantAmounts(
         input.participants,
@@ -474,7 +486,7 @@ export const expenseRouter = router({
       });
     }),
 
-  update: protectedProcedure
+  update: participantProcedure
     .meta({
       openapi: {
         method: "PATCH",
@@ -488,34 +500,10 @@ export const expenseRouter = router({
     .input(updateSchema)
     .output(expenseCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const involvementFilter = or(
-          eq(expense.payerId, currentParticipant.id),
-          exists(
-            tx
-              .select({ expenseId: expenseParticipant.expenseId })
-              .from(expenseParticipant)
-              .where(
-                and(
-                  eq(expenseParticipant.expenseId, expense.id),
-                  eq(expenseParticipant.participantId, currentParticipant.id),
-                ),
-              ),
-          ),
-        );
+        const involvementFilter = buildInvolvementFilter(tx, currentParticipant.id);
         const [currentExpense] = await tx
           .select({
             id: expense.id,
@@ -592,7 +580,7 @@ export const expenseRouter = router({
       });
     }),
 
-  get: protectedProcedure
+  get: participantProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -606,33 +594,9 @@ export const expenseRouter = router({
     .input(expenseGetInputSchema)
     .output(expenseGetOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
+      const currentParticipant = requireParticipant(ctx.participant);
 
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
-
-      const involvementFilter = or(
-        eq(expense.payerId, currentParticipant.id),
-        exists(
-          ctx.db
-            .select({ expenseId: expenseParticipant.expenseId })
-            .from(expenseParticipant)
-            .where(
-              and(
-                eq(expenseParticipant.expenseId, expense.id),
-                eq(expenseParticipant.participantId, currentParticipant.id),
-              ),
-            ),
-        ),
-      );
+      const involvementFilter = buildInvolvementFilter(ctx.db, currentParticipant.id);
       const [expenseRow] = await ctx.db
         .select({
           id: expense.id,
@@ -724,7 +688,7 @@ export const expenseRouter = router({
       };
     }),
 
-  list: protectedProcedure
+  list: participantProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -738,30 +702,13 @@ export const expenseRouter = router({
     .input(listSchema)
     .output(expenseListOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
+      if (!ctx.participant) {
         return { items: [], nextCursor: null };
       }
 
-      const involvementFilter = or(
-        eq(expense.payerId, currentParticipant.id),
-        exists(
-          ctx.db
-            .select({ expenseId: expenseParticipant.expenseId })
-            .from(expenseParticipant)
-            .where(
-              and(
-                eq(expenseParticipant.expenseId, expense.id),
-                eq(expenseParticipant.participantId, currentParticipant.id),
-              ),
-            ),
-        ),
-      );
+      const currentParticipant = ctx.participant;
+
+      const involvementFilter = buildInvolvementFilter(ctx.db, currentParticipant.id);
       const statusFilter = input.status === "all" ? undefined : eq(expense.status, input.status);
       const cursorDate = input.cursor ? new Date(input.cursor.occurredAt) : undefined;
       const cursorFilter =
