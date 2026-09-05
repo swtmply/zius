@@ -5,7 +5,6 @@ type TransactionTitleInputProps = {
   value: string;
   onBlur: () => void;
   onChange: (value: string) => void;
-  onSubmit: () => void;
   label?: string;
   placeholder?: string;
 };
@@ -14,7 +13,6 @@ export function TransactionTitleInput({
   value,
   onBlur,
   onChange,
-  onSubmit,
   label = "Title",
   placeholder = "Transaction Title",
 }: TransactionTitleInputProps) {
@@ -25,9 +23,8 @@ export function TransactionTitleInput({
         value={value}
         onBlur={onBlur}
         onChangeText={onChange}
-        onSubmitEditing={onSubmit}
         placeholder={placeholder}
-        returnKeyType="done"
+        returnKeyType="none"
         className="flex-1 text-sm"
       />
     </View>

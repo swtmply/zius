@@ -35,11 +35,34 @@ type TransactionFormProps = {
 type SubmitMeta = { groupChoice?: "group" | "standalone" };
 const defaultSubmitMeta: SubmitMeta = {};
 
-export function TransactionForm({ currentParticipant, group }: TransactionFormProps) {
+export function TransactionForm({
+  currentParticipant,
+  group,
+}: TransactionFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const groupParticipants = group?.participants ?? [currentParticipant];
+  const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
+    (group?.participants ?? []).map((participant) =>
+      participant.email.toLowerCase(),
+    ),
+  );
+
+  const findOutsideParticipants = (
+    groupId: string | undefined,
+    participants: FormParticipant[],
+  ) => {
+    if (!groupId) {
+      return [];
+    }
+
+    const memberEmails = new Set(groupMemberEmails);
+
+    return participants.filter(
+      (participant) => !memberEmails.has(participant.email.toLowerCase()),
+    );
+  };
   const defaultValues: TransactionFormValues = {
     totalMinor: 0,
     title: "",
@@ -70,7 +93,13 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
       onSubmit: createTransactionSchema,
     },
     onSubmit: async ({ value, meta }) => {
-      if (!value.group_id && !meta.groupChoice) {
+      // A selected group can only take the expense when every participant already
+      // belongs to it. Otherwise the choice is a new group or a standalone expense.
+      const needsGroupChoice =
+        !value.group_id ||
+        findOutsideParticipants(value.group_id, value.participants).length > 0;
+
+      if (needsGroupChoice && !meta.groupChoice) {
         Keyboard.dismiss();
         setIsGroupDialogOpen(true);
         return;
@@ -80,8 +109,8 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
       try {
         await createBill.mutateAsync({
           ...value,
-          groupId: value.group_id,
-          createGroup: !value.group_id && meta.groupChoice === "group",
+          groupId: needsGroupChoice ? undefined : value.group_id,
+          createGroup: needsGroupChoice && meta.groupChoice === "group",
         });
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() }),
@@ -97,13 +126,22 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
         toast.show({
           duration: 6000,
           component: (props) => (
-            <BillCreationToast {...props} variant="danger" description={description} />
+            <BillCreationToast
+              {...props}
+              variant="danger"
+              description={description}
+            />
           ),
         });
         return;
       }
 
       form.reset();
+      setGroupMemberEmails(
+        (group?.participants ?? []).map((participant) =>
+          participant.email.toLowerCase(),
+        ),
+      );
       toast.show({
         component: (props) => (
           <BillCreationToast
@@ -130,7 +168,11 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
   const setTotalMinor = (totalMinor: number) => {
     form.setFieldValue("totalMinor", totalMinor);
     form.setFieldValue("participants", (participants) =>
-      recalculateParticipants(participants, totalMinor, form.state.values.splitMethod),
+      recalculateParticipants(
+        participants,
+        totalMinor,
+        form.state.values.splitMethod,
+      ),
     );
   };
 
@@ -165,6 +207,11 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
       queryClient.fetchQuery(trpc.group.get.queryOptions({ id: groupId })),
     onSuccess: (selectedGroup) => {
       form.setFieldValue("group_id", selectedGroup.id);
+      setGroupMemberEmails(
+        selectedGroup.participants.map((participant) =>
+          participant.email.toLowerCase(),
+        ),
+      );
       const participants = selectedGroup.participants.map(
         ({ id, name, email, userId }): FormParticipant => ({
           id,
@@ -177,7 +224,11 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
           status: "unpaid",
         }),
       );
-      if (!participants.some((participant) => participant.email === form.state.values.payer)) {
+      if (
+        !participants.some(
+          (participant) => participant.email === form.state.values.payer,
+        )
+      ) {
         form.setFieldValue("payer", currentParticipant.email);
       }
       setParticipants(participants);
@@ -199,13 +250,19 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
   };
 
   const removeParticipant = (participantId: string) => {
-    const participant = form.state.values.participants.find((item) => item.id === participantId);
+    const participant = form.state.values.participants.find(
+      (item) => item.id === participantId,
+    );
 
     if (participant?.email === form.state.values.payer) {
       form.setFieldValue("payer", currentParticipant.email);
     }
 
-    setParticipants(form.state.values.participants.filter((item) => item.id !== participantId));
+    setParticipants(
+      form.state.values.participants.filter(
+        (item) => item.id !== participantId,
+      ),
+    );
   };
 
   return (
@@ -230,7 +287,9 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
         {(field) => (
           <CurrencyInput
             value={field.state.value === 0 ? "" : String(field.state.value)}
-            onValueChange={(value) => setTotalMinor(value === "" ? 0 : Number(value))}
+            onValueChange={(value) =>
+              setTotalMinor(value === "" ? 0 : Number(value))
+            }
           />
         )}
       </form.Field>
@@ -241,7 +300,6 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={field.handleChange}
-            onSubmit={() => submit()}
           />
         )}
       </form.Field>
@@ -249,32 +307,48 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
       <SectionHeader title="Split Method" />
 
       <form.Field name="splitMethod">
-        {(field) => <SplitMethodSelector value={field.state.value} onChange={setSplitMethod} />}
+        {(field) => (
+          <SplitMethodSelector
+            value={field.state.value}
+            onChange={setSplitMethod}
+          />
+        )}
       </form.Field>
 
       <SectionHeader title="Groups" />
 
       <form.Subscribe
-        selector={(state) => ({ groupId: state.values.group_id, isSubmitting: state.isSubmitting })}
+        selector={(state) => ({
+          groupId: state.values.group_id,
+          isSubmitting: state.isSubmitting,
+        })}
       >
         {({ groupId, isSubmitting }) => (
           <GroupSelector
             value={groupId}
             isDisabled={isSubmitting || selectGroup.isPending}
             onChange={(nextGroupId) => {
-              if (nextGroupId === groupId || isSubmitting || selectGroup.isPending) return;
+              if (
+                nextGroupId === groupId ||
+                isSubmitting ||
+                selectGroup.isPending
+              )
+                return;
               selectGroup.reset();
               if (nextGroupId) {
                 selectGroup.mutate(nextGroupId);
               } else {
                 form.setFieldValue("group_id", undefined);
+                setGroupMemberEmails([]);
               }
             }}
           />
         )}
       </form.Subscribe>
       {selectGroup.isPending && (
-        <Typography className="text-xs text-muted">Loading group participants...</Typography>
+        <Typography className="text-xs text-muted">
+          Loading group participants...
+        </Typography>
       )}
       {selectGroup.isError && (
         <Typography className="text-xs text-danger">
@@ -327,34 +401,69 @@ export function TransactionForm({ currentParticipant, group }: TransactionFormPr
         <Dialog.Portal>
           <Dialog.Overlay />
           <Dialog.Content>
-            <View className="mb-5 gap-1">
-              <Dialog.Title>Create a group?</Dialog.Title>
-              <Dialog.Description>
-                Create a group with these participants, or save a standalone expense. The group will
-                use the expense title as its name.
-              </Dialog.Description>
-            </View>
-            <form.Subscribe selector={(state) => state.isSubmitting}>
-              {(isSubmitting) => (
-                <View className="gap-1">
-                  <Button
-                    isDisabled={isSubmitting}
-                    onPress={() => submit({ groupChoice: "group" })}
-                  >
-                    <Button.Label>Create group</Button.Label>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    isDisabled={isSubmitting}
-                    onPress={() => submit({ groupChoice: "standalone" })}
-                  >
-                    <Button.Label>Standalone expense</Button.Label>
-                  </Button>
-                  <Button variant="ghost" onPress={() => setIsGroupDialogOpen(false)}>
-                    <Button.Label>Cancel</Button.Label>
-                  </Button>
-                </View>
-              )}
+            <form.Subscribe
+              selector={(state) => ({
+                groupId: state.values.group_id,
+                participants: state.values.participants,
+                isSubmitting: state.isSubmitting,
+              })}
+            >
+              {({ groupId, participants, isSubmitting }) => {
+                const outsideParticipants = findOutsideParticipants(
+                  groupId,
+                  participants,
+                );
+                const hasOutsideParticipants = outsideParticipants.length > 0;
+                const outsideNames = outsideParticipants
+                  .map((participant) => participant.name)
+                  .join(", ");
+
+                return (
+                  <>
+                    <View className="mb-5 gap-1">
+                      <Dialog.Title>
+                        {hasOutsideParticipants
+                          ? "Not everyone is in this group"
+                          : "Create a group?"}
+                      </Dialog.Title>
+                      <Dialog.Description>
+                        {hasOutsideParticipants
+                          ? `${outsideNames} ${
+                              outsideParticipants.length === 1
+                                ? "is not a member"
+                                : "are not members"
+                            } of this group. Create a new group with everyone on this expense, or save a standalone expense. The group will use the expense title as its name.`
+                          : "Create a group with these participants, or save a standalone expense. The group will use the expense title as its name."}
+                      </Dialog.Description>
+                    </View>
+                    <View className="gap-1">
+                      <Button
+                        isDisabled={isSubmitting}
+                        onPress={() => submit({ groupChoice: "group" })}
+                      >
+                        <Button.Label>
+                          {hasOutsideParticipants
+                            ? "Create new group"
+                            : "Create group"}
+                        </Button.Label>
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        isDisabled={isSubmitting}
+                        onPress={() => submit({ groupChoice: "standalone" })}
+                      >
+                        <Button.Label>Standalone expense</Button.Label>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onPress={() => setIsGroupDialogOpen(false)}
+                      >
+                        <Button.Label>Cancel</Button.Label>
+                      </Button>
+                    </View>
+                  </>
+                );
+              }}
             </form.Subscribe>
           </Dialog.Content>
         </Dialog.Portal>
