@@ -1,3 +1,7 @@
+"use client";
+
+import { trpc } from "@/utils/trpc";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 
 type ImagePlaceholderProps = {
@@ -52,6 +56,8 @@ const steps = [
 ] as const;
 
 export default function Home() {
+  const healthCheck = useQuery(trpc.healthCheck.queryOptions());
+
   return (
     <main className="min-h-screen bg-white font-[family-name:var(--font-geist-sans)] text-black">
       <header className="mx-auto flex min-h-17 w-[min(calc(100%-2rem),1080px)] items-center justify-between sm:min-h-18.5 sm:w-[min(calc(100%-2.5rem),1080px)]">
@@ -81,6 +87,13 @@ export default function Home() {
           >
             Join the waitlist
           </a>
+          <span className="text-sm text-muted-foreground">
+            {healthCheck.isLoading
+              ? "Checking..."
+              : healthCheck.data
+                ? "Connected"
+                : "Disconnected"}
+          </span>
         </nav>
       </header>
 
