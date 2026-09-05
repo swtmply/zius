@@ -376,6 +376,13 @@ export default function Home() {
           >
             Join the waitlist
           </a>
+          <span className="text-sm text-muted-foreground">
+            {healthCheck.isLoading
+              ? "Checking..."
+              : healthCheck.data
+                ? "Connected"
+                : "Disconnected"}
+          </span>
         </nav>
       </header>
 
