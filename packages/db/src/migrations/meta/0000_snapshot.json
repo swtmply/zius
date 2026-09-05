@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "95c7739b-052c-4a08-95e9-9259468185a7",
+  "id": "899a621e-8027-4158-9e48-0533af5cbfaf",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account": {
@@ -110,17 +110,12 @@
       "indexes": {
         "account_issuer_accountId_uidx": {
           "name": "account_issuer_accountId_uidx",
-          "columns": [
-            "issuer",
-            "account_id"
-          ],
+          "columns": ["issuer", "account_id"],
           "isUnique": true
         },
         "account_userId_idx": {
           "name": "account_userId_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -129,12 +124,8 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -207,16 +198,12 @@
       "indexes": {
         "session_token_unique": {
           "name": "session_token_unique",
-          "columns": [
-            "token"
-          ],
+          "columns": ["token"],
           "isUnique": true
         },
         "session_userId_idx": {
           "name": "session_userId_idx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": false
         }
       },
@@ -225,12 +212,8 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -305,9 +288,7 @@
       "indexes": {
         "user_email_unique": {
           "name": "user_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },
@@ -367,9 +348,7 @@
       "indexes": {
         "verification_identifier_idx": {
           "name": "verification_identifier_idx",
-          "columns": [
-            "identifier"
-          ],
+          "columns": ["identifier"],
           "isUnique": false
         }
       },
@@ -378,8 +357,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "bill": {
-      "name": "bill",
+    "expense": {
+      "name": "expense",
       "columns": {
         "id": {
           "name": "id",
@@ -478,65 +457,52 @@
         }
       },
       "indexes": {
-        "bill_group_id_idx": {
-          "name": "bill_group_id_idx",
-          "columns": [
-            "group_id"
-          ],
+        "expense_group_id_idx": {
+          "name": "expense_group_id_idx",
+          "columns": ["group_id"],
           "isUnique": false
         },
-        "bill_payer_id_idx": {
-          "name": "bill_payer_id_idx",
-          "columns": [
-            "payer_id"
-          ],
+        "expense_payer_id_idx": {
+          "name": "expense_payer_id_idx",
+          "columns": ["payer_id"],
           "isUnique": false
         },
-        "bill_status_idx": {
-          "name": "bill_status_idx",
-          "columns": [
-            "status"
-          ],
+        "expense_status_idx": {
+          "name": "expense_status_idx",
+          "columns": ["status"],
+          "isUnique": false
+        },
+        "expense_occurred_at_idx": {
+          "name": "expense_occurred_at_idx",
+          "columns": ["occurred_at"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "bill_payer_id_participant_id_fk": {
-          "name": "bill_payer_id_participant_id_fk",
-          "tableFrom": "bill",
+        "expense_payer_id_participant_id_fk": {
+          "name": "expense_payer_id_participant_id_fk",
+          "tableFrom": "expense",
           "tableTo": "participant",
-          "columnsFrom": [
-            "payer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "bill_group_id_group_id_fk": {
-          "name": "bill_group_id_group_id_fk",
-          "tableFrom": "bill",
+        "expense_group_id_group_id_fk": {
+          "name": "expense_group_id_group_id_fk",
+          "tableFrom": "expense",
           "tableTo": "group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "bill_created_by_user_id_user_id_fk": {
-          "name": "bill_created_by_user_id_user_id_fk",
-          "tableFrom": "bill",
+        "expense_created_by_user_id_user_id_fk": {
+          "name": "expense_created_by_user_id_user_id_fk",
+          "tableFrom": "expense",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -544,33 +510,33 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {
-        "bill_total_positive_check": {
-          "name": "bill_total_positive_check",
-          "value": "\"bill\".\"total_minor\" > 0"
+        "expense_total_positive_check": {
+          "name": "expense_total_positive_check",
+          "value": "\"expense\".\"total_minor\" > 0"
         },
-        "bill_currency_check": {
-          "name": "bill_currency_check",
-          "value": "\"bill\".\"currency\" glob '[A-Z][A-Z][A-Z]'"
+        "expense_currency_check": {
+          "name": "expense_currency_check",
+          "value": "\"expense\".\"currency\" glob '[A-Z][A-Z][A-Z]'"
         },
-        "bill_status_check": {
-          "name": "bill_status_check",
-          "value": "\"bill\".\"status\" in ('active', 'settled')"
+        "expense_status_check": {
+          "name": "expense_status_check",
+          "value": "\"expense\".\"status\" in ('active', 'settled')"
         },
-        "bill_split_method_check": {
-          "name": "bill_split_method_check",
-          "value": "\"bill\".\"split_method\" in ('equal', 'fixed', 'percentage')"
+        "expense_split_method_check": {
+          "name": "expense_split_method_check",
+          "value": "\"expense\".\"split_method\" in ('equal', 'fixed', 'percentage')"
         },
-        "bill_settlement_check": {
-          "name": "bill_settlement_check",
-          "value": "(\"bill\".\"status\" = 'active' and \"bill\".\"settled_at\" is null) or (\"bill\".\"status\" = 'settled' and \"bill\".\"settled_at\" is not null)"
+        "expense_settlement_check": {
+          "name": "expense_settlement_check",
+          "value": "(\"expense\".\"status\" = 'active' and \"expense\".\"settled_at\" is null) or (\"expense\".\"status\" = 'settled' and \"expense\".\"settled_at\" is not null)"
         }
       }
     },
-    "bill_participant": {
-      "name": "bill_participant",
+    "expense_participant": {
+      "name": "expense_participant",
       "columns": {
-        "bill_id": {
-          "name": "bill_id",
+        "expense_id": {
+          "name": "expense_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -607,71 +573,56 @@
         }
       },
       "indexes": {
-        "bill_participant_participant_id_idx": {
-          "name": "bill_participant_participant_id_idx",
-          "columns": [
-            "participant_id"
-          ],
+        "expense_participant_participant_id_idx": {
+          "name": "expense_participant_participant_id_idx",
+          "columns": ["participant_id"],
           "isUnique": false
         },
-        "bill_participant_status_idx": {
-          "name": "bill_participant_status_idx",
-          "columns": [
-            "status"
-          ],
+        "expense_participant_status_idx": {
+          "name": "expense_participant_status_idx",
+          "columns": ["status"],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "bill_participant_bill_id_bill_id_fk": {
-          "name": "bill_participant_bill_id_bill_id_fk",
-          "tableFrom": "bill_participant",
-          "tableTo": "bill",
-          "columnsFrom": [
-            "bill_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+        "expense_participant_expense_id_expense_id_fk": {
+          "name": "expense_participant_expense_id_expense_id_fk",
+          "tableFrom": "expense_participant",
+          "tableTo": "expense",
+          "columnsFrom": ["expense_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "bill_participant_participant_id_participant_id_fk": {
-          "name": "bill_participant_participant_id_participant_id_fk",
-          "tableFrom": "bill_participant",
+        "expense_participant_participant_id_participant_id_fk": {
+          "name": "expense_participant_participant_id_participant_id_fk",
+          "tableFrom": "expense_participant",
           "tableTo": "participant",
-          "columnsFrom": [
-            "participant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["participant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
-        "bill_participant_bill_id_participant_id_pk": {
-          "columns": [
-            "bill_id",
-            "participant_id"
-          ],
-          "name": "bill_participant_bill_id_participant_id_pk"
+        "expense_participant_expense_id_participant_id_pk": {
+          "columns": ["expense_id", "participant_id"],
+          "name": "expense_participant_expense_id_participant_id_pk"
         }
       },
       "uniqueConstraints": {},
       "checkConstraints": {
-        "bill_participant_owed_check": {
-          "name": "bill_participant_owed_check",
-          "value": "\"bill_participant\".\"owed_minor\" >= 0"
+        "expense_participant_owed_check": {
+          "name": "expense_participant_owed_check",
+          "value": "\"expense_participant\".\"owed_minor\" >= 0"
         },
-        "bill_participant_status_check": {
-          "name": "bill_participant_status_check",
-          "value": "\"bill_participant\".\"status\" in ('paid', 'unpaid')"
+        "expense_participant_status_check": {
+          "name": "expense_participant_status_check",
+          "value": "\"expense_participant\".\"status\" in ('paid', 'unpaid')"
         },
-        "bill_participant_payment_check": {
-          "name": "bill_participant_payment_check",
-          "value": "(\"bill_participant\".\"status\" = 'unpaid' and \"bill_participant\".\"paid_at\" is null) or (\"bill_participant\".\"status\" = 'paid' and \"bill_participant\".\"paid_at\" is not null)"
+        "expense_participant_payment_check": {
+          "name": "expense_participant_payment_check",
+          "value": "(\"expense_participant\".\"status\" = 'unpaid' and \"expense_participant\".\"paid_at\" is null) or (\"expense_participant\".\"status\" = 'paid' and \"expense_participant\".\"paid_at\" is not null)"
         }
       }
     },
@@ -729,12 +680,8 @@
           "name": "group_created_by_user_id_user_id_fk",
           "tableFrom": "group",
           "tableTo": "user",
-          "columnsFrom": [
-            "created_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -780,9 +727,7 @@
       "indexes": {
         "group_member_participant_id_idx": {
           "name": "group_member_participant_id_idx",
-          "columns": [
-            "participant_id"
-          ],
+          "columns": ["participant_id"],
           "isUnique": false
         }
       },
@@ -791,12 +736,8 @@
           "name": "group_member_group_id_group_id_fk",
           "tableFrom": "group_member",
           "tableTo": "group",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -804,22 +745,15 @@
           "name": "group_member_participant_id_participant_id_fk",
           "tableFrom": "group_member",
           "tableTo": "participant",
-          "columnsFrom": [
-            "participant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["participant_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "group_member_group_id_participant_id_pk": {
-          "columns": [
-            "group_id",
-            "participant_id"
-          ],
+          "columns": ["group_id", "participant_id"],
           "name": "group_member_group_id_participant_id_pk"
         }
       },
@@ -889,16 +823,12 @@
       "indexes": {
         "participant_email_uidx": {
           "name": "participant_email_uidx",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         },
         "participant_user_id_uidx": {
           "name": "participant_user_id_uidx",
-          "columns": [
-            "user_id"
-          ],
+          "columns": ["user_id"],
           "isUnique": true
         }
       },
@@ -907,12 +837,8 @@
           "name": "participant_user_id_user_id_fk",
           "tableFrom": "participant",
           "tableTo": "user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "set null",
           "onUpdate": "no action"
         }

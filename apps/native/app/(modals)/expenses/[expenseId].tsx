@@ -17,14 +17,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
 import { formatCurrency } from "@/utils";
 import { SectionHeader } from "@/components/section-header";
-import { BillCreationToast } from "@/components/bill-creation-toast";
-import { TransactionDetailsLoading } from "@/components/transactions/transaction-details-loading";
+import { ExpenseCreationToast } from "@/components/expense-creation-toast";
+import { ExpenseDetailsLoading } from "@/components/expenses/expense-details-loading";
 
-export default function TransactionDetails() {
-  const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
+export default function ExpenseDetails() {
+  const { expenseId } = useLocalSearchParams<{ expenseId: string }>();
 
-  const transactionQuery = useQuery(trpc.bill.get.queryOptions({ id: transactionId }));
-  const { data } = transactionQuery;
+  const expenseQuery = useQuery(trpc.expense.get.queryOptions({ id: expenseId }));
+  const { data } = expenseQuery;
   const participantQuery = useQuery(trpc.participant.current.queryOptions());
   const { data: currentParticipant } = participantQuery;
 
@@ -35,11 +35,11 @@ export default function TransactionDetails() {
   const [participantStatuses, setParticipantStatuses] = useState<Record<string, "paid" | "unpaid">>(
     {},
   );
-  const updateBill = useMutation(
-    trpc.bill.update.mutationOptions({
+  const updateExpense = useMutation(
+    trpc.expense.update.mutationOptions({
       onSuccess: async () => {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: trpc.bill.pathKey() }),
+          queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       },
@@ -47,7 +47,7 @@ export default function TransactionDetails() {
   );
 
   const submit = async () => {
-    if (!data || !isSettling || updateBill.isPending) return;
+    if (!data || !isSettling || updateExpense.isPending) return;
 
     const participants = data.participants.flatMap((participant) => {
       const status = participantStatuses[participant.id];
@@ -61,15 +61,15 @@ export default function TransactionDetails() {
     }
 
     try {
-      await updateBill.mutateAsync({ id: transactionId, participants });
+      await updateExpense.mutateAsync({ id: expenseId, participants });
     } catch (error) {
       toast.show({
         duration: 6000,
         component: (props) => (
-          <BillCreationToast
+          <ExpenseCreationToast
             {...props}
             variant="danger"
-            title="Failed to update bill"
+            title="Failed to update expense"
             description={
               error instanceof Error && error.message.trim()
                 ? error.message
@@ -85,10 +85,10 @@ export default function TransactionDetails() {
     setParticipantStatuses({});
     toast.show({
       component: (props) => (
-        <BillCreationToast
+        <ExpenseCreationToast
           {...props}
           variant="success"
-          title="Bill updated successfully"
+          title="Expense updated successfully"
           description="Your payment statuses have been saved."
         />
       ),
@@ -98,20 +98,20 @@ export default function TransactionDetails() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home"));
 
   if (
-    !transactionQuery.isError &&
+    !expenseQuery.isError &&
     !participantQuery.isError &&
-    (transactionQuery.isPending || participantQuery.isPending)
+    (expenseQuery.isPending || participantQuery.isPending)
   ) {
     return (
       <ScrollView className="flex-1 bg-background" contentInsetAdjustmentBehavior="automatic">
         <View className="flex-1 pt-safe pb-safe-offset-8 gap-4 px-4">
-          <TransactionDetailsLoading />
+          <ExpenseDetailsLoading />
         </View>
       </ScrollView>
     );
   }
 
-  if (transactionQuery.isError || participantQuery.isError || !data) {
+  if (expenseQuery.isError || participantQuery.isError || !data) {
     return (
       <ScrollView className="flex-1 bg-background" contentInsetAdjustmentBehavior="automatic">
         <View className="flex-1 pt-safe pb-safe-offset-8 gap-4 px-4">
@@ -119,17 +119,17 @@ export default function TransactionDetails() {
             <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={goBack}>
               <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
             </Button>
-            <Typography className="text-2xl font-semibold">Transaction</Typography>
+            <Typography className="text-2xl font-semibold">Expense</Typography>
             <View className="size-10" />
           </View>
           <View className="items-center gap-4 py-8">
             <Typography selectable className="text-sm text-muted text-center">
-              Unable to load transaction details.
+              Unable to load expense details.
             </Typography>
             <Button
               variant="secondary"
               onPress={() => {
-                void transactionQuery.refetch();
+                void expenseQuery.refetch();
                 void participantQuery.refetch();
               }}
             >
@@ -154,8 +154,8 @@ export default function TransactionDetails() {
           <Button
             isIconOnly
             variant="ghost"
-            accessibilityLabel={isSettling ? "Save payment statuses" : "Delete transaction"}
-            isDisabled={updateBill.isPending}
+            accessibilityLabel={isSettling ? "Save payment statuses" : "Delete expense"}
+            isDisabled={updateExpense.isPending}
             onPress={isSettling ? () => void submit() : undefined}
           >
             <HugeiconsIcon icon={isSettling ? Check : Trash} size={24} />
@@ -216,10 +216,10 @@ export default function TransactionDetails() {
                     isSettling
                       ? "Cancel settling"
                       : data.status === "settled"
-                        ? "Transaction already settled"
+                        ? "Expense already settled"
                         : "Edit payment statuses"
                   }
-                  isDisabled={data.status === "settled" || updateBill.isPending}
+                  isDisabled={data.status === "settled" || updateExpense.isPending}
                   onPress={
                     data.status === "settled"
                       ? undefined
@@ -276,7 +276,7 @@ export default function TransactionDetails() {
                     <Switch
                       accessibilityLabel={`${item.name} paid`}
                       isSelected={isPaid}
-                      isDisabled={updateBill.isPending}
+                      isDisabled={updateExpense.isPending}
                       onSelectedChange={(isSelected) => {
                         setParticipantStatuses((statuses) => ({
                           ...statuses,

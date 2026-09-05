@@ -22,8 +22,8 @@ Every currency amount, including its symbol and editable amount fields, must be 
 
 ## Spacing and alignment
 
-- Use `gap-1` for related text, `gap-2` between section headers and content and inside transaction cards, and `gap-4` between major sections. Inline style equivalents are 4, 8, and 16.
-- Keep overlapping participant avatars on transaction and group cards: center the row, leave the first avatar in place, and apply `-ml-4` to subsequent avatars. Match this overlap in loading placeholders.
+- Use `gap-1` for related text, `gap-2` between section headers and content and inside expense cards, and `gap-4` between major sections. Inline style equivalents are 4, 8, and 16.
+- Keep overlapping participant avatars on expense and group cards: center the row, leave the first avatar in place, and apply `-ml-4` to subsequent avatars. Match this overlap in loading placeholders.
 - Match list separator and loading spacing to the corresponding loaded content.
 - Center horizontal items with `flex-row items-center`. Keep text and controls vertically centered within the row.
 - Match dashboard card padding, borders, and rounding. Keep safe-area insets and touch-target dimensions independent of content gaps.
@@ -31,11 +31,11 @@ Every currency amount, including its symbol and editable amount fields, must be 
 
 ## Toasts
 
-For success and failure feedback, render `components/bill-creation-toast.tsx` through `toast.show({ component: ... })`, including group operations. This component is the shared create-transaction toast design. Use `variant="success"` for green feedback and `variant="danger"` for red feedback, with an operation-specific title and description.
+For success and failure feedback, render `components/expense-creation-toast.tsx` through `toast.show({ component: ... })`, including group operations. This component is the shared create-expense toast design. Use `variant="success"` for green feedback and `variant="danger"` for red feedback, with an operation-specific title and description.
 
 ## Loading and unfinished features
 
-- Use HeroUI `Skeleton` for screen loading, matching the loaded layout's text, avatar, button sizes, spacing, and alignment. Use `components/transactions/transaction-details-loading.tsx` as the detail-screen reference. Do not substitute an `ActivityIndicator` for screen content.
+- Use HeroUI `Skeleton` for screen loading, matching the loaded layout's text, avatar, button sizes, spacing, and alignment. Use `components/expenses/expense-details-loading.tsx` as the detail-screen reference. Do not substitute an `ActivityIndicator` for screen content.
 - Wait for all data needed to label and display an amount correctly. Pending data must not appear as a zero balance. Provide retry feedback for query failures and keep back navigation available during loading.
 - For unimplemented pages such as scan and notifications, reuse `components/feature-in-development.tsx`. Its header is exactly "The developer is working on this feature", followed by explanatory subtext and a Back button that falls back to home when there is no navigation history.
 

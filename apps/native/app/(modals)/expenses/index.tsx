@@ -20,7 +20,7 @@ import {
   SlidersVertical,
 } from "@hugeicons/core-free-icons";
 
-import { TransactionsEmptyState } from "@/components/dashboard/transactions";
+import { ExpensesEmptyState } from "@/components/dashboard/expenses";
 import { formatCurrency, formatDate } from "@/utils";
 import { trpc } from "@/utils/trpc";
 
@@ -33,21 +33,21 @@ const sortOptions = [
   { value: "newest", label: "Newest First" },
   { value: "oldest", label: "Oldest First" },
 ] as const;
-type TransactionType = (typeof typeOptions)[number]["value"];
-type TransactionSort = (typeof sortOptions)[number]["value"];
+type ExpenseType = (typeof typeOptions)[number]["value"];
+type ExpenseSort = (typeof sortOptions)[number]["value"];
 
-export default function TransactionsPage() {
+export default function ExpensesPage() {
   const params = useLocalSearchParams<{ sort?: string; type?: string }>();
   const router = useRouter();
   const type = params.type === "active" || params.type === "settled" ? params.type : "all";
   const sort = params.sort === "oldest" || params.sort === "asc" ? "oldest" : "newest";
   const query = useInfiniteQuery(
-    trpc.bill.list.infiniteQueryOptions(
+    trpc.expense.list.infiniteQueryOptions(
       { status: type, sort },
       { getNextPageParam: (page) => page.nextCursor ?? undefined },
     ),
   );
-  const transactions = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const expenses = query.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
     <View className="bg-background flex-1">
@@ -63,18 +63,18 @@ export default function TransactionsPage() {
               >
                 <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
               </Button>
-              <Typography className="text-2xl font-semibold">Transactions</Typography>
+              <Typography className="text-2xl font-semibold">Expenses</Typography>
               <Button
                 isIconOnly
                 variant="ghost"
-                accessibilityLabel="Create transaction"
-                onPress={() => router.push("/create-transaction")}
+                accessibilityLabel="Create expense"
+                onPress={() => router.push("/create-expense")}
               >
                 <HugeiconsIcon icon={Add} size={24} />
               </Button>
             </View>
             <View className="flex-row flex-wrap items-center gap-4">
-              <TransactionFilters type={type} sort={sort} />
+              <ExpenseFilters type={type} sort={sort} />
               {type !== "all" && (
                 <View className="flex-row flex-wrap items-center gap-4">
                   <Typography className="text-sm">Type:</Typography>
@@ -109,7 +109,7 @@ export default function TransactionsPage() {
           </View>
         }
         contentContainerClassName="px-4 pb-safe-offset-8"
-        data={transactions}
+        data={expenses}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={<View className="h-4" />}
         onEndReached={() => {
@@ -124,18 +124,18 @@ export default function TransactionsPage() {
         }}
         ListEmptyComponent={
           query.isPending ? (
-            <TransactionsLoading />
+            <ExpensesLoading />
           ) : !query.isError ? (
-            <TransactionsEmptyState
-              title="No transactions"
-              description="No transactions match these filters."
+            <ExpensesEmptyState
+              title="No expenses"
+              description="No expenses match these filters."
             />
           ) : null
         }
         ListFooterComponent={
           query.isError ? (
             <View className="items-center gap-4 py-6">
-              <Typography className="text-sm text-muted">Unable to load transactions.</Typography>
+              <Typography className="text-sm text-muted">Unable to load expenses.</Typography>
               <Button
                 variant="secondary"
                 size="sm"
@@ -149,7 +149,7 @@ export default function TransactionsPage() {
             </View>
           ) : query.isFetchingNextPage ? (
             <View className="pt-4">
-              <TransactionsLoading count={2} />
+              <ExpensesLoading count={2} />
             </View>
           ) : null
         }
@@ -157,8 +157,8 @@ export default function TransactionsPage() {
           <PressableFeedback
             onPress={() =>
               router.push({
-                pathname: "/(modals)/transactions/[transactionId]",
-                params: { transactionId: item.id },
+                pathname: "/(modals)/expenses/[expenseId]",
+                params: { expenseId: item.id },
               })
             }
           >
@@ -197,12 +197,12 @@ export default function TransactionsPage() {
   );
 }
 
-function TransactionsLoading({ count = 4 }: { count?: number }) {
+function ExpensesLoading({ count = 4 }: { count?: number }) {
   return (
     <View
       className="gap-4"
       accessible
-      accessibilityLabel="Loading transactions"
+      accessibilityLabel="Loading expenses"
       accessibilityState={{ busy: true }}
     >
       {Array.from({ length: count }, (_, index) => (
@@ -229,12 +229,12 @@ function TransactionsLoading({ count = 4 }: { count?: number }) {
   );
 }
 
-function TransactionFilters({ type, sort }: { type: TransactionType; sort: TransactionSort }) {
+function ExpenseFilters({ type, sort }: { type: ExpenseType; sort: ExpenseSort }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [draftType, setDraftType] = useState<TransactionType>(type);
-  const [draftSort, setDraftSort] = useState<TransactionSort>(sort);
+  const [draftType, setDraftType] = useState<ExpenseType>(type);
+  const [draftSort, setDraftSort] = useState<ExpenseSort>(sort);
 
   function openFilters() {
     setDraftType(type);
@@ -242,7 +242,7 @@ function TransactionFilters({ type, sort }: { type: TransactionType; sort: Trans
     setIsFiltersOpen(true);
   }
 
-  function selectType(value: TransactionType) {
+  function selectType(value: ExpenseType) {
     // Selecting both statuses, or clearing the only selection, means all.
     setDraftType((current) => (current === "all" ? value : "all"));
   }

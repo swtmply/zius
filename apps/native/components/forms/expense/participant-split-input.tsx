@@ -2,7 +2,7 @@ import { Typography } from "heroui-native";
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 
-import type { SplitMethod } from "./transaction-form-model";
+import type { SplitMethod } from "./expense-form-model";
 
 type ParticipantSplitInputProps = {
   participantName: string;

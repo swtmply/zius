@@ -62,7 +62,7 @@ export default function TabsLayout() {
               ? {
                   tabPress: (event) => {
                     event.preventDefault();
-                    router.push("/create-transaction");
+                    router.push("/create-expense");
                   },
                 }
               : undefined

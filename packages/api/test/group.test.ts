@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import type { Database } from "@zius/db";
-import { group, groupMember, participant } from "@zius/db/schema/billing";
+import { group, groupMember, participant } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { createCaller } from "./support/caller";
 import { getTestDatabase, resetTestDatabase } from "./support/database";
-import { createBill, createGroup, createPerson } from "./support/fixtures";
+import { createExpense, createGroup, createPerson } from "./support/fixtures";
 
 let db: Database;
 
@@ -92,11 +92,11 @@ describe("group.list", () => {
 });
 
 describe("group.get", () => {
-  test("returns the group with its members and its transactions", async () => {
+  test("returns the group with its members and its expenses", async () => {
     const owner = await createPerson(db, { name: "Ana", email: "ana@example.com" });
     const member = await createPerson(db, { name: "Ben", email: "ben@example.com" });
     const created = await createGroup(db, { name: "Flatmates", owner, members: [member] });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Rent",
       totalMinor: 2000,
       payer: owner,
@@ -104,7 +104,7 @@ describe("group.get", () => {
       occurredAt: new Date(Date.UTC(2026, 0, 1)),
       participants: [{ participantId: member.participantId, owedMinor: 1000 }],
     });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Wifi",
       totalMinor: 500,
       payer: owner,
@@ -117,14 +117,14 @@ describe("group.get", () => {
 
     expect(found).toMatchObject({ id: created.id, name: "Flatmates" });
     expect(found.participants.map((entry) => entry.role).sort()).toEqual(["member", "owner"]);
-    expect(found.transactions.map((entry) => entry.title)).toEqual(["Wifi", "Rent"]);
-    expect(found.transactions[0]).toMatchObject({
+    expect(found.expenses.map((entry) => entry.title)).toEqual(["Wifi", "Rent"]);
+    expect(found.expenses[0]).toMatchObject({
       totalMinor: 500,
       currency: "PHP",
       status: "active",
       occurredAt: new Date(Date.UTC(2026, 0, 10)).toISOString(),
     });
-    expect(found.transactions[0]?.participants[0]?.id).toBe(owner.participantId);
+    expect(found.expenses[0]?.participants[0]?.id).toBe(owner.participantId);
   });
 
   test("hides a group the caller does not belong to", async () => {

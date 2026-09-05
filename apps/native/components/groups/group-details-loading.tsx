@@ -22,12 +22,12 @@ export function GroupParticipantsLoading({ folded }: { folded: boolean }) {
   );
 }
 
-export function GroupTransactionsLoading() {
+export function GroupExpensesLoading() {
   return (
     <View
       className="gap-4"
       accessible
-      accessibilityLabel="Loading transactions"
+      accessibilityLabel="Loading expenses"
       accessibilityState={{ busy: true }}
     >
       {[0, 1].map((index) => (

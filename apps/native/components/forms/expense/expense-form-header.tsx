@@ -4,12 +4,12 @@ import { useRouter } from "expo-router";
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 
-type TransactionFormHeaderProps = {
+type ExpenseFormHeaderProps = {
   isSubmitting: boolean;
   onSubmit: () => void;
 };
 
-export function TransactionFormHeader({ isSubmitting, onSubmit }: TransactionFormHeaderProps) {
+export function ExpenseFormHeader({ isSubmitting, onSubmit }: ExpenseFormHeaderProps) {
   const router = useRouter();
 
   return (
@@ -17,7 +17,7 @@ export function TransactionFormHeader({ isSubmitting, onSubmit }: TransactionFor
       <Button isIconOnly variant="ghost" onPress={() => router.back()}>
         <HugeiconsIcon icon={ChevronLeft} size={24} />
       </Button>
-      <Typography className="text-2xl font-semibold">Create Transaction</Typography>
+      <Typography className="text-2xl font-semibold">Create Expense</Typography>
       <Button isIconOnly variant="ghost" isDisabled={isSubmitting} onPress={onSubmit}>
         <HugeiconsIcon icon={Check} size={24} />
       </Button>

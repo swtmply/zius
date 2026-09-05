@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import type { Database } from "@zius/db";
-import { participant } from "@zius/db/schema/billing";
+import { participant } from "@zius/db/schema/expense";
 import { eq } from "drizzle-orm";
 
 import { createCaller } from "./support/caller";
 import { getTestDatabase, resetTestDatabase } from "./support/database";
-import { createBill, createPerson } from "./support/fixtures";
+import { createExpense, createPerson } from "./support/fixtures";
 
 let db: Database;
 
@@ -20,13 +20,13 @@ describe("dashboard.get", () => {
     const ana = await createPerson(db, { email: "ana@example.com" });
     const ben = await createPerson(db, { email: "ben@example.com" });
 
-    await createBill(db, {
+    await createExpense(db, {
       title: "Ana paid",
       totalMinor: 1000,
       payer: ana,
       participants: [{ participantId: ben.participantId, owedMinor: 700 }],
     });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Ben paid",
       totalMinor: 600,
       payer: ben,
@@ -47,7 +47,7 @@ describe("dashboard.get", () => {
     const ana = await createPerson(db, { email: "ana@example.com" });
     const ben = await createPerson(db, { email: "ben@example.com" });
 
-    await createBill(db, {
+    await createExpense(db, {
       totalMinor: 1000,
       payer: ana,
       participants: [{ participantId: ben.participantId, owedMinor: 700, status: "paid" }],
@@ -58,17 +58,17 @@ describe("dashboard.get", () => {
     expect(dashboard.balance.owedToYouMinor).toBe(0);
   });
 
-  test("lists active bills separately from recent ones", async () => {
+  test("lists active expenses separately from recent ones", async () => {
     const ana = await createPerson(db, { email: "ana@example.com" });
     const ben = await createPerson(db, { email: "ben@example.com" });
 
-    await createBill(db, {
+    await createExpense(db, {
       title: "Open",
       payer: ana,
       occurredAt: new Date(Date.UTC(2026, 0, 2)),
       participants: [{ participantId: ben.participantId, owedMinor: 500 }],
     });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Closed",
       payer: ana,
       occurredAt: new Date(Date.UTC(2026, 0, 1)),
@@ -77,9 +77,9 @@ describe("dashboard.get", () => {
 
     const dashboard = await createCaller(db, ana).dashboard.get();
 
-    expect(dashboard.activeTransactions.map((entry) => entry.title)).toEqual(["Open"]);
-    expect(dashboard.recentTransactions.map((entry) => entry.title)).toEqual(["Open", "Closed"]);
-    expect(dashboard.activeTransactions[0]?.participants).toHaveLength(2);
+    expect(dashboard.activeExpenses.map((entry) => entry.title)).toEqual(["Open"]);
+    expect(dashboard.recentExpenses.map((entry) => entry.title)).toEqual(["Open", "Closed"]);
+    expect(dashboard.activeExpenses[0]?.participants).toHaveLength(2);
   });
 
   test("returns an empty dashboard for a caller with no participant record", async () => {
@@ -90,23 +90,8 @@ describe("dashboard.get", () => {
 
     expect(dashboard).toEqual({
       balance: { owedToYouMinor: 0, youOweMinor: 0, netMinor: 0, currency: "PHP" },
-      activeTransactions: [],
-      recentTransactions: [],
-    });
-  });
-});
-
-describe("participant.current", () => {
-  test("returns the participant claimed by the caller's account", async () => {
-    const ana = await createPerson(db, { name: "Ana", email: "ana@example.com" });
-
-    const current = await createCaller(db, ana).participant.current();
-
-    expect(current).toEqual({
-      id: ana.participantId,
-      name: "Ana",
-      email: "ana@example.com",
-      userId: ana.userId,
+      activeExpenses: [],
+      recentExpenses: [],
     });
   });
 });

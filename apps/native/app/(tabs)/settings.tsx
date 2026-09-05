@@ -231,8 +231,8 @@ export default function Settings() {
               Deleting Account
             </Text>
             <Text selectable className="text-[12px] leading-[15px] text-[#171717]">
-              When you delete your account, transactions currently attached to you will not be
-              deleted. You will no longer be able to access any of your data.
+              When you delete your account, expenses currently attached to you will not be deleted.
+              You will no longer be able to access any of your data.
             </Text>
             <Pressable
               accessibilityRole="button"

@@ -1,7 +1,7 @@
 import { Button } from "heroui-native";
 import { View } from "react-native";
 
-import { splitMethods, type SplitMethod } from "./transaction-form-model";
+import { splitMethods, type SplitMethod } from "./expense-form-model";
 
 type SplitMethodSelectorProps = {
   value: SplitMethod;
