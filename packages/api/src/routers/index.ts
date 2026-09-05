@@ -3,7 +3,7 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "../index";
 import { dashboardRouter } from "./dashboard";
 import { todoRouter } from "./todo";
-import { billRouter } from "./bill";
+import { expenseRouter } from "./expense";
 import { participantRouter } from "./participant";
 import { groupRouter } from "./group";
 
@@ -27,7 +27,7 @@ export const appRouter = router({
     };
   }),
   dashboard: dashboardRouter,
-  bill: billRouter,
+  expense: expenseRouter,
   participant: participantRouter,
   group: groupRouter,
   todo: todoRouter,

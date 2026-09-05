@@ -2,9 +2,9 @@ import BalanceCard from "@/components/dashboard/balance-card";
 import DashboardHeader from "@/components/dashboard/header";
 import DashboardLoading from "@/components/dashboard/loading";
 import {
-  ActiveTransactions,
-  TransactionsEmptyState,
-} from "@/components/dashboard/transactions";
+  ActiveExpenses,
+  ExpensesEmptyState,
+} from "@/components/dashboard/expenses";
 import { SectionHeader } from "@/components/section-header";
 import { formatCurrency, formatDate } from "@/utils";
 import { trpc } from "@/utils/trpc";
@@ -33,17 +33,17 @@ export default function Home() {
               youOweMinor={data?.balance?.youOweMinor ?? 0}
             />
 
-            <ActiveTransactions transactions={data?.activeTransactions || []} />
+            <ActiveExpenses expenses={data?.activeExpenses || []} />
 
             <SectionHeader
-              title="Recent Transactions"
+              title="Recent Expenses"
               action={
-                (data?.recentTransactions.length ?? 0) > 0 ? (
+                (data?.recentExpenses.length ?? 0) > 0 ? (
                   <Button
                     variant="ghost"
                     onPress={() =>
                       router.push({
-                        pathname: "/(modals)/transactions",
+                        pathname: "/(modals)/expenses",
                         params: {
                           sort: "desc",
                           type: "settled",
@@ -61,11 +61,11 @@ export default function Home() {
           </View>
         }
         contentContainerClassName="px-4 pb-8"
-        data={data?.recentTransactions}
+        data={data?.recentExpenses}
         ListEmptyComponent={
-          <TransactionsEmptyState
-            title="No recent transactions"
-            description="Create your first transaction to start tracking shared expenses."
+          <ExpensesEmptyState
+            title="No recent expenses"
+            description="Create your first expense to start tracking shared spending."
           />
         }
         keyExtractor={(item) => item.id}
@@ -73,9 +73,9 @@ export default function Home() {
           <PressableFeedback
             onPress={() =>
               router.push({
-                pathname: "/(modals)/transactions/[transactionId]",
+                pathname: "/(modals)/expenses/[expenseId]",
                 params: {
-                  transactionId: item.id,
+                  expenseId: item.id,
                 },
               })
             }
@@ -83,7 +83,7 @@ export default function Home() {
             <View
               className={cn(
                 "flex-row items-center justify-between gap-2 py-2 border-border",
-                data?.recentTransactions.length === index + 1 ? "" : "border-b",
+                data?.recentExpenses.length === index + 1 ? "" : "border-b",
               )}
             >
               <View className="flex-1 gap-1">

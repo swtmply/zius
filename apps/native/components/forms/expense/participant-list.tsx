@@ -4,7 +4,7 @@ import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { View } from "react-native";
 
 import { ParticipantSplitInput } from "./participant-split-input";
-import type { FormParticipant, SplitMethod } from "./transaction-form-model";
+import type { FormParticipant, SplitMethod } from "./expense-form-model";
 
 type ParticipantListProps = {
   participants: FormParticipant[];

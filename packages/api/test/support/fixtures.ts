@@ -1,6 +1,12 @@
 import type { Database } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
-import { bill, billParticipant, group, groupMember, participant } from "@zius/db/schema/billing";
+import {
+  expense,
+  expenseParticipant,
+  group,
+  groupMember,
+  participant,
+} from "@zius/db/schema/expense";
 
 import type { Session } from "../../src/context";
 
@@ -115,7 +121,7 @@ export async function createGroup(db: Database, options: GroupOptions) {
   return { id, name };
 }
 
-export type BillOptions = {
+export type ExpenseOptions = {
   title?: string;
   totalMinor?: number;
   currency?: string;
@@ -131,10 +137,10 @@ export type BillOptions = {
   }>;
 };
 
-/** A bill with its participant rows, seeded directly rather than through a procedure. */
-export async function createBill(db: Database, options: BillOptions) {
+/** An expense with its participant rows, seeded directly rather than through a procedure. */
+export async function createExpense(db: Database, options: ExpenseOptions) {
   const id = crypto.randomUUID();
-  const title = options.title ?? `Bill ${id.slice(0, 8)}`;
+  const title = options.title ?? `Expense ${id.slice(0, 8)}`;
   const totalMinor = options.totalMinor ?? 1000;
   const occurredAt = options.occurredAt ?? new Date();
   const now = new Date();
@@ -148,7 +154,7 @@ export async function createBill(db: Database, options: BillOptions) {
   ];
   const isSettled = entries.every((entry) => entry.status === "paid");
 
-  await db.insert(bill).values({
+  await db.insert(expense).values({
     id,
     title,
     totalMinor,
@@ -162,9 +168,9 @@ export async function createBill(db: Database, options: BillOptions) {
     createdByUserId: (options.createdBy ?? options.payer).userId,
   });
 
-  await db.insert(billParticipant).values(
+  await db.insert(expenseParticipant).values(
     entries.map((entry) => ({
-      billId: id,
+      expenseId: id,
       participantId: entry.participantId,
       owedMinor: entry.owedMinor,
       status: entry.status,

@@ -74,8 +74,8 @@ export const groupMember = sqliteTable(
   ],
 );
 
-export const bill = sqliteTable(
-  "bill",
+export const expense = sqliteTable(
+  "expense",
   {
     id: text("id")
       .primaryKey()
@@ -101,27 +101,30 @@ export const bill = sqliteTable(
     ...timestamps(),
   },
   (table) => [
-    check("bill_total_positive_check", sql`${table.totalMinor} > 0`),
-    check("bill_currency_check", sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`),
-    check("bill_status_check", sql`${table.status} in ('active', 'settled')`),
-    check("bill_split_method_check", sql`${table.splitMethod} in ('equal', 'fixed', 'percentage')`),
+    check("expense_total_positive_check", sql`${table.totalMinor} > 0`),
+    check("expense_currency_check", sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`),
+    check("expense_status_check", sql`${table.status} in ('active', 'settled')`),
     check(
-      "bill_settlement_check",
+      "expense_split_method_check",
+      sql`${table.splitMethod} in ('equal', 'fixed', 'percentage')`,
+    ),
+    check(
+      "expense_settlement_check",
       sql`(${table.status} = 'active' and ${table.settledAt} is null) or (${table.status} = 'settled' and ${table.settledAt} is not null)`,
     ),
-    index("bill_group_id_idx").on(table.groupId),
-    index("bill_payer_id_idx").on(table.payerId),
-    index("bill_status_idx").on(table.status),
-    index("bill_occurred_at_idx").on(table.occurredAt),
+    index("expense_group_id_idx").on(table.groupId),
+    index("expense_payer_id_idx").on(table.payerId),
+    index("expense_status_idx").on(table.status),
+    index("expense_occurred_at_idx").on(table.occurredAt),
   ],
 );
 
-export const billParticipant = sqliteTable(
-  "bill_participant",
+export const expenseParticipant = sqliteTable(
+  "expense_participant",
   {
-    billId: text("bill_id")
+    expenseId: text("expense_id")
       .notNull()
-      .references(() => bill.id, { onDelete: "cascade" }),
+      .references(() => expense.id, { onDelete: "cascade" }),
     participantId: text("participant_id")
       .notNull()
       .references(() => participant.id),
@@ -132,15 +135,15 @@ export const billParticipant = sqliteTable(
     paidAt: integer("paid_at", { mode: "timestamp_ms" }),
   },
   (table) => [
-    primaryKey({ columns: [table.billId, table.participantId] }),
-    check("bill_participant_owed_check", sql`${table.owedMinor} >= 0`),
-    check("bill_participant_status_check", sql`${table.status} in ('paid', 'unpaid')`),
+    primaryKey({ columns: [table.expenseId, table.participantId] }),
+    check("expense_participant_owed_check", sql`${table.owedMinor} >= 0`),
+    check("expense_participant_status_check", sql`${table.status} in ('paid', 'unpaid')`),
     check(
-      "bill_participant_payment_check",
+      "expense_participant_payment_check",
       sql`(${table.status} = 'unpaid' and ${table.paidAt} is null) or (${table.status} = 'paid' and ${table.paidAt} is not null)`,
     ),
-    index("bill_participant_participant_id_idx").on(table.participantId),
-    index("bill_participant_status_idx").on(table.status),
+    index("expense_participant_participant_id_idx").on(table.participantId),
+    index("expense_participant_status_idx").on(table.status),
   ],
 );
 
@@ -150,8 +153,8 @@ export const participantRelations = relations(participant, ({ one, many }) => ({
     references: [user.id],
   }),
   groupMemberships: many(groupMember),
-  paidBills: many(bill),
-  billParticipants: many(billParticipant),
+  paidExpenses: many(expense),
+  expenseParticipants: many(expenseParticipant),
 }));
 
 export const groupRelations = relations(group, ({ one, many }) => ({
@@ -160,7 +163,7 @@ export const groupRelations = relations(group, ({ one, many }) => ({
     references: [user.id],
   }),
   members: many(groupMember),
-  bills: many(bill),
+  expenses: many(expense),
 }));
 
 export const groupMemberRelations = relations(groupMember, ({ one }) => ({
@@ -174,29 +177,29 @@ export const groupMemberRelations = relations(groupMember, ({ one }) => ({
   }),
 }));
 
-export const billRelations = relations(bill, ({ one, many }) => ({
+export const expenseRelations = relations(expense, ({ one, many }) => ({
   payer: one(participant, {
-    fields: [bill.payerId],
+    fields: [expense.payerId],
     references: [participant.id],
   }),
   group: one(group, {
-    fields: [bill.groupId],
+    fields: [expense.groupId],
     references: [group.id],
   }),
   createdBy: one(user, {
-    fields: [bill.createdByUserId],
+    fields: [expense.createdByUserId],
     references: [user.id],
   }),
-  participants: many(billParticipant),
+  participants: many(expenseParticipant),
 }));
 
-export const billParticipantRelations = relations(billParticipant, ({ one }) => ({
-  bill: one(bill, {
-    fields: [billParticipant.billId],
-    references: [bill.id],
+export const expenseParticipantRelations = relations(expenseParticipant, ({ one }) => ({
+  expense: one(expense, {
+    fields: [expenseParticipant.expenseId],
+    references: [expense.id],
   }),
   participant: one(participant, {
-    fields: [billParticipant.participantId],
+    fields: [expenseParticipant.participantId],
     references: [participant.id],
   }),
 }));

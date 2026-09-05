@@ -22,7 +22,7 @@ _Avoid_: Friendship, connection
 
 **Expense**:
 A record of money paid and owed by one or more participants, optionally within an expense group.
-_Avoid_: Transaction, bill
+_Avoid_: Transaction, Bill
 
 **Participant**:
 A person assigned a paid amount, an owed amount, or both on an expense.

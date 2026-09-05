@@ -9,12 +9,11 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
 
 import { SectionHeader } from "@/components/section-header";
-import { BillCreationToast } from "@/components/bill-creation-toast";
+import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { trpc } from "@/utils/trpc";
 
-import { GroupSelector } from "../transaction/group-selector";
-import { GuestDialog } from "../transaction/guest-dialog";
-import { TransactionTitleInput } from "../transaction/transaction-title-input";
+import { GuestDialog } from "../expense/guest-dialog";
+import { ExpenseTitleInput } from "../expense/expense-title-input";
 import { GroupFormHeader } from "./group-form-header";
 import {
   createGroupSchema,
@@ -77,7 +76,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
         toast.show({
           duration: 6000,
           component: (props) => (
-            <BillCreationToast
+            <ExpenseCreationToast
               {...props}
               variant="danger"
               title="Failed to create group"
@@ -94,7 +93,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       setParticipantError(undefined);
       toast.show({
         component: (props) => (
-          <BillCreationToast
+          <ExpenseCreationToast
             {...props}
             variant="success"
             title="Group created successfully"
@@ -179,7 +178,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       <form.Field name="name">
         {(field) => (
           <View className="gap-1">
-            <TransactionTitleInput
+            <ExpenseTitleInput
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={field.handleChange}

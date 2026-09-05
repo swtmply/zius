@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 
 import type { Database } from "@zius/db";
-import { bill, billParticipant, participant } from "@zius/db/schema/billing";
+import { expense, expenseParticipant, participant } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { createCaller } from "./support/caller";
 import { getTestDatabase, resetTestDatabase } from "./support/database";
-import { createBill, createGroup, createPerson } from "./support/fixtures";
+import { createExpense, createGroup, createPerson } from "./support/fixtures";
 
 let db: Database;
 
@@ -16,12 +16,12 @@ beforeEach(async () => {
   await resetTestDatabase(db);
 });
 
-describe("bill.create", () => {
+describe("expense.create", () => {
   test("splits the total evenly and records the payer as paid", async () => {
     const payer = await createPerson(db, { name: "Ana", email: "ana@example.com" });
     const caller = createCaller(db, payer);
 
-    const created = await caller.bill.create({
+    const created = await caller.expense.create({
       title: "Dinner",
       totalMinor: 1000,
       splitMethod: "equal",
@@ -35,7 +35,7 @@ describe("bill.create", () => {
 
     expect(created.status).toBe("active");
 
-    const [stored] = await db.select().from(bill).where(eq(bill.id, created.id));
+    const [stored] = await db.select().from(expense).where(eq(expense.id, created.id));
 
     expect(stored).toMatchObject({
       title: "Dinner",
@@ -50,8 +50,8 @@ describe("bill.create", () => {
 
     const shares = await db
       .select()
-      .from(billParticipant)
-      .where(eq(billParticipant.billId, created.id));
+      .from(expenseParticipant)
+      .where(eq(expenseParticipant.expenseId, created.id));
 
     expect(shares).toHaveLength(2);
     expect(shares.map((share) => share.owedMinor).sort()).toEqual([500, 500]);
@@ -64,7 +64,7 @@ describe("bill.create", () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const caller = createCaller(db, payer);
 
-    await caller.bill.create({
+    await caller.expense.create({
       title: "Taxi",
       totalMinor: 900,
       splitMethod: "equal",
@@ -88,7 +88,7 @@ describe("bill.create", () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const caller = createCaller(db, payer);
 
-    const created = await caller.bill.create({
+    const created = await caller.expense.create({
       title: "Coffee",
       totalMinor: 400,
       splitMethod: "equal",
@@ -102,7 +102,7 @@ describe("bill.create", () => {
 
     expect(created.status).toBe("settled");
 
-    const [stored] = await db.select().from(bill).where(eq(bill.id, created.id));
+    const [stored] = await db.select().from(expense).where(eq(expense.id, created.id));
 
     expect(stored?.settledAt).not.toBeNull();
   });
@@ -113,7 +113,7 @@ describe("bill.create", () => {
     const otherGroup = await createGroup(db, { owner });
     const caller = createCaller(db, outsider);
 
-    const error = await caller.bill
+    const error = await caller.expense
       .create({
         title: "Dinner",
         totalMinor: 1000,
@@ -133,7 +133,7 @@ describe("bill.create", () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const caller = createCaller(db, payer);
 
-    const error = await caller.bill
+    const error = await caller.expense
       .create({
         title: "Dinner",
         totalMinor: 1000,
@@ -154,7 +154,7 @@ describe("bill.create", () => {
   test("refuses a caller with no session", async () => {
     const caller = createCaller(db);
 
-    const error = await caller.bill
+    const error = await caller.expense
       .create({
         title: "Dinner",
         totalMinor: 1000,
@@ -170,11 +170,11 @@ describe("bill.create", () => {
   });
 });
 
-describe("bill.get", () => {
-  test("returns the bill with the payer first and what the payer is owed", async () => {
+describe("expense.get", () => {
+  test("returns the expense with the payer first and what the payer is owed", async () => {
     const payer = await createPerson(db, { name: "Ana", email: "ana@example.com" });
     const debtor = await createPerson(db, { name: "Ben", email: "ben@example.com" });
-    const seeded = await createBill(db, {
+    const seeded = await createExpense(db, {
       title: "Dinner",
       totalMinor: 1000,
       payer,
@@ -182,7 +182,7 @@ describe("bill.get", () => {
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
 
-    const found = await createCaller(db, payer).bill.get({ id: seeded.id });
+    const found = await createCaller(db, payer).expense.get({ id: seeded.id });
 
     expect(found).toMatchObject({
       id: seeded.id,
@@ -205,29 +205,29 @@ describe("bill.get", () => {
   test("reports a participant's own share rather than the total owed", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
-    const seeded = await createBill(db, {
+    const seeded = await createExpense(db, {
       totalMinor: 1000,
       payer,
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
 
-    const found = await createCaller(db, debtor).bill.get({ id: seeded.id });
+    const found = await createCaller(db, debtor).expense.get({ id: seeded.id });
 
     expect(found.isPayer).toBe(false);
     expect(found.amountMinor).toBe(500);
   });
 
-  test("hides a bill the caller is not involved in", async () => {
+  test("hides an expense the caller is not involved in", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
     const stranger = await createPerson(db, { email: "cara@example.com" });
-    const seeded = await createBill(db, {
+    const seeded = await createExpense(db, {
       payer,
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
 
     const error = await createCaller(db, stranger)
-      .bill.get({ id: seeded.id })
+      .expense.get({ id: seeded.id })
       .catch((caught: unknown) => caught);
 
     expect(error).toBeInstanceOf(TRPCError);
@@ -235,24 +235,24 @@ describe("bill.get", () => {
   });
 });
 
-describe("bill.list", () => {
-  test("returns the caller's bills newest first", async () => {
+describe("expense.list", () => {
+  test("returns the caller's expenses newest first", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Older",
       payer,
       occurredAt: new Date(Date.UTC(2026, 0, 1)),
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Newer",
       payer,
       occurredAt: new Date(Date.UTC(2026, 0, 20)),
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
 
-    const listed = await createCaller(db, payer).bill.list({});
+    const listed = await createCaller(db, payer).expense.list({});
 
     expect(listed.items.map((item) => item.title)).toEqual(["Newer", "Older"]);
     expect(listed.nextCursor).toBeNull();
@@ -262,18 +262,18 @@ describe("bill.list", () => {
   test("filters by status", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Open",
       payer,
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Closed",
       payer,
       participants: [{ participantId: debtor.participantId, owedMinor: 500, status: "paid" }],
     });
 
-    const listed = await createCaller(db, payer).bill.list({ status: "settled" });
+    const listed = await createCaller(db, payer).expense.list({ status: "settled" });
 
     expect(listed.items.map((item) => item.title)).toEqual(["Closed"]);
   });
@@ -281,13 +281,13 @@ describe("bill.list", () => {
   test("hands back a cursor when there is another page", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
-    await createBill(db, {
+    await createExpense(db, {
       title: "First",
       payer,
       occurredAt: new Date(Date.UTC(2026, 0, 1)),
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
-    await createBill(db, {
+    await createExpense(db, {
       title: "Second",
       payer,
       occurredAt: new Date(Date.UTC(2026, 0, 2)),
@@ -295,12 +295,12 @@ describe("bill.list", () => {
     });
 
     const caller = createCaller(db, payer);
-    const firstPage = await caller.bill.list({ limit: 1 });
+    const firstPage = await caller.expense.list({ limit: 1 });
 
     expect(firstPage.items.map((item) => item.title)).toEqual(["Second"]);
     expect(firstPage.nextCursor).not.toBeNull();
 
-    const secondPage = await caller.bill.list({ limit: 1, cursor: firstPage.nextCursor });
+    const secondPage = await caller.expense.list({ limit: 1, cursor: firstPage.nextCursor });
 
     expect(secondPage.items.map((item) => item.title)).toEqual(["First"]);
     expect(secondPage.nextCursor).toBeNull();
@@ -308,50 +308,50 @@ describe("bill.list", () => {
 
   test("returns nothing for a caller with no participant record", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
-    await createBill(db, { payer, participants: [] });
+    await createExpense(db, { payer, participants: [] });
 
     const stranger = await createPerson(db, { email: "cara@example.com" });
     await db.delete(participant).where(eq(participant.id, stranger.participantId));
 
-    const listed = await createCaller(db, stranger).bill.list({});
+    const listed = await createCaller(db, stranger).expense.list({});
 
     expect(listed).toEqual({ items: [], nextCursor: null });
   });
 });
 
-describe("bill.update", () => {
-  test("settles the bill once every share is paid", async () => {
+describe("expense.update", () => {
+  test("settles the expense once every share is paid", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
-    const seeded = await createBill(db, {
+    const seeded = await createExpense(db, {
       payer,
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
 
-    const updated = await createCaller(db, payer).bill.update({
+    const updated = await createCaller(db, payer).expense.update({
       id: seeded.id,
       participants: [{ id: debtor.participantId, status: "paid" }],
     });
 
     expect(updated.status).toBe("settled");
 
-    const [stored] = await db.select().from(bill).where(eq(bill.id, seeded.id));
+    const [stored] = await db.select().from(expense).where(eq(expense.id, seeded.id));
 
     expect(stored?.status).toBe("settled");
     expect(stored?.settledAt).not.toBeNull();
   });
 
-  test("rejects a participant who is not on the bill", async () => {
+  test("rejects a participant who is not on the expense", async () => {
     const payer = await createPerson(db, { email: "ana@example.com" });
     const debtor = await createPerson(db, { email: "ben@example.com" });
     const stranger = await createPerson(db, { email: "cara@example.com" });
-    const seeded = await createBill(db, {
+    const seeded = await createExpense(db, {
       payer,
       participants: [{ participantId: debtor.participantId, owedMinor: 500 }],
     });
 
     const error = await createCaller(db, payer)
-      .bill.update({
+      .expense.update({
         id: seeded.id,
         participants: [{ id: stranger.participantId, status: "paid" }],
       })

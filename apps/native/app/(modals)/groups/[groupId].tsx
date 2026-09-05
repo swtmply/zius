@@ -6,11 +6,11 @@ import { Button, Skeleton, Typography, useToast } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Check, ChevronLeftFreeIcons, Edit02Icon, Trash } from "@hugeicons/core-free-icons";
 import { trpc } from "@/utils/trpc";
-import { BillCreationToast } from "@/components/bill-creation-toast";
-import { GroupParticipants, GroupTransactionCard } from "@/components/groups/group-details";
+import { ExpenseCreationToast } from "@/components/expense-creation-toast";
+import { GroupParticipants, GroupExpenseCard } from "@/components/groups/group-details";
 import {
   GroupParticipantsLoading,
-  GroupTransactionsLoading,
+  GroupExpensesLoading,
 } from "@/components/groups/group-details-loading";
 
 export default function GroupDetailsPage() {
@@ -35,7 +35,7 @@ export default function GroupDetailsPage() {
         Keyboard.dismiss();
         toast.show({
           component: (props) => (
-            <BillCreationToast
+            <ExpenseCreationToast
               {...props}
               variant="success"
               title="Group renamed"
@@ -44,13 +44,13 @@ export default function GroupDetailsPage() {
           ),
         });
         void queryClient.invalidateQueries({ queryKey: trpc.group.list.pathKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.bill.get.pathKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.expense.get.pathKey() });
       },
       onError: (error) => {
         toast.show({
           duration: 6000,
           component: (props) => (
-            <BillCreationToast
+            <ExpenseCreationToast
               {...props}
               variant="danger"
               title="Failed to rename group"
@@ -68,7 +68,7 @@ export default function GroupDetailsPage() {
     if (!trimmedName) {
       toast.show({
         component: (props) => (
-          <BillCreationToast
+          <ExpenseCreationToast
             {...props}
             variant="danger"
             title="Enter a group name"
@@ -86,7 +86,7 @@ export default function GroupDetailsPage() {
       <FlatList
         keyboardShouldPersistTaps="handled"
         contentContainerClassName="px-4 pt-safe pb-safe-offset-8"
-        data={group?.transactions ?? []}
+        data={group?.expenses ?? []}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={<View className="h-4" />}
         refreshing={query.isRefetching}
@@ -178,17 +178,17 @@ export default function GroupDetailsPage() {
                   <GroupParticipantsLoading folded={folded} />
                 )}
                 <View className="flex-row items-center justify-between gap-4">
-                  <Typography className="text-sm">Transactions</Typography>
+                  <Typography className="text-sm">Expenses</Typography>
                   <Pressable
                     disabled={!group}
                     hitSlop={12}
                     accessibilityRole="button"
                     accessibilityState={{ disabled: !group }}
                     onPress={() =>
-                      router.push({ pathname: "/create-transaction", params: { groupId } })
+                      router.push({ pathname: "/create-expense", params: { groupId } })
                     }
                   >
-                    <Typography className="text-xs text-muted">Create Transaction</Typography>
+                    <Typography className="text-xs text-muted">Create Expense</Typography>
                   </Pressable>
                 </View>
               </>
@@ -197,10 +197,10 @@ export default function GroupDetailsPage() {
         }
         ListEmptyComponent={
           query.isPending ? (
-            <GroupTransactionsLoading />
+            <GroupExpensesLoading />
           ) : group && !query.isError ? (
             <Typography className="text-center text-xs text-muted py-8">
-              No transactions yet.
+              No expenses yet.
             </Typography>
           ) : null
         }
@@ -222,11 +222,11 @@ export default function GroupDetailsPage() {
                 <Button.Label>Try again</Button.Label>
               </Button>
             </View>
-          ) : group && group.transactions.length > 0 ? (
+          ) : group && group.expenses.length > 0 ? (
             <Typography className="text-center text-xs text-muted py-4">No more.</Typography>
           ) : null
         }
-        renderItem={({ item }) => <GroupTransactionCard transaction={item} />}
+        renderItem={({ item }) => <GroupExpenseCard expense={item} />}
       />
     </View>
   );

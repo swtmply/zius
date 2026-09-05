@@ -18,8 +18,8 @@ const MIGRATIONS_FOLDER = fileURLToPath(new URL("../../../db/src/migrations", im
 
 /** Children first, so the deletes hold whether or not foreign keys are enforced. */
 const TABLES_IN_DELETION_ORDER = [
-  "bill_participant",
-  "bill",
+  "expense_participant",
+  "expense",
   "group_member",
   "group",
   "participant",
@@ -59,11 +59,4 @@ export async function resetTestDatabase(db: Database) {
   for (const table of TABLES_IN_DELETION_ORDER) {
     await db.run(sql.raw(`delete from \`${table}\``));
   }
-}
-
-/** Releases the keep-alive connection, discarding the database with it. */
-export function closeTestDatabase() {
-  keepAlive?.close();
-  keepAlive = undefined;
-  database = undefined;
 }

@@ -4,7 +4,7 @@ export const splitMethods = ["equal", "fixed", "percentage"] as const;
 
 export type SplitMethod = (typeof splitMethods)[number];
 
-export const createTransactionSchema = z.object({
+export const createExpenseSchema = z.object({
   totalMinor: z.number(),
   title: z.string(),
   splitMethod: z.enum(splitMethods),
@@ -26,8 +26,8 @@ export const createTransactionSchema = z.object({
   currency: z.string().default("PHP"),
 });
 
-export type TransactionFormValues = z.input<typeof createTransactionSchema>;
-export type FormParticipant = TransactionFormValues["participants"][number];
+export type ExpenseFormValues = z.input<typeof createExpenseSchema>;
+export type FormParticipant = ExpenseFormValues["participants"][number];
 
 function divideEvenly(total: number, count: number) {
   if (count === 0) {

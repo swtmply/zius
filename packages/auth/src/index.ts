@@ -1,7 +1,7 @@
 import { expo } from "@better-auth/expo";
 import { createDb } from "@zius/db";
 import * as schema from "@zius/db/schema/auth";
-import { participant } from "@zius/db/schema/billing";
+import { participant } from "@zius/db/schema/expense";
 import { env } from "@zius/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";

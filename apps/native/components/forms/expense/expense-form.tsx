@@ -1,4 +1,4 @@
-import { BillCreationToast } from "@/components/bill-creation-toast";
+import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { SectionHeader } from "@/components/section-header";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -14,20 +14,20 @@ import { GuestDialog } from "./guest-dialog";
 import { GroupSelector } from "./group-selector";
 import { ParticipantList } from "./participant-list";
 import { SplitMethodSelector } from "./split-method-selector";
-import { TransactionFormHeader } from "./transaction-form-header";
+import { ExpenseFormHeader } from "./expense-form-header";
 import {
-  createTransactionSchema,
+  createExpenseSchema,
   recalculateParticipants,
   splitMethods,
   type FormParticipant,
   type SplitMethod,
-  type TransactionFormValues,
-} from "./transaction-form-model";
-import { TransactionTitleInput } from "./transaction-title-input";
+  type ExpenseFormValues,
+} from "./expense-form-model";
+import { ExpenseTitleInput } from "./expense-title-input";
 import { trpc } from "@/utils/trpc";
 import { useRouter } from "expo-router";
 
-type TransactionFormProps = {
+type ExpenseFormProps = {
   currentParticipant: inferRouterOutputs<AppRouter>["participant"]["current"];
   group?: inferRouterOutputs<AppRouter>["group"]["get"];
 };
@@ -35,35 +35,12 @@ type TransactionFormProps = {
 type SubmitMeta = { groupChoice?: "group" | "standalone" };
 const defaultSubmitMeta: SubmitMeta = {};
 
-export function TransactionForm({
-  currentParticipant,
-  group,
-}: TransactionFormProps) {
+export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const groupParticipants = group?.participants ?? [currentParticipant];
-  const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
-    (group?.participants ?? []).map((participant) =>
-      participant.email.toLowerCase(),
-    ),
-  );
-
-  const findOutsideParticipants = (
-    groupId: string | undefined,
-    participants: FormParticipant[],
-  ) => {
-    if (!groupId) {
-      return [];
-    }
-
-    const memberEmails = new Set(groupMemberEmails);
-
-    return participants.filter(
-      (participant) => !memberEmails.has(participant.email.toLowerCase()),
-    );
-  };
-  const defaultValues: TransactionFormValues = {
+  const defaultValues: ExpenseFormValues = {
     totalMinor: 0,
     title: "",
     splitMethod: splitMethods[0],
@@ -84,13 +61,13 @@ export function TransactionForm({
   };
   const router = useRouter();
 
-  const createBill = useMutation(trpc.bill.create.mutationOptions());
+  const createExpense = useMutation(trpc.expense.create.mutationOptions());
 
   const form = useForm({
     defaultValues,
     onSubmitMeta: defaultSubmitMeta,
     validators: {
-      onSubmit: createTransactionSchema,
+      onSubmit: createExpenseSchema,
     },
     onSubmit: async ({ value, meta }) => {
       // A selected group can only take the expense when every participant already
@@ -107,14 +84,14 @@ export function TransactionForm({
 
       setIsGroupDialogOpen(false);
       try {
-        await createBill.mutateAsync({
+        await createExpense.mutateAsync({
           ...value,
           groupId: needsGroupChoice ? undefined : value.group_id,
           createGroup: needsGroupChoice && meta.groupChoice === "group",
         });
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() }),
-          queryClient.invalidateQueries({ queryKey: trpc.bill.pathKey() }),
+          queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       } catch (error) {
@@ -126,7 +103,7 @@ export function TransactionForm({
         toast.show({
           duration: 6000,
           component: (props) => (
-            <BillCreationToast
+            <ExpenseCreationToast
               {...props}
               variant="danger"
               description={description}
@@ -144,10 +121,10 @@ export function TransactionForm({
       );
       toast.show({
         component: (props) => (
-          <BillCreationToast
+          <ExpenseCreationToast
             {...props}
             variant="success"
-            description="Your bill has been created."
+            description="Your expense has been created."
           />
         ),
       });
@@ -276,7 +253,7 @@ export function TransactionForm({
     >
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <TransactionFormHeader
+          <ExpenseFormHeader
             isSubmitting={isSubmitting || selectGroup.isPending}
             onSubmit={() => submit()}
           />
@@ -296,7 +273,7 @@ export function TransactionForm({
 
       <form.Field name="title">
         {(field) => (
-          <TransactionTitleInput
+          <ExpenseTitleInput
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={field.handleChange}
