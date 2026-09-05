@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import "../index.css";
-import Header from "@/components/header";
 import Providers from "@/components/providers";
 
 const geistSans = Geist({
@@ -16,24 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "zius",
-  description: "zius",
+  title: "Zius | Split expenses without the awkward math",
+  description: "Track shared expenses, split bills, and settle balances with Zius.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
-            <Header />
-            {children}
-          </div>
-        </Providers>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
