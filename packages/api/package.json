@@ -16,7 +16,8 @@
     }
   },
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "test": "bun test"
   },
   "dependencies": {
     "@trpc/client": "catalog:",
