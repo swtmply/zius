@@ -11,19 +11,7 @@
       "root": "apps/server",
       "framework": "hono",
       "entrypoint": "src/index.ts",
-      "installCommand": "cd ../.. && bun install",
-      "routes": [
-        {
-          "src": "/api/((?!auth(?:/|$)).*)",
-          "transforms": [
-            {
-              "type": "request.path",
-              "op": "set",
-              "args": "/$1"
-            }
-          ]
-        }
-      ]
+      "installCommand": "cd ../.. && bun install"
     }
   },
   "rewrites": [
