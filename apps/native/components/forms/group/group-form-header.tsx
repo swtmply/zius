@@ -5,11 +5,11 @@ import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 
 type GroupFormHeaderProps = {
-  isSubmitting: boolean;
+  isDisabled: boolean;
   onSubmit: () => void;
 };
 
-export function GroupFormHeader({ isSubmitting, onSubmit }: GroupFormHeaderProps) {
+export function GroupFormHeader({ isDisabled, onSubmit }: GroupFormHeaderProps) {
   const router = useRouter();
 
   return (
@@ -22,7 +22,7 @@ export function GroupFormHeader({ isSubmitting, onSubmit }: GroupFormHeaderProps
         isIconOnly
         variant="ghost"
         accessibilityLabel="Create group"
-        isDisabled={isSubmitting}
+        isDisabled={isDisabled}
         onPress={onSubmit}
       >
         <HugeiconsIcon icon={Check} size={24} />

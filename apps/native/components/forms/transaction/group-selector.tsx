@@ -8,9 +8,15 @@ type GroupSelectorProps = {
   value: string | undefined;
   onChange: (groupId: string | undefined) => void;
   isDisabled?: boolean;
+  emptyOptionLabel?: string;
 };
 
-export function GroupSelector({ value, onChange, isDisabled = false }: GroupSelectorProps) {
+export function GroupSelector({
+  value,
+  onChange,
+  isDisabled = false,
+  emptyOptionLabel = "No group",
+}: GroupSelectorProps) {
   const query = useInfiniteQuery(
     trpc.group.list.infiniteQueryOptions(
       { limit: 50 },
@@ -18,7 +24,7 @@ export function GroupSelector({ value, onChange, isDisabled = false }: GroupSele
     ),
   );
   const groups = query.data?.pages.flatMap((page) => page.items) ?? [];
-  const options = [{ id: undefined, name: "No group" }, ...groups];
+  const options = [{ id: undefined, name: emptyOptionLabel }, ...groups];
 
   return (
     <FlatList
