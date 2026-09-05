@@ -16,7 +16,8 @@
     }
   },
   "scripts": {
-    "build": "tsdown"
+    "build": "tsdown",
+    "test": "bun test"
   },
   "dependencies": {
     "@trpc/client": "catalog:",
@@ -31,8 +32,11 @@
     "zod-openapi": "5.4.6"
   },
   "devDependencies": {
+    "@libsql/client": "0.17.4",
+    "@types/bun": "catalog:",
     "@zius/config": "workspace:*",
     "hono": "catalog:",
+    "libsql": "catalog:",
     "tsdown": "^0.22.14",
     "typescript": "^6.0.3"
   }

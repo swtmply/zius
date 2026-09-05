@@ -1,4 +1,3 @@
-import { db } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import { bill, billParticipant, group, groupMember, participant } from "@zius/db/schema/billing";
 import { TRPCError } from "@trpc/server";
@@ -290,7 +289,7 @@ export const billRouter = router({
     .input(createSchema)
     .output(billCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({
           id: participant.id,
         })
@@ -321,7 +320,7 @@ export const billRouter = router({
 
       const otherParticipants = participants.filter((entry) => entry.email !== input.payer);
 
-      return db.transaction(async (tx) => {
+      return ctx.db.transaction(async (tx) => {
         if (input.groupId) {
           const [membership] = await tx
             .select({ groupId: groupMember.groupId })
@@ -483,7 +482,7 @@ export const billRouter = router({
     .input(updateSchema)
     .output(billCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -496,7 +495,7 @@ export const billRouter = router({
         });
       }
 
-      return db.transaction(async (tx) => {
+      return ctx.db.transaction(async (tx) => {
         const involvementFilter = or(
           eq(bill.payerId, currentParticipant.id),
           exists(
@@ -601,7 +600,7 @@ export const billRouter = router({
     .input(billGetInputSchema)
     .output(billGetOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -617,7 +616,7 @@ export const billRouter = router({
       const involvementFilter = or(
         eq(bill.payerId, currentParticipant.id),
         exists(
-          db
+          ctx.db
             .select({ billId: billParticipant.billId })
             .from(billParticipant)
             .where(
@@ -628,7 +627,7 @@ export const billRouter = router({
             ),
         ),
       );
-      const [transaction] = await db
+      const [transaction] = await ctx.db
         .select({
           id: bill.id,
           title: bill.title,
@@ -659,7 +658,7 @@ export const billRouter = router({
         });
       }
 
-      const billParticipants = await db
+      const billParticipants = await ctx.db
         .select({
           id: participant.id,
           name: participant.name,
@@ -733,7 +732,7 @@ export const billRouter = router({
     .input(listSchema)
     .output(billListOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -746,7 +745,7 @@ export const billRouter = router({
       const involvementFilter = or(
         eq(bill.payerId, currentParticipant.id),
         exists(
-          db
+          ctx.db
             .select({ billId: billParticipant.billId })
             .from(billParticipant)
             .where(
@@ -776,7 +775,7 @@ export const billRouter = router({
           ? [desc(bill.occurredAt), desc(bill.id)]
           : [asc(bill.occurredAt), asc(bill.id)];
 
-      const rows = await db
+      const rows = await ctx.db
         .select({
           id: bill.id,
           title: bill.title,
@@ -801,7 +800,7 @@ export const billRouter = router({
       const billIds = pageRows.map((transaction) => transaction.id);
       const payerIds = [...new Set(pageRows.map((transaction) => transaction.payerId))];
 
-      const participantRows = await db
+      const participantRows = await ctx.db
         .select({
           billId: billParticipant.billId,
           id: participant.id,
@@ -816,7 +815,7 @@ export const billRouter = router({
         .leftJoin(user, eq(user.id, participant.userId))
         .where(inArray(billParticipant.billId, billIds));
 
-      const payerRows = await db
+      const payerRows = await ctx.db
         .select({
           id: participant.id,
           name: participant.name,
