@@ -1,4 +1,3 @@
-import { db } from "@zius/db";
 import { bill, billParticipant, participant } from "@zius/db/schema/billing";
 import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 
@@ -15,7 +14,7 @@ const dashboardBillColumns = {
 
 export const dashboardRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
-    const [currentParticipant] = await db
+    const [currentParticipant] = await ctx.db
       .select({ id: participant.id })
       .from(participant)
       .where(eq(participant.userId, ctx.session.user.id))
@@ -36,7 +35,7 @@ export const dashboardRouter = router({
 
     const participantId = currentParticipant.id;
 
-    const [owedToYou] = await db
+    const [owedToYou] = await ctx.db
       .select({
         amountMinor: sql<number>`coalesce(sum(${billParticipant.owedMinor}), 0)`,
       })
@@ -51,7 +50,7 @@ export const dashboardRouter = router({
         ),
       );
 
-    const [youOwe] = await db
+    const [youOwe] = await ctx.db
       .select({
         amountMinor: sql<number>`coalesce(sum(${billParticipant.owedMinor}), 0)`,
       })
@@ -66,7 +65,7 @@ export const dashboardRouter = router({
         ),
       );
 
-    const involvedBillRows = await db
+    const involvedBillRows = await ctx.db
       .select({ billId: billParticipant.billId })
       .from(billParticipant)
       .where(eq(billParticipant.participantId, participantId));
@@ -77,7 +76,7 @@ export const dashboardRouter = router({
         ? or(eq(bill.payerId, participantId), inArray(bill.id, involvedBillIds))
         : eq(bill.payerId, participantId);
 
-    const activeBills = await db
+    const activeBills = await ctx.db
       .select(dashboardBillColumns)
       .from(bill)
       .where(and(eq(bill.status, "active"), involvementCondition))
@@ -88,7 +87,7 @@ export const dashboardRouter = router({
     const activeParticipantRows =
       activeBillIds.length === 0
         ? []
-        : await db
+        : await ctx.db
             .select({
               billId: billParticipant.billId,
               id: participant.id,
@@ -96,10 +95,7 @@ export const dashboardRouter = router({
               email: participant.email,
             })
             .from(billParticipant)
-            .innerJoin(
-              participant,
-              eq(participant.id, billParticipant.participantId),
-            )
+            .innerJoin(participant, eq(participant.id, billParticipant.participantId))
             .where(inArray(billParticipant.billId, activeBillIds));
 
     const participantsByBillId = new Map<
@@ -118,7 +114,7 @@ export const dashboardRouter = router({
       participants: participantsByBillId.get(item.id) ?? [],
     }));
 
-    const recentTransactions = await db
+    const recentTransactions = await ctx.db
       .select(dashboardBillColumns)
       .from(bill)
       .where(involvementCondition)

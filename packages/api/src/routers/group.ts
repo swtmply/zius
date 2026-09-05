@@ -1,4 +1,3 @@
-import { db } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import { bill, billParticipant, group, groupMember, participant } from "@zius/db/schema/billing";
 import { TRPCError } from "@trpc/server";
@@ -137,7 +136,7 @@ export const groupRouter = router({
     .input(createSchema)
     .output(groupMutationOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -150,7 +149,7 @@ export const groupRouter = router({
         });
       }
 
-      return db.transaction(async (tx) => {
+      return ctx.db.transaction(async (tx) => {
         const emails = input.participants.map((entry) => entry.email);
         const existingParticipants =
           emails.length === 0
@@ -223,7 +222,7 @@ export const groupRouter = router({
     .input(listSchema)
     .output(groupListOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -252,7 +251,7 @@ export const groupRouter = router({
           ? [desc(group.createdAt), desc(group.id)]
           : [asc(group.createdAt), asc(group.id)];
 
-      const rows = await db
+      const rows = await ctx.db
         .select({
           id: group.id,
           name: group.name,
@@ -272,7 +271,7 @@ export const groupRouter = router({
       const groupParticipantRows =
         groupIds.length === 0
           ? []
-          : await db
+          : await ctx.db
               .select({
                 groupId: groupMember.groupId,
                 id: participant.id,
@@ -283,10 +282,7 @@ export const groupRouter = router({
               .innerJoin(participant, eq(participant.id, groupMember.participantId))
               .leftJoin(user, eq(user.id, participant.userId))
               .where(inArray(groupMember.groupId, groupIds));
-      const participantsByGroupId = new Map<
-        string,
-        z.infer<typeof groupListParticipantSchema>[]
-      >();
+      const participantsByGroupId = new Map<string, z.infer<typeof groupListParticipantSchema>[]>();
 
       for (const row of groupParticipantRows) {
         const current = participantsByGroupId.get(row.groupId) ?? [];
@@ -323,7 +319,7 @@ export const groupRouter = router({
     .input(groupIdInputSchema)
     .output(groupGetOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -336,7 +332,7 @@ export const groupRouter = router({
         });
       }
 
-      const [currentGroup] = await db
+      const [currentGroup] = await ctx.db
         .select({ id: group.id, name: group.name, createdAt: group.createdAt })
         .from(group)
         .innerJoin(groupMember, eq(groupMember.groupId, group.id))
@@ -347,7 +343,7 @@ export const groupRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
       }
 
-      const participantRows = await db
+      const participantRows = await ctx.db
         .select({
           id: participant.id,
           name: participant.name,
@@ -361,7 +357,7 @@ export const groupRouter = router({
         .leftJoin(user, eq(user.id, participant.userId))
         .where(eq(groupMember.groupId, currentGroup.id));
 
-      const transactions = await db
+      const transactions = await ctx.db
         .select({
           id: bill.id,
           title: bill.title,
@@ -384,7 +380,7 @@ export const groupRouter = router({
       const transactionParticipantRows =
         transactionIds.length === 0
           ? []
-          : await db
+          : await ctx.db
               .select({
                 billId: billParticipant.billId,
                 id: participant.id,
@@ -467,7 +463,7 @@ export const groupRouter = router({
     .input(updateSchema)
     .output(groupMutationOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -480,7 +476,7 @@ export const groupRouter = router({
         });
       }
 
-      const [membership] = await db
+      const [membership] = await ctx.db
         .select({ id: group.id, role: groupMember.role })
         .from(group)
         .innerJoin(groupMember, eq(groupMember.groupId, group.id))
@@ -495,7 +491,7 @@ export const groupRouter = router({
         throw new TRPCError({ code: "FORBIDDEN", message: "Only the group owner can update it" });
       }
 
-      await db.update(group).set({ name: input.name }).where(eq(group.id, membership.id));
+      await ctx.db.update(group).set({ name: input.name }).where(eq(group.id, membership.id));
 
       return { id: membership.id, name: input.name };
     }),
