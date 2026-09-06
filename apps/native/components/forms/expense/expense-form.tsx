@@ -40,6 +40,27 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
   const { toast } = useToast();
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const groupParticipants = group?.participants ?? [currentParticipant];
+  const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
+    (group?.participants ?? []).map((participant) =>
+      participant.email.toLowerCase(),
+    ),
+  );
+
+  const findOutsideParticipants = (
+    groupId: string | undefined,
+    participants: FormParticipant[],
+  ) => {
+    if (!groupId) {
+      return [];
+    }
+
+    const memberEmails = new Set(groupMemberEmails);
+
+    return participants.filter(
+      (participant) => !memberEmails.has(participant.email.toLowerCase()),
+    );
+  };
+
   const defaultValues: ExpenseFormValues = {
     totalMinor: 0,
     title: "",
