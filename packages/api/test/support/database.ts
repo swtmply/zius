@@ -16,19 +16,8 @@ const IN_MEMORY_URL = "file::memory:?cache=shared";
 
 const MIGRATIONS_FOLDER = fileURLToPath(new URL("../../../db/src/migrations", import.meta.url));
 
-/** Children first, so the deletes hold whether or not foreign keys are enforced. */
-const TABLES_IN_DELETION_ORDER = [
-  "expense_participant",
-  "expense",
-  "group_member",
-  "group",
-  "participant",
-  "todo",
-  "account",
-  "session",
-  "verification",
-  "user",
-];
+/** Drizzle's migration ledger. Bookkeeping, not test data. */
+const MIGRATIONS_TABLE = "__drizzle_migrations";
 
 /**
  * A shared-cache in-memory database is discarded once its last connection
@@ -54,9 +43,40 @@ export async function getTestDatabase(): Promise<Database> {
   return database;
 }
 
-/** Empties every table, so each test starts from nothing. */
+/**
+ * Every table holding test data, read from the database itself so that a table
+ * added to the schema later is emptied without anyone having to remember this
+ * file. Excludes the migration ledger and SQLite's own `sqlite_` tables.
+ */
+async function listDataTables(db: Database): Promise<string[]> {
+  const rows = await db.all<{ name: string }>(sql`
+    select name from sqlite_master
+    where type = 'table'
+      and name <> ${MIGRATIONS_TABLE}
+      and substr(name, 1, 7) <> 'sqlite_'
+  `);
+
+  return rows.map((row) => row.name);
+}
+
+/**
+ * Empties every table, so each test starts from nothing.
+ *
+ * Foreign keys are enforced by default and the libSQL client turns them back on
+ * in some code paths, so they are switched off for the duration of the reset and
+ * restored to whatever they were. The deletes then need no particular order.
+ */
 export async function resetTestDatabase(db: Database) {
-  for (const table of TABLES_IN_DELETION_ORDER) {
-    await db.run(sql.raw(`delete from \`${table}\``));
+  const tables = await listDataTables(db);
+  const enforced = await db.get<{ foreign_keys: number }>(sql`pragma foreign_keys`);
+
+  await db.run(sql`pragma foreign_keys = off`);
+
+  try {
+    for (const table of tables) {
+      await db.run(sql.raw(`delete from \`${table}\``));
+    }
+  } finally {
+    if (enforced?.foreign_keys) await db.run(sql`pragma foreign_keys = on`);
   }
 }
