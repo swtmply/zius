@@ -1,4 +1,4 @@
-import { ActiveTransaction } from "@/lib/mock-data";
+import { ActiveExpense } from "@/lib/mock-data";
 import { formatCurrency, formatDate } from "@/utils";
 import { Avatar, Button, PressableFeedback, Separator, Typography } from "heroui-native";
 import { View } from "react-native";
@@ -6,13 +6,7 @@ import { FlatList } from "react-native-gesture-handler";
 import { SectionHeader } from "../section-header";
 import { useRouter } from "expo-router";
 
-export function TransactionsEmptyState({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
+export function ExpensesEmptyState({ title, description }: { title: string; description: string }) {
   return (
     <View className="bg-surface border border-border rounded-xl px-6 py-8 gap-1 items-center">
       <Typography className="text-sm font-semibold text-center">{title}</Typography>
@@ -21,20 +15,20 @@ export function TransactionsEmptyState({
   );
 }
 
-export function ActiveTransactions({ transactions }: { transactions: ActiveTransaction[] }) {
+export function ActiveExpenses({ expenses }: { expenses: ActiveExpense[] }) {
   const router = useRouter();
 
   return (
     <View className="gap-2">
       <SectionHeader
-        title="Active Transactions"
+        title="Active Expenses"
         action={
-          (transactions.length ?? 0) > 0 ? (
+          (expenses.length ?? 0) > 0 ? (
             <Button
               variant="ghost"
               onPress={() =>
                 router.push({
-                  pathname: "/(modals)/transactions",
+                  pathname: "/(modals)/expenses",
                   params: {
                     sort: "desc",
                     type: "active",
@@ -48,25 +42,25 @@ export function ActiveTransactions({ transactions }: { transactions: ActiveTrans
         }
       />
 
-      {transactions.length === 0 ? (
-        <TransactionsEmptyState
-          title="No active transactions"
-          description="Transactions with outstanding payments will appear here."
+      {expenses.length === 0 ? (
+        <ExpensesEmptyState
+          title="No active expenses"
+          description="Expenses with outstanding payments will appear here."
         />
       ) : (
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           ItemSeparatorComponent={<View className="w-4" />}
-          data={transactions}
+          data={expenses}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <PressableFeedback
               onPress={() =>
                 router.push({
-                  pathname: `/(modals)/transactions/[transactionId]`,
+                  pathname: `/(modals)/expenses/[expenseId]`,
                   params: {
-                    transactionId: item.id,
+                    expenseId: item.id,
                   },
                 })
               }

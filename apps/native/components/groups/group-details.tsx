@@ -58,46 +58,42 @@ const dateFormatter = new Intl.DateTimeFormat("en-PH", {
   year: "numeric",
 });
 
-export function GroupTransactionCard({
-  transaction,
-}: {
-  transaction: Group["transactions"][number];
-}) {
+export function GroupExpenseCard({ expense }: { expense: Group["expenses"][number] }) {
   const router = useRouter();
   const amount = new Intl.NumberFormat("en-PH", {
     style: "currency",
-    currency: transaction.currency,
+    currency: expense.currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  }).format(transaction.totalMinor / 100);
-  const remaining = transaction.participants.length - 4;
+  }).format(expense.totalMinor / 100);
+  const remaining = expense.participants.length - 4;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${transaction.title}, ${amount}`}
+      accessibilityLabel={`${expense.title}, ${amount}`}
       onPress={() =>
         router.push({
-          pathname: "/transactions/[transactionId]",
-          params: { transactionId: transaction.id },
+          pathname: "/expenses/[expenseId]",
+          params: { expenseId: expense.id },
         })
       }
       className="bg-surface border border-border rounded-xl p-4 gap-2 active:opacity-70"
     >
       <View className="gap-1">
         <View className="flex-row items-center justify-between gap-2">
-          <Typography className="text-sm flex-1">{transaction.title}</Typography>
+          <Typography className="text-sm flex-1">{expense.title}</Typography>
           <Typography className="text-sm font-semibold" style={{ fontVariant: ["tabular-nums"] }}>
             {amount}
           </Typography>
         </View>
         <Typography className="text-xs text-muted">
-          {dateFormatter.format(new Date(transaction.occurredAt))}
+          {dateFormatter.format(new Date(expense.occurredAt))}
         </Typography>
       </View>
       <View className="border-t border-dashed border-border pt-2">
         <View className="flex-row flex-wrap items-center justify-start">
-          {transaction.participants.slice(0, 4).map((person, index) => (
+          {expense.participants.slice(0, 4).map((person, index) => (
             <View
               key={person.id}
               className={

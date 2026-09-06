@@ -9,12 +9,11 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
 
 import { SectionHeader } from "@/components/section-header";
-import { BillCreationToast } from "@/components/bill-creation-toast";
+import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { trpc } from "@/utils/trpc";
 
-import { GroupSelector } from "../transaction/group-selector";
-import { GuestDialog } from "../transaction/guest-dialog";
-import { TransactionTitleInput } from "../transaction/transaction-title-input";
+import { GuestDialog } from "../expense/guest-dialog";
+import { ExpenseTitleInput } from "../expense/expense-title-input";
 import { GroupFormHeader } from "./group-form-header";
 import {
   createGroupSchema,
@@ -64,7 +63,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
             .map(({ id, name, email }) => ({ id, name, email })),
         });
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: trpc.group.list.pathKey() }),
+          queryClient.invalidateQueries({
+            queryKey: trpc.group.list.pathKey(),
+          }),
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       } catch (error) {
@@ -75,7 +76,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
         toast.show({
           duration: 6000,
           component: (props) => (
-            <BillCreationToast
+            <ExpenseCreationToast
               {...props}
               variant="danger"
               title="Failed to create group"
@@ -92,7 +93,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       setParticipantError(undefined);
       toast.show({
         component: (props) => (
-          <BillCreationToast
+          <ExpenseCreationToast
             {...props}
             variant="success"
             title="Group created successfully"
@@ -133,7 +134,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       ]);
     },
     onError: () => {
-      setSourceGroupError("Unable to load that group's participants. Select it again to retry.");
+      setSourceGroupError(
+        "Unable to load that group's participants. Select it again to retry.",
+      );
     },
   });
 
@@ -175,7 +178,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       <form.Field name="name">
         {(field) => (
           <View className="gap-1">
-            <TransactionTitleInput
+            <ExpenseTitleInput
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
@@ -184,7 +187,10 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
               placeholder="Group name"
             />
             {field.state.meta.errors.map((error) => (
-              <Typography key={error?.message} className="px-1 text-xs text-danger">
+              <Typography
+                key={error?.message}
+                className="px-1 text-xs text-danger"
+              >
                 {error?.message}
               </Typography>
             ))}
@@ -209,7 +215,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
               </Typography>
             ) : null}
             {sourceGroupError ? (
-              <Typography className="px-1 text-xs text-danger">{sourceGroupError}</Typography>
+              <Typography className="px-1 text-xs text-danger">
+                {sourceGroupError}
+              </Typography>
             ) : null}
           </View>
         )}
@@ -222,7 +230,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
             onSubmit={(guest) => {
               if (
                 form.state.values.participants.some(
-                  (participant) => participant.email.toLowerCase() === guest.email.toLowerCase(),
+                  (participant) =>
+                    participant.email.toLowerCase() ===
+                    guest.email.toLowerCase(),
                 )
               ) {
                 setParticipantError("Each participant can only appear once");
@@ -231,7 +241,10 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
 
               const participantId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
               setParticipantError(undefined);
-              setParticipants([...form.state.values.participants, { ...guest, id: participantId }]);
+              setParticipants([
+                ...form.state.values.participants,
+                { ...guest, id: participantId },
+              ]);
             }}
           />
         }
@@ -245,7 +258,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
             onRemove={(participantId) => {
               setParticipantError(undefined);
               setParticipants(
-                participants.filter((participant) => participant.id !== participantId),
+                participants.filter(
+                  (participant) => participant.id !== participantId,
+                ),
               );
             }}
           />
@@ -253,7 +268,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       </form.Subscribe>
 
       {participantError ? (
-        <Typography className="px-1 text-xs text-danger">{participantError}</Typography>
+        <Typography className="px-1 text-xs text-danger">
+          {participantError}
+        </Typography>
       ) : null}
 
       <form.Subscribe selector={(state) => state.isSubmitting}>

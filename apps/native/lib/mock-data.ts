@@ -1,4 +1,4 @@
-export type ActiveTransaction = {
+export type ActiveExpense = {
   id: string;
   title: string;
   totalMinor: number;
@@ -12,7 +12,7 @@ export type ActiveTransaction = {
   }[];
 };
 
-export type RecentTransaction = {
+export type RecentExpense = {
   id: string;
   title: string;
   totalMinor: number;
@@ -21,9 +21,9 @@ export type RecentTransaction = {
   occurredAt: string;
 };
 
-export const activeTransactions = [
+export const activeExpenses = [
   {
-    id: "txn_001",
+    id: "exp_001",
     title: "Dinner at Manam",
     totalMinor: 150000,
     currency: "PHP",
@@ -48,7 +48,7 @@ export const activeTransactions = [
     ],
   },
   {
-    id: "txn_002",
+    id: "exp_002",
     title: "Grab Ride",
     totalMinor: 48500,
     currency: "PHP",
@@ -68,7 +68,7 @@ export const activeTransactions = [
     ],
   },
   {
-    id: "txn_003",
+    id: "exp_003",
     title: "Grocery Run",
     totalMinor: 324750,
     currency: "PHP",
@@ -98,7 +98,7 @@ export const activeTransactions = [
     ],
   },
   {
-    id: "txn_004",
+    id: "exp_004",
     title: "Netflix Subscription",
     totalMinor: 61900,
     currency: "PHP",
@@ -118,7 +118,7 @@ export const activeTransactions = [
     ],
   },
   {
-    id: "txn_005",
+    id: "exp_005",
     title: "Weekend Staycation",
     totalMinor: 875000,
     currency: "PHP",
@@ -142,11 +142,11 @@ export const activeTransactions = [
       },
     ],
   },
-] satisfies ActiveTransaction[];
+] satisfies ActiveExpense[];
 
-export const recentTransactions = [
+export const recentExpenses = [
   {
-    id: "txn_001",
+    id: "exp_001",
     title: "Dinner at Manam",
     totalMinor: 150000,
     currency: "PHP",
@@ -154,7 +154,7 @@ export const recentTransactions = [
     occurredAt: "2026-09-01T19:30:00.000Z",
   },
   {
-    id: "txn_002",
+    id: "exp_002",
     title: "Grab Ride",
     totalMinor: 48500,
     currency: "PHP",
@@ -162,7 +162,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-31T22:15:00.000Z",
   },
   {
-    id: "txn_003",
+    id: "exp_003",
     title: "Grocery Run",
     totalMinor: 324750,
     currency: "PHP",
@@ -170,7 +170,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-29T14:20:00.000Z",
   },
   {
-    id: "txn_004",
+    id: "exp_004",
     title: "Netflix Subscription",
     totalMinor: 61900,
     currency: "PHP",
@@ -178,7 +178,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-25T08:00:00.000Z",
   },
   {
-    id: "txn_005",
+    id: "exp_005",
     title: "Weekend Staycation",
     totalMinor: 875000,
     currency: "PHP",
@@ -186,7 +186,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-22T15:00:00.000Z",
   },
   {
-    id: "txn_006",
+    id: "exp_006",
     title: "Coffee Run",
     totalMinor: 56000,
     currency: "PHP",
@@ -194,7 +194,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-20T09:45:00.000Z",
   },
   {
-    id: "txn_007",
+    id: "exp_007",
     title: "Lunch at Mendokoro",
     totalMinor: 243500,
     currency: "PHP",
@@ -202,7 +202,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-18T12:30:00.000Z",
   },
   {
-    id: "txn_008",
+    id: "exp_008",
     title: "Movie Tickets",
     totalMinor: 126000,
     currency: "PHP",
@@ -210,7 +210,7 @@ export const recentTransactions = [
     occurredAt: "2026-08-16T18:00:00.000Z",
   },
   {
-    id: "txn_009",
+    id: "exp_009",
     title: "Electricity Bill",
     totalMinor: 428350,
     currency: "PHP",
@@ -218,11 +218,11 @@ export const recentTransactions = [
     occurredAt: "2026-08-12T10:00:00.000Z",
   },
   {
-    id: "txn_010",
+    id: "exp_010",
     title: "Pizza Night",
     totalMinor: 189900,
     currency: "PHP",
     status: "settled",
     occurredAt: "2026-08-10T20:15:00.000Z",
   },
-] satisfies RecentTransaction[];
+] satisfies RecentExpense[];

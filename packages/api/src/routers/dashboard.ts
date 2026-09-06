@@ -1,21 +1,20 @@
-import { db } from "@zius/db";
-import { bill, billParticipant, participant } from "@zius/db/schema/billing";
+import { expense, expenseParticipant, participant } from "@zius/db/schema/expense";
 import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 
 import { protectedProcedure, router } from "../index";
 
-const dashboardBillColumns = {
-  id: bill.id,
-  title: bill.title,
-  totalMinor: bill.totalMinor,
-  currency: bill.currency,
-  occurredAt: bill.occurredAt,
-  status: bill.status,
+const dashboardExpenseColumns = {
+  id: expense.id,
+  title: expense.title,
+  totalMinor: expense.totalMinor,
+  currency: expense.currency,
+  occurredAt: expense.occurredAt,
+  status: expense.status,
 };
 
 export const dashboardRouter = router({
   get: protectedProcedure.query(async ({ ctx }) => {
-    const [currentParticipant] = await db
+    const [currentParticipant] = await ctx.db
       .select({ id: participant.id })
       .from(participant)
       .where(eq(participant.userId, ctx.session.user.id))
@@ -29,100 +28,97 @@ export const dashboardRouter = router({
           netMinor: 0,
           currency: "PHP",
         },
-        activeTransactions: [],
-        recentTransactions: [],
+        activeExpenses: [],
+        recentExpenses: [],
       };
     }
 
     const participantId = currentParticipant.id;
 
-    const [owedToYou] = await db
+    const [owedToYou] = await ctx.db
       .select({
-        amountMinor: sql<number>`coalesce(sum(${billParticipant.owedMinor}), 0)`,
+        amountMinor: sql<number>`coalesce(sum(${expenseParticipant.owedMinor}), 0)`,
       })
-      .from(billParticipant)
-      .innerJoin(bill, eq(bill.id, billParticipant.billId))
+      .from(expenseParticipant)
+      .innerJoin(expense, eq(expense.id, expenseParticipant.expenseId))
       .where(
         and(
-          eq(bill.status, "active"),
-          eq(bill.payerId, participantId),
-          ne(billParticipant.participantId, participantId),
-          eq(billParticipant.status, "unpaid"),
+          eq(expense.status, "active"),
+          eq(expense.payerId, participantId),
+          ne(expenseParticipant.participantId, participantId),
+          eq(expenseParticipant.status, "unpaid"),
         ),
       );
 
-    const [youOwe] = await db
+    const [youOwe] = await ctx.db
       .select({
-        amountMinor: sql<number>`coalesce(sum(${billParticipant.owedMinor}), 0)`,
+        amountMinor: sql<number>`coalesce(sum(${expenseParticipant.owedMinor}), 0)`,
       })
-      .from(billParticipant)
-      .innerJoin(bill, eq(bill.id, billParticipant.billId))
+      .from(expenseParticipant)
+      .innerJoin(expense, eq(expense.id, expenseParticipant.expenseId))
       .where(
         and(
-          eq(bill.status, "active"),
-          eq(billParticipant.participantId, participantId),
-          ne(bill.payerId, participantId),
-          eq(billParticipant.status, "unpaid"),
+          eq(expense.status, "active"),
+          eq(expenseParticipant.participantId, participantId),
+          ne(expense.payerId, participantId),
+          eq(expenseParticipant.status, "unpaid"),
         ),
       );
 
-    const involvedBillRows = await db
-      .select({ billId: billParticipant.billId })
-      .from(billParticipant)
-      .where(eq(billParticipant.participantId, participantId));
+    const involvedExpenseRows = await ctx.db
+      .select({ expenseId: expenseParticipant.expenseId })
+      .from(expenseParticipant)
+      .where(eq(expenseParticipant.participantId, participantId));
 
-    const involvedBillIds = involvedBillRows.map((row) => row.billId);
+    const involvedExpenseIds = involvedExpenseRows.map((row) => row.expenseId);
     const involvementCondition =
-      involvedBillIds.length > 0
-        ? or(eq(bill.payerId, participantId), inArray(bill.id, involvedBillIds))
-        : eq(bill.payerId, participantId);
+      involvedExpenseIds.length > 0
+        ? or(eq(expense.payerId, participantId), inArray(expense.id, involvedExpenseIds))
+        : eq(expense.payerId, participantId);
 
-    const activeBills = await db
-      .select(dashboardBillColumns)
-      .from(bill)
-      .where(and(eq(bill.status, "active"), involvementCondition))
-      .orderBy(desc(bill.occurredAt))
+    const activeExpenseRows = await ctx.db
+      .select(dashboardExpenseColumns)
+      .from(expense)
+      .where(and(eq(expense.status, "active"), involvementCondition))
+      .orderBy(desc(expense.occurredAt))
       .limit(10);
 
-    const activeBillIds = activeBills.map((item) => item.id);
+    const activeExpenseIds = activeExpenseRows.map((item) => item.id);
     const activeParticipantRows =
-      activeBillIds.length === 0
+      activeExpenseIds.length === 0
         ? []
-        : await db
+        : await ctx.db
             .select({
-              billId: billParticipant.billId,
+              expenseId: expenseParticipant.expenseId,
               id: participant.id,
               name: participant.name,
               email: participant.email,
             })
-            .from(billParticipant)
-            .innerJoin(
-              participant,
-              eq(participant.id, billParticipant.participantId),
-            )
-            .where(inArray(billParticipant.billId, activeBillIds));
+            .from(expenseParticipant)
+            .innerJoin(participant, eq(participant.id, expenseParticipant.participantId))
+            .where(inArray(expenseParticipant.expenseId, activeExpenseIds));
 
-    const participantsByBillId = new Map<
+    const participantsByExpenseId = new Map<
       string,
       Array<{ id: string; name: string; email: string }>
     >();
 
     for (const row of activeParticipantRows) {
-      const current = participantsByBillId.get(row.billId) ?? [];
+      const current = participantsByExpenseId.get(row.expenseId) ?? [];
       current.push({ id: row.id, name: row.name, email: row.email });
-      participantsByBillId.set(row.billId, current);
+      participantsByExpenseId.set(row.expenseId, current);
     }
 
-    const activeTransactions = activeBills.map((item) => ({
+    const activeExpenses = activeExpenseRows.map((item) => ({
       ...item,
-      participants: participantsByBillId.get(item.id) ?? [],
+      participants: participantsByExpenseId.get(item.id) ?? [],
     }));
 
-    const recentTransactions = await db
-      .select(dashboardBillColumns)
-      .from(bill)
+    const recentExpenses = await ctx.db
+      .select(dashboardExpenseColumns)
+      .from(expense)
       .where(involvementCondition)
-      .orderBy(desc(bill.occurredAt))
+      .orderBy(desc(expense.occurredAt))
       .limit(10);
 
     const owedToYouMinor = Number(owedToYou?.amountMinor ?? 0);
@@ -135,8 +131,8 @@ export const dashboardRouter = router({
         netMinor: owedToYouMinor - youOweMinor,
         currency: "PHP",
       },
-      activeTransactions,
-      recentTransactions,
+      activeExpenses,
+      recentExpenses,
     };
   }),
 });

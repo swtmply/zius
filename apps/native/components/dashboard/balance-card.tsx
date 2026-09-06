@@ -39,14 +39,10 @@ export default function BalanceCard({ owedToYouMinor, youOweMinor }: BalanceCard
         <Separator className="border-t-2 border-dashed border-border bg-transparent" />
         <View className="items-center flex-row">
           <View className="items-center flex-1 gap-1">
-            <Button
-              variant="secondary"
-              isIconOnly
-              onPress={() => router.push("/create-transaction")}
-            >
+            <Button variant="secondary" isIconOnly onPress={() => router.push("/create-expense")}>
               <HugeiconsIcon icon={Add} size={24} />
             </Button>
-            <Typography className="text-xs text-muted">Transaction</Typography>
+            <Typography className="text-xs text-muted">Expense</Typography>
           </View>
           <View className="items-center flex-1 gap-1">
             <Button
@@ -73,7 +69,7 @@ export default function BalanceCard({ owedToYouMinor, youOweMinor }: BalanceCard
               isIconOnly
               onPress={() =>
                 router.push({
-                  pathname: "/(modals)/transactions",
+                  pathname: "/(modals)/expenses",
                   params: {
                     sort: "desc",
                     type: "all",

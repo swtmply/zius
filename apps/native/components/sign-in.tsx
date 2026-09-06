@@ -72,10 +72,14 @@ export function SignIn() {
       setSubmissionError(null);
 
       const result =
-        mode === "sign-up" ? signUpSchema.safeParse(value) : signInSchema.safeParse(value);
+        mode === "sign-up"
+          ? signUpSchema.safeParse(value)
+          : signInSchema.safeParse(value);
 
       if (!result.success) {
-        setSubmissionError(result.error.issues[0]?.message ?? "Check your details and try again");
+        setSubmissionError(
+          result.error.issues[0]?.message ?? "Check your details and try again",
+        );
         return;
       }
 
@@ -88,7 +92,9 @@ export function SignIn() {
           },
           {
             onError(error) {
-              setSubmissionError(error.error.message ?? "Unable to create your account");
+              setSubmissionError(
+                error.error.message ?? "Unable to create your account",
+              );
             },
             onSuccess() {
               router.replace("/home");
@@ -230,7 +236,9 @@ export function SignIn() {
               </Pressable>
 
               <Text selectable style={{ color: "#929292", fontSize: 12 }}>
-                {isSignUp ? "Already have an account?" : "Don't have an account yet?"}
+                {isSignUp
+                  ? "Already have an account?"
+                  : "Don't have an account yet?"}
               </Text>
 
               <Pressable

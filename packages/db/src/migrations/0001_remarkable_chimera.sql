@@ -1,1 +1,0 @@
-CREATE INDEX `bill_occurred_at_idx` ON `bill` (`occurred_at`);

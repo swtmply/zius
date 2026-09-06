@@ -1,8 +1,24 @@
-import { db } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
-import { bill, billParticipant, group, groupMember, participant } from "@zius/db/schema/billing";
+import {
+  expense,
+  expenseParticipant,
+  group,
+  groupMember,
+  participant,
+} from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, exists, gt, inArray, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gt,
+  inArray,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import { protectedProcedure, router } from "../index";
@@ -26,7 +42,10 @@ const createSchema = z
       .trim()
       .length(3)
       .transform((currency) => currency.toUpperCase())
-      .refine((currency) => /^[A-Z]{3}$/.test(currency), "Invalid currency code")
+      .refine(
+        (currency) => /^[A-Z]{3}$/.test(currency),
+        "Invalid currency code",
+      )
       .default("PHP"),
     splitMethod: z.enum(["equal", "fixed", "percentage"]),
     payer: z.email().transform((email) => email.toLowerCase()),
@@ -61,7 +80,7 @@ const createSchema = z
     if (input.groupId !== undefined && input.createGroup) {
       ctx.addIssue({
         code: "custom",
-        message: "A bill cannot be assigned to a group and create a new group",
+        message: "An expense cannot be assigned to a group and create a new group",
         path: ["createGroup"],
       });
     }
@@ -83,13 +102,18 @@ function divideEvenly(total: number, count: number) {
   const baseAmount = Math.floor(total / count);
   const remainder = total % count;
 
-  return Array.from({ length: count }, (_, index) => baseAmount + (index < remainder ? 1 : 0));
+  return Array.from(
+    { length: count },
+    (_, index) => baseAmount + (index < remainder ? 1 : 0),
+  );
 }
 
 function percentageOf(totalMinor: number, basisPoints: number) {
   const numerator = BigInt(totalMinor) * BigInt(basisPoints);
   const roundingOffset = BigInt(FULL_PERCENTAGE_BASIS_POINTS / 2);
-  return Number((numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS));
+  return Number(
+    (numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS),
+  );
 }
 
 function calculateParticipantAmounts(
@@ -97,7 +121,10 @@ function calculateParticipantAmounts(
   totalMinor: number,
   splitMethod: z.infer<typeof createSchema>["splitMethod"],
 ) {
-  const providedTotal = participants.reduce((total, entry) => total + entry.owedMinor, 0);
+  const providedTotal = participants.reduce(
+    (total, entry) => total + entry.owedMinor,
+    0,
+  );
 
   if (splitMethod === "equal") {
     const amounts = divideEvenly(totalMinor, participants.length);
@@ -108,7 +135,8 @@ function calculateParticipantAmounts(
     }));
   }
 
-  const maximumTotal = splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
+  const maximumTotal =
+    splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
 
   if (providedTotal > maximumTotal) {
     throw new TRPCError({
@@ -116,11 +144,13 @@ function calculateParticipantAmounts(
       message:
         splitMethod === "percentage"
           ? "Participant percentages cannot exceed 100%"
-          : "Participant amounts cannot exceed the transaction total",
+          : "Participant amounts cannot exceed the expense total",
     });
   }
 
-  const hasAutomaticParticipants = participants.some((entry) => entry.owedMinor === 0);
+  const hasAutomaticParticipants = participants.some(
+    (entry) => entry.owedMinor === 0,
+  );
 
   if (providedTotal < maximumTotal && !hasAutomaticParticipants) {
     throw new TRPCError({
@@ -128,7 +158,7 @@ function calculateParticipantAmounts(
       message:
         splitMethod === "percentage"
           ? "Participant percentages must equal 100% when no participant has a zero percentage"
-          : "Participant amounts must equal the transaction total when no participant has a zero amount",
+          : "Participant amounts must equal the expense total when no participant has a zero amount",
     });
   }
 
@@ -185,12 +215,12 @@ const listSchema = z.object({
     .nullish(),
 });
 
-const billCreateOutputSchema = z.object({
+const expenseCreateOutputSchema = z.object({
   id: z.string(),
   status: z.enum(["active", "settled"]),
 });
 
-const billGetInputSchema = z.object({
+const expenseGetInputSchema = z.object({
   id: z.string().min(1),
 });
 
@@ -223,7 +253,7 @@ const updateSchema = z
     }
   });
 
-type TransactionParticipant = {
+type ExpenseParticipant = {
   id: string;
   name: string;
   email: string;
@@ -232,7 +262,7 @@ type TransactionParticipant = {
   status: "paid" | "unpaid";
 };
 
-const transactionParticipantSchema = z.object({
+const expenseParticipantSchema = z.object({
   id: z.string(),
   name: z.string(),
   email: z.email(),
@@ -241,7 +271,7 @@ const transactionParticipantSchema = z.object({
   status: z.enum(["paid", "unpaid"]),
 });
 
-const billListOutputSchema = z.object({
+const expenseListOutputSchema = z.object({
   items: z.array(
     z.object({
       id: z.string(),
@@ -250,7 +280,7 @@ const billListOutputSchema = z.object({
       currency: z.string(),
       status: z.enum(["active", "settled"]),
       occurredAt: z.iso.datetime(),
-      participants: z.array(transactionParticipantSchema),
+      participants: z.array(expenseParticipantSchema),
     }),
   ),
   nextCursor: z
@@ -261,7 +291,7 @@ const billListOutputSchema = z.object({
     .nullable(),
 });
 
-const billGetOutputSchema = z.object({
+const expenseGetOutputSchema = z.object({
   id: z.string(),
   title: z.string(),
   totalMinor: z.number().int().positive(),
@@ -270,7 +300,9 @@ const billGetOutputSchema = z.object({
     .number()
     .int()
     .nonnegative()
-    .describe("Unpaid shares owed to the current payer, or the current participant's owedMinor"),
+    .describe(
+      "Unpaid shares owed to the current payer, or the current participant's owedMinor",
+    ),
   currency: z.string(),
   status: z.enum(["active", "settled"]),
   splitMethod: z.enum(["equal", "fixed", "percentage"]),
@@ -280,25 +312,25 @@ const billGetOutputSchema = z.object({
   groupName: z.string().nullable(),
   occurredAt: z.iso.datetime(),
   settledAt: z.iso.datetime().nullable(),
-  participants: z.array(transactionParticipantSchema),
+  participants: z.array(expenseParticipantSchema),
 });
 
-export const billRouter = router({
+export const expenseRouter = router({
   create: protectedProcedure
     .meta({
       openapi: {
         method: "POST",
-        path: "/bills",
+        path: "/expenses",
         protect: true,
-        tags: ["Bills"],
-        summary: "Create a bill",
+        tags: ["Expenses"],
+        summary: "Create an expense",
         errorResponses: [400, 401, 403, 404, 500],
       },
     })
     .input(createSchema)
-    .output(billCreateOutputSchema)
+    .output(expenseCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({
           id: participant.id,
         })
@@ -318,7 +350,9 @@ export const billRouter = router({
         input.totalMinor,
         input.splitMethod,
       );
-      const payerEntry = participants.find((entry) => entry.email === input.payer);
+      const payerEntry = participants.find(
+        (entry) => entry.email === input.payer,
+      );
 
       if (!payerEntry) {
         throw new TRPCError({
@@ -327,9 +361,11 @@ export const billRouter = router({
         });
       }
 
-      const otherParticipants = participants.filter((entry) => entry.email !== input.payer);
+      const otherParticipants = participants.filter(
+        (entry) => entry.email !== input.payer,
+      );
 
-      return db.transaction(async (tx) => {
+      return ctx.db.transaction(async (tx) => {
         if (input.groupId) {
           const [membership] = await tx
             .select({ groupId: groupMember.groupId })
@@ -351,7 +387,10 @@ export const billRouter = router({
         }
 
         const emails = [
-          ...new Set([...input.participants.map((entry) => entry.email), input.payer]),
+          ...new Set([
+            ...input.participants.map((entry) => entry.email),
+            input.payer,
+          ]),
         ];
         const existingParticipants = await tx
           .select({
@@ -361,7 +400,10 @@ export const billRouter = router({
           .from(participant)
           .where(inArray(sql<string>`lower(${participant.email})`, emails));
         const participantIdsByEmail = new Map(
-          existingParticipants.map((entry) => [entry.email.toLowerCase(), entry.id]),
+          existingParticipants.map((entry) => [
+            entry.email.toLowerCase(),
+            entry.id,
+          ]),
         );
 
         if (input.groupId) {
@@ -378,10 +420,15 @@ export const billRouter = router({
                     ),
                   )
               : [];
-          const memberParticipantIds = new Set(memberships.map((entry) => entry.participantId));
+          const memberParticipantIds = new Set(
+            memberships.map((entry) => entry.participantId),
+          );
           const outsiders = emails.filter((email) => {
             const participantId = participantIdsByEmail.get(email);
-            return participantId === undefined || !memberParticipantIds.has(participantId);
+            return (
+              participantId === undefined ||
+              !memberParticipantIds.has(participantId)
+            );
           });
 
           if (outsiders.length > 0) {
@@ -432,7 +479,9 @@ export const billRouter = router({
           });
         }
 
-        const createdGroupId = input.createGroup ? crypto.randomUUID() : undefined;
+        const createdGroupId = input.createGroup
+          ? crypto.randomUUID()
+          : undefined;
 
         if (createdGroupId) {
           await tx.insert(group).values({
@@ -441,23 +490,30 @@ export const billRouter = router({
             createdByUserId: ctx.session.user.id,
           });
 
-          const memberIds = new Set([currentParticipant.id, ...participantIdsByEmail.values()]);
+          const memberIds = new Set([
+            currentParticipant.id,
+            ...participantIdsByEmail.values(),
+          ]);
 
           await tx.insert(groupMember).values(
             [...memberIds].map((participantId) => ({
               groupId: createdGroupId,
               participantId,
               role:
-                participantId === currentParticipant.id ? ("owner" as const) : ("member" as const),
+                participantId === currentParticipant.id
+                  ? ("owner" as const)
+                  : ("member" as const),
             })),
           );
         }
 
         const now = new Date();
         const id = crypto.randomUUID();
-        const isSettled = otherParticipants.every((entry) => entry.status === "paid");
+        const isSettled = otherParticipants.every(
+          (entry) => entry.status === "paid",
+        );
 
-        await tx.insert(bill).values({
+        await tx.insert(expense).values({
           id,
           title: input.title,
           totalMinor: input.totalMinor,
@@ -482,7 +538,7 @@ export const billRouter = router({
           }
 
           return {
-            billId: id,
+            expenseId: id,
             participantId,
             owedMinor: entry.owedMinor,
             status: entry.status,
@@ -490,9 +546,9 @@ export const billRouter = router({
           };
         });
 
-        await tx.insert(billParticipant).values([
+        await tx.insert(expenseParticipant).values([
           {
-            billId: id,
+            expenseId: id,
             participantId: payerId,
             owedMinor: payerEntry.owedMinor,
             status: "paid",
@@ -512,17 +568,17 @@ export const billRouter = router({
     .meta({
       openapi: {
         method: "PATCH",
-        path: "/bills/{id}",
+        path: "/expenses/{id}",
         protect: true,
-        tags: ["Bills"],
-        summary: "Update bill participant payment statuses",
+        tags: ["Expenses"],
+        summary: "Update expense participant payment statuses",
         errorResponses: [400, 401, 404, 500],
       },
     })
     .input(updateSchema)
-    .output(billCreateOutputSchema)
+    .output(expenseCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -535,92 +591,109 @@ export const billRouter = router({
         });
       }
 
-      return db.transaction(async (tx) => {
+      return ctx.db.transaction(async (tx) => {
         const involvementFilter = or(
-          eq(bill.payerId, currentParticipant.id),
+          eq(expense.payerId, currentParticipant.id),
           exists(
             tx
-              .select({ billId: billParticipant.billId })
-              .from(billParticipant)
+              .select({ expenseId: expenseParticipant.expenseId })
+              .from(expenseParticipant)
               .where(
                 and(
-                  eq(billParticipant.billId, bill.id),
-                  eq(billParticipant.participantId, currentParticipant.id),
+                  eq(expenseParticipant.expenseId, expense.id),
+                  eq(expenseParticipant.participantId, currentParticipant.id),
                 ),
               ),
           ),
         );
-        const [currentBill] = await tx
+        const [currentExpense] = await tx
           .select({
-            id: bill.id,
-            payerId: bill.payerId,
+            id: expense.id,
+            payerId: expense.payerId,
           })
-          .from(bill)
-          .where(and(eq(bill.id, input.id), involvementFilter))
+          .from(expense)
+          .where(and(eq(expense.id, input.id), involvementFilter))
           .limit(1);
 
-        if (!currentBill) {
+        if (!currentExpense) {
           throw new TRPCError({
             code: "NOT_FOUND",
-            message: "Bill not found",
+            message: "Expense not found",
           });
         }
 
         const persistedParticipants = await tx
           .select({
-            participantId: billParticipant.participantId,
+            participantId: expenseParticipant.participantId,
           })
-          .from(billParticipant)
-          .where(eq(billParticipant.billId, currentBill.id));
+          .from(expenseParticipant)
+          .where(eq(expenseParticipant.expenseId, currentExpense.id));
         const persistedParticipantIds = new Set(
           persistedParticipants.map((entry) => entry.participantId),
         );
-        const hasStoredPayer = persistedParticipantIds.has(currentBill.payerId);
+        const hasStoredPayer = persistedParticipantIds.has(currentExpense.payerId);
         const now = new Date();
 
         for (const entry of input.participants) {
           if (!persistedParticipantIds.has(entry.id)) {
-            if (entry.id === currentBill.payerId && !hasStoredPayer && entry.status === "paid") {
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
+            if (
+              entry.id === currentBill.payerId &&
+              !hasStoredPayer &&
+              entry.status === "paid"
+            ) {
+=======
+            if (entry.id === currentExpense.payerId && !hasStoredPayer && entry.status === "paid") {
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
               continue;
             }
 
             throw new TRPCError({
               code: "BAD_REQUEST",
-              message: "Participant does not belong to this bill",
+              message: "Participant does not belong to this expense",
             });
           }
 
           await tx
-            .update(billParticipant)
+            .update(expenseParticipant)
             .set({
               status: entry.status,
               paidAt: entry.status === "paid" ? now : null,
             })
             .where(
               and(
-                eq(billParticipant.billId, currentBill.id),
-                eq(billParticipant.participantId, entry.id),
+                eq(expenseParticipant.expenseId, currentExpense.id),
+                eq(expenseParticipant.participantId, entry.id),
               ),
             );
         }
 
         const updatedParticipants = await tx
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
           .select({ status: billParticipant.status })
           .from(billParticipant)
           .where(eq(billParticipant.billId, currentBill.id));
+        const isSettled = updatedParticipants.every(
+          (entry) => entry.status === "paid",
+        );
+=======
+          .select({ status: expenseParticipant.status })
+          .from(expenseParticipant)
+          .where(eq(expenseParticipant.expenseId, currentExpense.id));
         const isSettled = updatedParticipants.every((entry) => entry.status === "paid");
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         const status = isSettled ? ("settled" as const) : ("active" as const);
 
         await tx
-          .update(bill)
+          .update(expense)
           .set({
             status,
             settledAt: isSettled ? now : null,
           })
-          .where(eq(bill.id, currentBill.id));
+          .where(eq(expense.id, currentExpense.id));
 
         return {
-          id: currentBill.id,
+          id: currentExpense.id,
           status,
         };
       });
@@ -630,17 +703,17 @@ export const billRouter = router({
     .meta({
       openapi: {
         method: "GET",
-        path: "/bills/{id}",
+        path: "/expenses/{id}",
         protect: true,
-        tags: ["Bills"],
-        summary: "Get a bill visible to the current participant",
+        tags: ["Expenses"],
+        summary: "Get an expense visible to the current participant",
         errorResponses: [400, 401, 404, 500],
       },
     })
-    .input(billGetInputSchema)
-    .output(billGetOutputSchema)
+    .input(expenseGetInputSchema)
+    .output(expenseGetOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -654,106 +727,125 @@ export const billRouter = router({
       }
 
       const involvementFilter = or(
-        eq(bill.payerId, currentParticipant.id),
+        eq(expense.payerId, currentParticipant.id),
         exists(
-          db
-            .select({ billId: billParticipant.billId })
-            .from(billParticipant)
+          ctx.db
+            .select({ expenseId: expenseParticipant.expenseId })
+            .from(expenseParticipant)
             .where(
               and(
-                eq(billParticipant.billId, bill.id),
-                eq(billParticipant.participantId, currentParticipant.id),
+                eq(expenseParticipant.expenseId, expense.id),
+                eq(expenseParticipant.participantId, currentParticipant.id),
               ),
             ),
         ),
       );
-      const [transaction] = await db
+      const [expenseRow] = await ctx.db
         .select({
-          id: bill.id,
-          title: bill.title,
-          totalMinor: bill.totalMinor,
-          currency: bill.currency,
-          status: bill.status,
-          splitMethod: bill.splitMethod,
-          payerId: bill.payerId,
-          groupId: bill.groupId,
+          id: expense.id,
+          title: expense.title,
+          totalMinor: expense.totalMinor,
+          currency: expense.currency,
+          status: expense.status,
+          splitMethod: expense.splitMethod,
+          payerId: expense.payerId,
+          groupId: expense.groupId,
           groupName: group.name,
-          occurredAt: bill.occurredAt,
-          settledAt: bill.settledAt,
+          occurredAt: expense.occurredAt,
+          settledAt: expense.settledAt,
           payerName: participant.name,
           payerEmail: participant.email,
           payerImage: user.image,
         })
-        .from(bill)
-        .innerJoin(participant, eq(participant.id, bill.payerId))
-        .leftJoin(group, eq(group.id, bill.groupId))
+        .from(expense)
+        .innerJoin(participant, eq(participant.id, expense.payerId))
+        .leftJoin(group, eq(group.id, expense.groupId))
         .leftJoin(user, eq(user.id, participant.userId))
-        .where(and(eq(bill.id, input.id), involvementFilter))
+        .where(and(eq(expense.id, input.id), involvementFilter))
         .limit(1);
 
-      if (!transaction) {
+      if (!expenseRow) {
         throw new TRPCError({
           code: "NOT_FOUND",
-          message: "Bill not found",
+          message: "Expense not found",
         });
       }
 
-      const billParticipants = await db
+      const expenseParticipants = await ctx.db
         .select({
           id: participant.id,
           name: participant.name,
           email: participant.email,
           image: user.image,
-          owedMinor: billParticipant.owedMinor,
-          status: billParticipant.status,
+          owedMinor: expenseParticipant.owedMinor,
+          status: expenseParticipant.status,
         })
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
         .from(billParticipant)
-        .innerJoin(participant, eq(billParticipant.participantId, participant.id))
+        .innerJoin(
+          participant,
+          eq(billParticipant.participantId, participant.id),
+        )
+=======
+        .from(expenseParticipant)
+        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         .leftJoin(user, eq(user.id, participant.userId))
-        .where(eq(billParticipant.billId, transaction.id));
+        .where(eq(expenseParticipant.expenseId, expenseRow.id));
 
-      const storedPayer = billParticipants.find(
-        (billParticipant) => billParticipant.id === transaction.payerId,
+      const storedPayer = expenseParticipants.find(
+        (expenseParticipant) => expenseParticipant.id === expenseRow.payerId,
       );
-      const isPayer = transaction.payerId === currentParticipant.id;
+      const isPayer = expenseRow.payerId === currentParticipant.id;
       const amountMinor = isPayer
-        ? billParticipants.reduce(
+        ? expenseParticipants.reduce(
             (total, entry) =>
-              entry.id !== transaction.payerId && entry.status === "unpaid"
+              entry.id !== expenseRow.payerId && entry.status === "unpaid"
                 ? total + entry.owedMinor
                 : total,
             0,
           )
-        : (billParticipants.find((entry) => entry.id === currentParticipant.id)?.owedMinor ?? 0);
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
+        : (billParticipants.find((entry) => entry.id === currentParticipant.id)
+            ?.owedMinor ?? 0);
+=======
+        : (expenseParticipants.find((entry) => entry.id === currentParticipant.id)?.owedMinor ?? 0);
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
       const payer =
         storedPayer ??
         ({
-          id: transaction.payerId,
-          name: transaction.payerName,
-          email: transaction.payerEmail,
-          image: transaction.payerImage,
+          id: expenseRow.payerId,
+          name: expenseRow.payerName,
+          email: expenseRow.payerEmail,
+          image: expenseRow.payerImage,
           owedMinor: 0,
           status: "paid",
-        } satisfies TransactionParticipant);
+        } satisfies ExpenseParticipant);
 
       return {
-        id: transaction.id,
-        title: transaction.title,
-        totalMinor: transaction.totalMinor,
+        id: expenseRow.id,
+        title: expenseRow.title,
+        totalMinor: expenseRow.totalMinor,
         isPayer,
         amountMinor,
-        currency: transaction.currency,
-        status: transaction.status,
-        splitMethod: transaction.splitMethod,
-        payerId: transaction.payerId,
-        payerName: transaction.payerName,
-        groupId: transaction.groupId,
-        groupName: transaction.groupName,
-        occurredAt: transaction.occurredAt.toISOString(),
-        settledAt: transaction.settledAt?.toISOString() ?? null,
+        currency: expenseRow.currency,
+        status: expenseRow.status,
+        splitMethod: expenseRow.splitMethod,
+        payerId: expenseRow.payerId,
+        payerName: expenseRow.payerName,
+        groupId: expenseRow.groupId,
+        groupName: expenseRow.groupName,
+        occurredAt: expenseRow.occurredAt.toISOString(),
+        settledAt: expenseRow.settledAt?.toISOString() ?? null,
         participants: [
           payer,
-          ...billParticipants.filter((billParticipant) => billParticipant.id !== payer.id),
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
+          ...billParticipants.filter(
+            (billParticipant) => billParticipant.id !== payer.id,
+          ),
+=======
+          ...expenseParticipants.filter((expenseParticipant) => expenseParticipant.id !== payer.id),
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         ],
       };
     }),
@@ -762,17 +854,17 @@ export const billRouter = router({
     .meta({
       openapi: {
         method: "POST",
-        path: "/bills/search",
+        path: "/expenses/search",
         protect: true,
-        tags: ["Bills"],
-        summary: "List bills visible to the current participant",
+        tags: ["Expenses"],
+        summary: "List expenses visible to the current participant",
         errorResponses: [400, 401, 403, 500],
       },
     })
     .input(listSchema)
-    .output(billListOutputSchema)
+    .output(expenseListOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({ id: participant.id })
         .from(participant)
         .where(eq(participant.userId, ctx.session.user.id))
@@ -783,49 +875,72 @@ export const billRouter = router({
       }
 
       const involvementFilter = or(
-        eq(bill.payerId, currentParticipant.id),
+        eq(expense.payerId, currentParticipant.id),
         exists(
-          db
-            .select({ billId: billParticipant.billId })
-            .from(billParticipant)
+          ctx.db
+            .select({ expenseId: expenseParticipant.expenseId })
+            .from(expenseParticipant)
             .where(
               and(
-                eq(billParticipant.billId, bill.id),
-                eq(billParticipant.participantId, currentParticipant.id),
+                eq(expenseParticipant.expenseId, expense.id),
+                eq(expenseParticipant.participantId, currentParticipant.id),
               ),
             ),
         ),
       );
-      const statusFilter = input.status === "all" ? undefined : eq(bill.status, input.status);
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
+      const statusFilter =
+        input.status === "all" ? undefined : eq(bill.status, input.status);
+      const cursorDate = input.cursor
+        ? new Date(input.cursor.occurredAt)
+        : undefined;
+=======
+      const statusFilter = input.status === "all" ? undefined : eq(expense.status, input.status);
       const cursorDate = input.cursor ? new Date(input.cursor.occurredAt) : undefined;
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
       const cursorFilter =
         input.cursor && cursorDate
           ? input.sort === "newest"
             ? or(
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
                 lt(bill.occurredAt, cursorDate),
-                and(eq(bill.occurredAt, cursorDate), lt(bill.id, input.cursor.id)),
+                and(
+                  eq(bill.occurredAt, cursorDate),
+                  lt(bill.id, input.cursor.id),
+                ),
               )
             : or(
                 gt(bill.occurredAt, cursorDate),
-                and(eq(bill.occurredAt, cursorDate), gt(bill.id, input.cursor.id)),
+                and(
+                  eq(bill.occurredAt, cursorDate),
+                  gt(bill.id, input.cursor.id),
+                ),
+=======
+                lt(expense.occurredAt, cursorDate),
+                and(eq(expense.occurredAt, cursorDate), lt(expense.id, input.cursor.id)),
+              )
+            : or(
+                gt(expense.occurredAt, cursorDate),
+                and(eq(expense.occurredAt, cursorDate), gt(expense.id, input.cursor.id)),
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
               )
           : undefined;
       const orderBy =
         input.sort === "newest"
-          ? [desc(bill.occurredAt), desc(bill.id)]
-          : [asc(bill.occurredAt), asc(bill.id)];
+          ? [desc(expense.occurredAt), desc(expense.id)]
+          : [asc(expense.occurredAt), asc(expense.id)];
 
-      const rows = await db
+      const rows = await ctx.db
         .select({
-          id: bill.id,
-          title: bill.title,
-          totalMinor: bill.totalMinor,
-          currency: bill.currency,
-          occurredAt: bill.occurredAt,
-          status: bill.status,
-          payerId: bill.payerId,
+          id: expense.id,
+          title: expense.title,
+          totalMinor: expense.totalMinor,
+          currency: expense.currency,
+          occurredAt: expense.occurredAt,
+          status: expense.status,
+          payerId: expense.payerId,
         })
-        .from(bill)
+        .from(expense)
         .where(and(involvementFilter, statusFilter, cursorFilter))
         .orderBy(...orderBy)
         .limit(input.limit + 1);
@@ -837,25 +952,40 @@ export const billRouter = router({
         return { items: [], nextCursor: null };
       }
 
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
       const billIds = pageRows.map((transaction) => transaction.id);
-      const payerIds = [...new Set(pageRows.map((transaction) => transaction.payerId))];
+      const payerIds = [
+        ...new Set(pageRows.map((transaction) => transaction.payerId)),
+      ];
+=======
+      const expenseIds = pageRows.map((expenseRow) => expenseRow.id);
+      const payerIds = [...new Set(pageRows.map((expenseRow) => expenseRow.payerId))];
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
 
-      const participantRows = await db
+      const participantRows = await ctx.db
         .select({
-          billId: billParticipant.billId,
+          expenseId: expenseParticipant.expenseId,
           id: participant.id,
           name: participant.name,
           email: participant.email,
           image: user.image,
-          owedMinor: billParticipant.owedMinor,
-          status: billParticipant.status,
+          owedMinor: expenseParticipant.owedMinor,
+          status: expenseParticipant.status,
         })
+<<<<<<< HEAD:packages/api/src/routers/bill.ts
         .from(billParticipant)
-        .innerJoin(participant, eq(billParticipant.participantId, participant.id))
+        .innerJoin(
+          participant,
+          eq(billParticipant.participantId, participant.id),
+        )
+=======
+        .from(expenseParticipant)
+        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
+>>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         .leftJoin(user, eq(user.id, participant.userId))
-        .where(inArray(billParticipant.billId, billIds));
+        .where(inArray(expenseParticipant.expenseId, expenseIds));
 
-      const payerRows = await db
+      const payerRows = await ctx.db
         .select({
           id: participant.id,
           name: participant.name,
@@ -866,10 +996,10 @@ export const billRouter = router({
         .leftJoin(user, eq(user.id, participant.userId))
         .where(inArray(participant.id, payerIds));
 
-      const participantsByBillId = new Map<string, TransactionParticipant[]>();
+      const participantsByExpenseId = new Map<string, ExpenseParticipant[]>();
 
       for (const row of participantRows) {
-        const current = participantsByBillId.get(row.billId) ?? [];
+        const current = participantsByExpenseId.get(row.expenseId) ?? [];
         current.push({
           id: row.id,
           name: row.name,
@@ -878,7 +1008,7 @@ export const billRouter = router({
           owedMinor: row.owedMinor,
           status: row.status,
         });
-        participantsByBillId.set(row.billId, current);
+        participantsByExpenseId.set(row.expenseId, current);
       }
 
       const payersById = new Map(
@@ -888,27 +1018,27 @@ export const billRouter = router({
             ...payer,
             owedMinor: 0,
             status: "paid",
-          } satisfies TransactionParticipant,
+          } satisfies ExpenseParticipant,
         ]),
       );
 
-      const items = pageRows.map((transaction) => {
-        const billParticipants = participantsByBillId.get(transaction.id) ?? [];
-        const storedPayer = billParticipants.find(
-          (participant) => participant.id === transaction.payerId,
+      const items = pageRows.map((expenseRow) => {
+        const expenseParticipants = participantsByExpenseId.get(expenseRow.id) ?? [];
+        const storedPayer = expenseParticipants.find(
+          (participant) => participant.id === expenseRow.payerId,
         );
-        const payer = storedPayer ?? payersById.get(transaction.payerId);
-        const participants = billParticipants.filter(
-          (participant) => participant.id !== transaction.payerId,
+        const payer = storedPayer ?? payersById.get(expenseRow.payerId);
+        const participants = expenseParticipants.filter(
+          (participant) => participant.id !== expenseRow.payerId,
         );
 
         return {
-          id: transaction.id,
-          title: transaction.title,
-          totalMinor: transaction.totalMinor,
-          currency: transaction.currency,
-          status: transaction.status,
-          occurredAt: transaction.occurredAt.toISOString(),
+          id: expenseRow.id,
+          title: expenseRow.title,
+          totalMinor: expenseRow.totalMinor,
+          currency: expenseRow.currency,
+          status: expenseRow.status,
+          occurredAt: expenseRow.occurredAt.toISOString(),
           participants: payer ? [payer, ...participants] : participants,
         };
       });

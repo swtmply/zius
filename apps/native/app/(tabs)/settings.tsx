@@ -49,9 +49,16 @@ export default function Settings() {
 
     setErrorMessage(null);
     setIsSaving(true);
-    const result = await authClient.updateUser({ name }).catch((error: unknown) => ({
-      error: { message: error instanceof Error ? error.message : "Unable to update your name." },
-    }));
+    const result = await authClient
+      .updateUser({ name })
+      .catch((error: unknown) => ({
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to update your name.",
+        },
+      }));
     setIsSaving(false);
 
     if (result.error) {
@@ -69,7 +76,9 @@ export default function Settings() {
     setErrorMessage(null);
     setIsSigningOut(true);
     const result = await authClient.signOut().catch((error: unknown) => ({
-      error: { message: error instanceof Error ? error.message : "Unable to log out." },
+      error: {
+        message: error instanceof Error ? error.message : "Unable to log out.",
+      },
     }));
     setIsSigningOut(false);
 
@@ -95,7 +104,10 @@ export default function Settings() {
       >
         <View className="gap-4 px-4">
           <View className="flex-row items-center justify-between gap-4">
-            <Text selectable className="text-[24px] font-semibold tracking-[-0.5px] text-black">
+            <Text
+              selectable
+              className="text-[24px] font-semibold tracking-[-0.5px] text-black"
+            >
               Settings
             </Text>
             <Pressable
@@ -230,13 +242,19 @@ export default function Settings() {
             <Text selectable className="text-[14px] text-[#FF343B]">
               Deleting Account
             </Text>
-            <Text selectable className="text-[12px] leading-[15px] text-[#171717]">
-              When you delete your account, transactions currently attached to you will not be
-              deleted. You will no longer be able to access any of your data.
+            <Text
+              selectable
+              className="text-[12px] leading-[15px] text-[#171717]"
+            >
+              When you delete your account, expenses currently attached to you
+              will not be deleted. You will no longer be able to access any of
+              your data.
             </Text>
             <Pressable
               accessibilityRole="button"
-              onPress={() => setDeletionMessage("Account deletion is not available yet.")}
+              onPress={() =>
+                setDeletionMessage("Account deletion is not available yet.")
+              }
               className="h-[50px] items-center justify-center rounded-2xl border-continuous bg-[#FF343B] active:opacity-72"
             >
               <Text className="text-[14px] text-white">Delete Account</Text>

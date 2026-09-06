@@ -1,7 +1,7 @@
 import { Typography } from "heroui-native";
 import { TextInput, View } from "react-native";
 
-type TransactionTitleInputProps = {
+type ExpenseTitleInputProps = {
   value: string;
   onBlur: () => void;
   onChange: (value: string) => void;
@@ -9,13 +9,13 @@ type TransactionTitleInputProps = {
   placeholder?: string;
 };
 
-export function TransactionTitleInput({
+export function ExpenseTitleInput({
   value,
   onBlur,
   onChange,
   label = "Title",
-  placeholder = "Transaction Title",
-}: TransactionTitleInputProps) {
+  placeholder = "Expense Title",
+}: ExpenseTitleInputProps) {
   return (
     <View className="bg-surface px-4 py-2 flex-row items-center gap-1 shadow-lg rounded-xl">
       <Typography className="text-sm">{label}</Typography>

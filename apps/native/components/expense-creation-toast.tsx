@@ -1,18 +1,18 @@
 import { Toast, type ToastComponentProps } from "heroui-native";
 import { View } from "react-native";
 
-type BillCreationToastProps = ToastComponentProps & {
+type ExpenseCreationToastProps = ToastComponentProps & {
   variant: "success" | "danger";
   description: string;
   title?: string;
 };
 
-export function BillCreationToast({
+export function ExpenseCreationToast({
   variant,
   description,
   title,
   ...props
-}: BillCreationToastProps) {
+}: ExpenseCreationToastProps) {
   const isSuccess = variant === "success";
 
   return (
@@ -28,7 +28,7 @@ export function BillCreationToast({
         <Toast.Title
           className={`text-sm font-normal ${isSuccess ? "text-[#2dcc55]" : "text-[#dc2626]"}`}
         >
-          {title ?? (isSuccess ? "Bill created successfully" : "Failed to create bill")}
+          {title ?? (isSuccess ? "Expense created successfully" : "Failed to create expense")}
         </Toast.Title>
         <Toast.Description className="text-xs text-black">{description}</Toast.Description>
       </View>

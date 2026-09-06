@@ -54,7 +54,7 @@ CREATE TABLE `verification` (
 );
 --> statement-breakpoint
 CREATE INDEX `verification_identifier_idx` ON `verification` (`identifier`);--> statement-breakpoint
-CREATE TABLE `bill` (
+CREATE TABLE `expense` (
 	`id` text PRIMARY KEY NOT NULL,
 	`title` text NOT NULL,
 	`total_minor` integer NOT NULL,
@@ -71,32 +71,33 @@ CREATE TABLE `bill` (
 	FOREIGN KEY (`payer_id`) REFERENCES `participant`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`group_id`) REFERENCES `group`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
-	CONSTRAINT "bill_total_positive_check" CHECK("bill"."total_minor" > 0),
-	CONSTRAINT "bill_currency_check" CHECK("bill"."currency" glob '[A-Z][A-Z][A-Z]'),
-	CONSTRAINT "bill_status_check" CHECK("bill"."status" in ('active', 'settled')),
-	CONSTRAINT "bill_split_method_check" CHECK("bill"."split_method" in ('equal', 'fixed', 'percentage')),
-	CONSTRAINT "bill_settlement_check" CHECK(("bill"."status" = 'active' and "bill"."settled_at" is null) or ("bill"."status" = 'settled' and "bill"."settled_at" is not null))
+	CONSTRAINT "expense_total_positive_check" CHECK("expense"."total_minor" > 0),
+	CONSTRAINT "expense_currency_check" CHECK("expense"."currency" glob '[A-Z][A-Z][A-Z]'),
+	CONSTRAINT "expense_status_check" CHECK("expense"."status" in ('active', 'settled')),
+	CONSTRAINT "expense_split_method_check" CHECK("expense"."split_method" in ('equal', 'fixed', 'percentage')),
+	CONSTRAINT "expense_settlement_check" CHECK(("expense"."status" = 'active' and "expense"."settled_at" is null) or ("expense"."status" = 'settled' and "expense"."settled_at" is not null))
 );
 --> statement-breakpoint
-CREATE INDEX `bill_group_id_idx` ON `bill` (`group_id`);--> statement-breakpoint
-CREATE INDEX `bill_payer_id_idx` ON `bill` (`payer_id`);--> statement-breakpoint
-CREATE INDEX `bill_status_idx` ON `bill` (`status`);--> statement-breakpoint
-CREATE TABLE `bill_participant` (
-	`bill_id` text NOT NULL,
+CREATE INDEX `expense_group_id_idx` ON `expense` (`group_id`);--> statement-breakpoint
+CREATE INDEX `expense_payer_id_idx` ON `expense` (`payer_id`);--> statement-breakpoint
+CREATE INDEX `expense_status_idx` ON `expense` (`status`);--> statement-breakpoint
+CREATE INDEX `expense_occurred_at_idx` ON `expense` (`occurred_at`);--> statement-breakpoint
+CREATE TABLE `expense_participant` (
+	`expense_id` text NOT NULL,
 	`participant_id` text NOT NULL,
 	`owed_minor` integer NOT NULL,
 	`status` text DEFAULT 'unpaid' NOT NULL,
 	`paid_at` integer,
-	PRIMARY KEY(`bill_id`, `participant_id`),
-	FOREIGN KEY (`bill_id`) REFERENCES `bill`(`id`) ON UPDATE no action ON DELETE cascade,
+	PRIMARY KEY(`expense_id`, `participant_id`),
+	FOREIGN KEY (`expense_id`) REFERENCES `expense`(`id`) ON UPDATE no action ON DELETE cascade,
 	FOREIGN KEY (`participant_id`) REFERENCES `participant`(`id`) ON UPDATE no action ON DELETE no action,
-	CONSTRAINT "bill_participant_owed_check" CHECK("bill_participant"."owed_minor" >= 0),
-	CONSTRAINT "bill_participant_status_check" CHECK("bill_participant"."status" in ('paid', 'unpaid')),
-	CONSTRAINT "bill_participant_payment_check" CHECK(("bill_participant"."status" = 'unpaid' and "bill_participant"."paid_at" is null) or ("bill_participant"."status" = 'paid' and "bill_participant"."paid_at" is not null))
+	CONSTRAINT "expense_participant_owed_check" CHECK("expense_participant"."owed_minor" >= 0),
+	CONSTRAINT "expense_participant_status_check" CHECK("expense_participant"."status" in ('paid', 'unpaid')),
+	CONSTRAINT "expense_participant_payment_check" CHECK(("expense_participant"."status" = 'unpaid' and "expense_participant"."paid_at" is null) or ("expense_participant"."status" = 'paid' and "expense_participant"."paid_at" is not null))
 );
 --> statement-breakpoint
-CREATE INDEX `bill_participant_participant_id_idx` ON `bill_participant` (`participant_id`);--> statement-breakpoint
-CREATE INDEX `bill_participant_status_idx` ON `bill_participant` (`status`);--> statement-breakpoint
+CREATE INDEX `expense_participant_participant_id_idx` ON `expense_participant` (`participant_id`);--> statement-breakpoint
+CREATE INDEX `expense_participant_status_idx` ON `expense_participant` (`status`);--> statement-breakpoint
 CREATE TABLE `group` (
 	`id` text PRIMARY KEY NOT NULL,
 	`name` text NOT NULL,

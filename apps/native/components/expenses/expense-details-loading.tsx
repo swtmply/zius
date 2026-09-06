@@ -4,14 +4,14 @@ import { Button, Card, Separator, Skeleton, Typography } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ChevronLeftFreeIcons } from "@hugeicons/core-free-icons";
 
-export function TransactionDetailsLoading() {
+export function ExpenseDetailsLoading() {
   const router = useRouter();
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home"));
 
   return (
     <View
       className="gap-4"
-      accessibilityLabel="Loading transaction details"
+      accessibilityLabel="Loading expense details"
       accessibilityState={{ busy: true }}
     >
       <View className="flex-row items-center justify-between py-4">

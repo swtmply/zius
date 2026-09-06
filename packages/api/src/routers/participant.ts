@@ -1,5 +1,4 @@
-import { db } from "@zius/db";
-import { participant } from "@zius/db/schema/billing";
+import { participant } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -28,7 +27,7 @@ export const participantRouter = router({
     .input(z.void())
     .output(currentParticipantOutputSchema)
     .query(async ({ ctx }) => {
-      const [currentParticipant] = await db
+      const [currentParticipant] = await ctx.db
         .select({
           id: participant.id,
           name: participant.name,

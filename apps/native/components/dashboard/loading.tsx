@@ -40,7 +40,7 @@ export default function DashboardLoading() {
                     <Button variant="secondary" isIconOnly>
                       <HugeiconsIcon icon={Add} size={24} />
                     </Button>
-                    <Typography className="text-xs text-muted">Transaction</Typography>
+                    <Typography className="text-xs text-muted">Expense</Typography>
                   </View>
                   <View className="items-center flex-1 gap-1">
                     <Button variant="secondary" isIconOnly>
@@ -66,7 +66,7 @@ export default function DashboardLoading() {
 
             <View className="gap-2">
               <SectionHeader
-                title="Active Transactions"
+                title="Active Expenses"
                 action={
                   <Button variant="ghost">
                     <Typography className="text-sm">See All</Typography>
@@ -108,7 +108,7 @@ export default function DashboardLoading() {
             </View>
 
             <SectionHeader
-              title="Recent Transactions"
+              title="Recent Expenses"
               action={
                 <Button variant="ghost">
                   <Typography className="text-sm">See All</Typography>

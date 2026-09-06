@@ -7,6 +7,12 @@ export const t = initTRPC.context<Context>().meta<OpenApiMeta>().create();
 
 export const router = t.router;
 
+/**
+ * Builds a caller over a context you supply, so a procedure can be run against
+ * a database and a session of your choosing. This is the seam the tests use.
+ */
+export const createCallerFactory = t.createCallerFactory;
+
 export const publicProcedure = t.procedure;
 
 export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
