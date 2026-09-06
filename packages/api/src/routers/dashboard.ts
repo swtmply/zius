@@ -1,7 +1,7 @@
 import { expense, expenseParticipant, participant } from "@zius/db/schema/expense";
 import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 
-import { protectedProcedure, router } from "../index";
+import { participantProcedure, router } from "../index";
 
 const dashboardExpenseColumns = {
   id: expense.id,
@@ -13,14 +13,8 @@ const dashboardExpenseColumns = {
 };
 
 export const dashboardRouter = router({
-  get: protectedProcedure.query(async ({ ctx }) => {
-    const [currentParticipant] = await ctx.db
-      .select({ id: participant.id })
-      .from(participant)
-      .where(eq(participant.userId, ctx.session.user.id))
-      .limit(1);
-
-    if (!currentParticipant) {
+  get: participantProcedure.query(async ({ ctx }) => {
+    if (!ctx.participant) {
       return {
         balance: {
           owedToYouMinor: 0,
@@ -33,7 +27,7 @@ export const dashboardRouter = router({
       };
     }
 
-    const participantId = currentParticipant.id;
+    const participantId = ctx.participant.id;
 
     const [owedToYou] = await ctx.db
       .select({

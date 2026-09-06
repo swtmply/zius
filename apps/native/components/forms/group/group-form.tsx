@@ -21,6 +21,7 @@ import {
   type GroupFormValues,
 } from "./group-form-model";
 import { GroupParticipantList } from "./group-participant-list";
+import { GroupSelector } from "../expense/group-selector";
 
 type GroupFormProps = {
   currentParticipant: inferRouterOutputs<AppRouter>["participant"]["current"];
@@ -182,7 +183,6 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
               value={field.state.value}
               onBlur={field.handleBlur}
               onChange={field.handleChange}
-              onSubmit={submit}
               label="Name"
               placeholder="Group name"
             />

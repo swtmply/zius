@@ -1,3 +1,4 @@
+import type { Database } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import {
   expense,
@@ -21,7 +22,7 @@ import {
 } from "drizzle-orm";
 import { z } from "zod";
 
-import { protectedProcedure, router } from "../index";
+import { participantProcedure, requireParticipant, router } from "../index";
 
 const FULL_PERCENTAGE_BASIS_POINTS = 10_000;
 
@@ -80,19 +81,12 @@ const createSchema = z
     if (input.groupId !== undefined && input.createGroup) {
       ctx.addIssue({
         code: "custom",
-        message: "An expense cannot be assigned to a group and create a new group",
+        message:
+          "An expense cannot be assigned to a group and create a new group",
         path: ["createGroup"],
       });
     }
   });
-
-function formatEmailList(emails: string[]) {
-  if (emails.length <= 1) {
-    return emails[0] ?? "";
-  }
-
-  return `${emails.slice(0, -1).join(", ")} and ${emails.at(-1)}`;
-}
 
 function divideEvenly(total: number, count: number) {
   if (count === 0) {
@@ -315,8 +309,35 @@ const expenseGetOutputSchema = z.object({
   participants: z.array(expenseParticipantSchema),
 });
 
+/**
+ * Matches the expenses a participant is involved in: the ones they paid for,
+ * and the ones they are listed on.
+ *
+ * Takes the database handle so the same filter can be built against a
+ * transaction as well as against the request-scoped database.
+ */
+function buildInvolvementFilter(
+  db: Pick<Database, "select">,
+  participantId: string,
+) {
+  return or(
+    eq(expense.payerId, participantId),
+    exists(
+      db
+        .select({ expenseId: expenseParticipant.expenseId })
+        .from(expenseParticipant)
+        .where(
+          and(
+            eq(expenseParticipant.expenseId, expense.id),
+            eq(expenseParticipant.participantId, participantId),
+          ),
+        ),
+    ),
+  );
+}
+
 export const expenseRouter = router({
-  create: protectedProcedure
+  create: participantProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -330,20 +351,7 @@ export const expenseRouter = router({
     .input(createSchema)
     .output(expenseCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({
-          id: participant.id,
-        })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       const participants = calculateParticipantAmounts(
         input.participants,
@@ -405,42 +413,6 @@ export const expenseRouter = router({
             entry.id,
           ]),
         );
-
-        if (input.groupId) {
-          const knownParticipantIds = [...participantIdsByEmail.values()];
-          const memberships =
-            knownParticipantIds.length > 0
-              ? await tx
-                  .select({ participantId: groupMember.participantId })
-                  .from(groupMember)
-                  .where(
-                    and(
-                      eq(groupMember.groupId, input.groupId),
-                      inArray(groupMember.participantId, knownParticipantIds),
-                    ),
-                  )
-              : [];
-          const memberParticipantIds = new Set(
-            memberships.map((entry) => entry.participantId),
-          );
-          const outsiders = emails.filter((email) => {
-            const participantId = participantIdsByEmail.get(email);
-            return (
-              participantId === undefined ||
-              !memberParticipantIds.has(participantId)
-            );
-          });
-
-          if (outsiders.length > 0) {
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `${formatEmailList(outsiders)} ${
-                outsiders.length === 1 ? "is not a member" : "are not members"
-              } of this group. Create a new group with these participants, or save this as a standalone expense.`,
-            });
-          }
-        }
-
         const newParticipants = input.participants.filter(
           (entry) => !participantIdsByEmail.has(entry.email),
         );
@@ -564,7 +536,7 @@ export const expenseRouter = router({
       });
     }),
 
-  update: protectedProcedure
+  update: participantProcedure
     .meta({
       openapi: {
         method: "PATCH",
@@ -578,33 +550,12 @@ export const expenseRouter = router({
     .input(updateSchema)
     .output(expenseCreateOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
+      const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const involvementFilter = or(
-          eq(expense.payerId, currentParticipant.id),
-          exists(
-            tx
-              .select({ expenseId: expenseParticipant.expenseId })
-              .from(expenseParticipant)
-              .where(
-                and(
-                  eq(expenseParticipant.expenseId, expense.id),
-                  eq(expenseParticipant.participantId, currentParticipant.id),
-                ),
-              ),
-          ),
+        const involvementFilter = buildInvolvementFilter(
+          tx,
+          currentParticipant.id,
         );
         const [currentExpense] = await tx
           .select({
@@ -631,20 +582,18 @@ export const expenseRouter = router({
         const persistedParticipantIds = new Set(
           persistedParticipants.map((entry) => entry.participantId),
         );
-        const hasStoredPayer = persistedParticipantIds.has(currentExpense.payerId);
+        const hasStoredPayer = persistedParticipantIds.has(
+          currentExpense.payerId,
+        );
         const now = new Date();
 
         for (const entry of input.participants) {
           if (!persistedParticipantIds.has(entry.id)) {
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
             if (
-              entry.id === currentBill.payerId &&
+              entry.id === currentExpense.payerId &&
               !hasStoredPayer &&
               entry.status === "paid"
             ) {
-=======
-            if (entry.id === currentExpense.payerId && !hasStoredPayer && entry.status === "paid") {
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
               continue;
             }
 
@@ -669,19 +618,12 @@ export const expenseRouter = router({
         }
 
         const updatedParticipants = await tx
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-          .select({ status: billParticipant.status })
-          .from(billParticipant)
-          .where(eq(billParticipant.billId, currentBill.id));
-        const isSettled = updatedParticipants.every(
-          (entry) => entry.status === "paid",
-        );
-=======
           .select({ status: expenseParticipant.status })
           .from(expenseParticipant)
           .where(eq(expenseParticipant.expenseId, currentExpense.id));
-        const isSettled = updatedParticipants.every((entry) => entry.status === "paid");
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
+        const isSettled = updatedParticipants.every(
+          (entry) => entry.status === "paid",
+        );
         const status = isSettled ? ("settled" as const) : ("active" as const);
 
         await tx
@@ -699,7 +641,7 @@ export const expenseRouter = router({
       });
     }),
 
-  get: protectedProcedure
+  get: participantProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -713,32 +655,11 @@ export const expenseRouter = router({
     .input(expenseGetInputSchema)
     .output(expenseGetOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
+      const currentParticipant = requireParticipant(ctx.participant);
 
-      if (!currentParticipant) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Current participant not found",
-        });
-      }
-
-      const involvementFilter = or(
-        eq(expense.payerId, currentParticipant.id),
-        exists(
-          ctx.db
-            .select({ expenseId: expenseParticipant.expenseId })
-            .from(expenseParticipant)
-            .where(
-              and(
-                eq(expenseParticipant.expenseId, expense.id),
-                eq(expenseParticipant.participantId, currentParticipant.id),
-              ),
-            ),
-        ),
+      const involvementFilter = buildInvolvementFilter(
+        ctx.db,
+        currentParticipant.id,
       );
       const [expenseRow] = await ctx.db
         .select({
@@ -780,16 +701,11 @@ export const expenseRouter = router({
           owedMinor: expenseParticipant.owedMinor,
           status: expenseParticipant.status,
         })
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-        .from(billParticipant)
+        .from(expenseParticipant)
         .innerJoin(
           participant,
-          eq(billParticipant.participantId, participant.id),
+          eq(expenseParticipant.participantId, participant.id),
         )
-=======
-        .from(expenseParticipant)
-        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         .leftJoin(user, eq(user.id, participant.userId))
         .where(eq(expenseParticipant.expenseId, expenseRow.id));
 
@@ -805,12 +721,9 @@ export const expenseRouter = router({
                 : total,
             0,
           )
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-        : (billParticipants.find((entry) => entry.id === currentParticipant.id)
-            ?.owedMinor ?? 0);
-=======
-        : (expenseParticipants.find((entry) => entry.id === currentParticipant.id)?.owedMinor ?? 0);
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
+        : (expenseParticipants.find(
+            (entry) => entry.id === currentParticipant.id,
+          )?.owedMinor ?? 0);
       const payer =
         storedPayer ??
         ({
@@ -839,18 +752,14 @@ export const expenseRouter = router({
         settledAt: expenseRow.settledAt?.toISOString() ?? null,
         participants: [
           payer,
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-          ...billParticipants.filter(
-            (billParticipant) => billParticipant.id !== payer.id,
+          ...expenseParticipants.filter(
+            (expenseParticipant) => expenseParticipant.id !== payer.id,
           ),
-=======
-          ...expenseParticipants.filter((expenseParticipant) => expenseParticipant.id !== payer.id),
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         ],
       };
     }),
 
-  list: protectedProcedure
+  list: participantProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -864,65 +773,37 @@ export const expenseRouter = router({
     .input(listSchema)
     .output(expenseListOutputSchema)
     .query(async ({ ctx, input }) => {
-      const [currentParticipant] = await ctx.db
-        .select({ id: participant.id })
-        .from(participant)
-        .where(eq(participant.userId, ctx.session.user.id))
-        .limit(1);
-
-      if (!currentParticipant) {
+      if (!ctx.participant) {
         return { items: [], nextCursor: null };
       }
 
-      const involvementFilter = or(
-        eq(expense.payerId, currentParticipant.id),
-        exists(
-          ctx.db
-            .select({ expenseId: expenseParticipant.expenseId })
-            .from(expenseParticipant)
-            .where(
-              and(
-                eq(expenseParticipant.expenseId, expense.id),
-                eq(expenseParticipant.participantId, currentParticipant.id),
-              ),
-            ),
-        ),
+      const currentParticipant = ctx.participant;
+
+      const involvementFilter = buildInvolvementFilter(
+        ctx.db,
+        currentParticipant.id,
       );
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
       const statusFilter =
-        input.status === "all" ? undefined : eq(bill.status, input.status);
+        input.status === "all" ? undefined : eq(expense.status, input.status);
       const cursorDate = input.cursor
         ? new Date(input.cursor.occurredAt)
         : undefined;
-=======
-      const statusFilter = input.status === "all" ? undefined : eq(expense.status, input.status);
-      const cursorDate = input.cursor ? new Date(input.cursor.occurredAt) : undefined;
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
       const cursorFilter =
         input.cursor && cursorDate
           ? input.sort === "newest"
             ? or(
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-                lt(bill.occurredAt, cursorDate),
-                and(
-                  eq(bill.occurredAt, cursorDate),
-                  lt(bill.id, input.cursor.id),
-                ),
-              )
-            : or(
-                gt(bill.occurredAt, cursorDate),
-                and(
-                  eq(bill.occurredAt, cursorDate),
-                  gt(bill.id, input.cursor.id),
-                ),
-=======
                 lt(expense.occurredAt, cursorDate),
-                and(eq(expense.occurredAt, cursorDate), lt(expense.id, input.cursor.id)),
+                and(
+                  eq(expense.occurredAt, cursorDate),
+                  lt(expense.id, input.cursor.id),
+                ),
               )
             : or(
                 gt(expense.occurredAt, cursorDate),
-                and(eq(expense.occurredAt, cursorDate), gt(expense.id, input.cursor.id)),
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
+                and(
+                  eq(expense.occurredAt, cursorDate),
+                  gt(expense.id, input.cursor.id),
+                ),
               )
           : undefined;
       const orderBy =
@@ -952,15 +833,10 @@ export const expenseRouter = router({
         return { items: [], nextCursor: null };
       }
 
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-      const billIds = pageRows.map((transaction) => transaction.id);
-      const payerIds = [
-        ...new Set(pageRows.map((transaction) => transaction.payerId)),
-      ];
-=======
       const expenseIds = pageRows.map((expenseRow) => expenseRow.id);
-      const payerIds = [...new Set(pageRows.map((expenseRow) => expenseRow.payerId))];
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
+      const payerIds = [
+        ...new Set(pageRows.map((expenseRow) => expenseRow.payerId)),
+      ];
 
       const participantRows = await ctx.db
         .select({
@@ -972,16 +848,11 @@ export const expenseRouter = router({
           owedMinor: expenseParticipant.owedMinor,
           status: expenseParticipant.status,
         })
-<<<<<<< HEAD:packages/api/src/routers/bill.ts
-        .from(billParticipant)
+        .from(expenseParticipant)
         .innerJoin(
           participant,
-          eq(billParticipant.participantId, participant.id),
+          eq(expenseParticipant.participantId, participant.id),
         )
-=======
-        .from(expenseParticipant)
-        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
->>>>>>> a7a398d (refactor: rename Bill to Expense across the stack):packages/api/src/routers/expense.ts
         .leftJoin(user, eq(user.id, participant.userId))
         .where(inArray(expenseParticipant.expenseId, expenseIds));
 
@@ -1023,7 +894,8 @@ export const expenseRouter = router({
       );
 
       const items = pageRows.map((expenseRow) => {
-        const expenseParticipants = participantsByExpenseId.get(expenseRow.id) ?? [];
+        const expenseParticipants =
+          participantsByExpenseId.get(expenseRow.id) ?? [];
         const storedPayer = expenseParticipants.find(
           (participant) => participant.id === expenseRow.payerId,
         );
