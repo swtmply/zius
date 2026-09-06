@@ -67,6 +67,14 @@ const createSchema = z
     }
   });
 
+function formatEmailList(emails: string[]) {
+  if (emails.length <= 1) {
+    return emails[0] ?? "";
+  }
+
+  return `${emails.slice(0, -1).join(", ")} and ${emails.at(-1)}`;
+}
+
 function divideEvenly(total: number, count: number) {
   if (count === 0) {
     return [];
@@ -355,6 +363,37 @@ export const billRouter = router({
         const participantIdsByEmail = new Map(
           existingParticipants.map((entry) => [entry.email.toLowerCase(), entry.id]),
         );
+
+        if (input.groupId) {
+          const knownParticipantIds = [...participantIdsByEmail.values()];
+          const memberships =
+            knownParticipantIds.length > 0
+              ? await tx
+                  .select({ participantId: groupMember.participantId })
+                  .from(groupMember)
+                  .where(
+                    and(
+                      eq(groupMember.groupId, input.groupId),
+                      inArray(groupMember.participantId, knownParticipantIds),
+                    ),
+                  )
+              : [];
+          const memberParticipantIds = new Set(memberships.map((entry) => entry.participantId));
+          const outsiders = emails.filter((email) => {
+            const participantId = participantIdsByEmail.get(email);
+            return participantId === undefined || !memberParticipantIds.has(participantId);
+          });
+
+          if (outsiders.length > 0) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `${formatEmailList(outsiders)} ${
+                outsiders.length === 1 ? "is not a member" : "are not members"
+              } of this group. Create a new group with these participants, or save this as a standalone expense.`,
+            });
+          }
+        }
+
         const newParticipants = input.participants.filter(
           (entry) => !participantIdsByEmail.has(entry.email),
         );

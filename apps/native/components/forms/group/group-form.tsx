@@ -12,6 +12,7 @@ import { SectionHeader } from "@/components/section-header";
 import { BillCreationToast } from "@/components/bill-creation-toast";
 import { trpc } from "@/utils/trpc";
 
+import { GroupSelector } from "../transaction/group-selector";
 import { GuestDialog } from "../transaction/guest-dialog";
 import { TransactionTitleInput } from "../transaction/transaction-title-input";
 import { GroupFormHeader } from "./group-form-header";
@@ -31,18 +32,20 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [participantError, setParticipantError] = useState<string>();
+  const [sourceGroupId, setSourceGroupId] = useState<string>();
+  const [sourceGroupError, setSourceGroupError] = useState<string>();
   const createGroup = useMutation(trpc.group.create.mutationOptions());
+
+  const currentFormParticipant: GroupFormParticipant = {
+    id: currentParticipant.id,
+    name: currentParticipant.name,
+    email: currentParticipant.email,
+    userId: currentParticipant.userId,
+  };
 
   const defaultValues: GroupFormValues = {
     name: "",
-    participants: [
-      {
-        id: currentParticipant.id,
-        name: currentParticipant.name,
-        email: currentParticipant.email,
-        userId: currentParticipant.userId,
-      },
-    ],
+    participants: [currentFormParticipant],
   };
 
   const form = useForm({
@@ -84,6 +87,9 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       }
 
       form.reset();
+      setSourceGroupId(undefined);
+      setSourceGroupError(undefined);
+      setParticipantError(undefined);
       toast.show({
         component: (props) => (
           <BillCreationToast
@@ -99,13 +105,53 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
   });
 
   const submit = () => {
-    if (!form.state.isSubmitting) {
+    if (!form.state.isSubmitting && !reuseGroupParticipants.isPending) {
       void form.handleSubmit();
     }
   };
 
   const setParticipants = (participants: GroupFormParticipant[]) => {
     form.setFieldValue("participants", participants);
+  };
+
+  const reuseGroupParticipants = useMutation({
+    mutationFn: (groupId: string) =>
+      queryClient.fetchQuery(trpc.group.get.queryOptions({ id: groupId })),
+    onSuccess: (sourceGroup) => {
+      setSourceGroupId(sourceGroup.id);
+      setParticipantError(undefined);
+      setParticipants([
+        currentFormParticipant,
+        ...sourceGroup.participants
+          .filter((participant) => participant.id !== currentParticipant.id)
+          .map(({ id, name, email, userId }) => ({
+            id,
+            name,
+            email,
+            userId: userId ?? undefined,
+          })),
+      ]);
+    },
+    onError: () => {
+      setSourceGroupError("Unable to load that group's participants. Select it again to retry.");
+    },
+  });
+
+  const reuseGroup = (groupId: string | undefined, isSubmitting: boolean) => {
+    if (isSubmitting || reuseGroupParticipants.isPending) return;
+
+    setSourceGroupError(undefined);
+
+    if (!groupId) {
+      setSourceGroupId(undefined);
+      setParticipantError(undefined);
+      setParticipants([currentFormParticipant]);
+      return;
+    }
+
+    if (groupId === sourceGroupId) return;
+
+    reuseGroupParticipants.mutate(groupId);
   };
 
   return (
@@ -118,7 +164,12 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       keyboardShouldPersistTaps="handled"
     >
       <form.Subscribe selector={(state) => state.isSubmitting}>
-        {(isSubmitting) => <GroupFormHeader isSubmitting={isSubmitting} onSubmit={submit} />}
+        {(isSubmitting) => (
+          <GroupFormHeader
+            isDisabled={isSubmitting || reuseGroupParticipants.isPending}
+            onSubmit={submit}
+          />
+        )}
       </form.Subscribe>
 
       <form.Field name="name">
@@ -140,6 +191,29 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
           </View>
         )}
       </form.Field>
+
+      <SectionHeader title="Reuse participants from" />
+
+      <form.Subscribe selector={(state) => state.isSubmitting}>
+        {(isSubmitting) => (
+          <View className="gap-1">
+            <GroupSelector
+              value={sourceGroupId}
+              emptyOptionLabel="None"
+              isDisabled={isSubmitting || reuseGroupParticipants.isPending}
+              onChange={(groupId) => reuseGroup(groupId, isSubmitting)}
+            />
+            {reuseGroupParticipants.isPending ? (
+              <Typography className="px-1 text-xs text-muted">
+                Loading group participants...
+              </Typography>
+            ) : null}
+            {sourceGroupError ? (
+              <Typography className="px-1 text-xs text-danger">{sourceGroupError}</Typography>
+            ) : null}
+          </View>
+        )}
+      </form.Subscribe>
 
       <SectionHeader
         title="Participants"
@@ -184,7 +258,11 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
 
       <form.Subscribe selector={(state) => state.isSubmitting}>
         {(isSubmitting) => (
-          <Button className="mt-2" isDisabled={isSubmitting} onPress={submit}>
+          <Button
+            className="mt-2"
+            isDisabled={isSubmitting || reuseGroupParticipants.isPending}
+            onPress={submit}
+          >
             <Button.Label>Create group</Button.Label>
           </Button>
         )}
