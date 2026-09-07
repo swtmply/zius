@@ -1,21 +1,27 @@
-## Agent skills
+# Agent Workflow
 
-### Issue tracker
+For non-trivial implementation, debugging, architecture, API, database, authentication, deployment, or multi-file coding tasks, use the `$orchestrate` skill.
 
-Issues and specs are tracked in GitHub Issues using the `gh` CLI. See `docs/agents/issue-tracker.md`.
+The main agent acts as the **Orchestrator and Planner**.
 
-### Triage labels
+The orchestrator may be Astra, Sol, Opus, or Fable.
 
-Use the five default triage labels. See `docs/agents/triage-labels.md`.
+## Sub-Agent Model Policy
 
-### Domain docs
+- Never use the same model as the active orchestrator.
+- Primary sub-agents use **Luna with MAX thinking**.
+- If Luna becomes blocked or cannot reach a defensible conclusion, escalate to **Terra with MAX thinking**.
+- If Terra also cannot proceed confidently, stop and ask the user for verification, missing information, or a recommendation.
+- Never guess merely to continue the workflow.
 
-Use the multi-context layout rooted at `CONTEXT-MAP.md`. See `docs/agents/domain.md`.
+## Required Workflow
 
-## Package versions
+For applicable tasks:
 
-Before changing code that uses a dependency, identify the version used by the relevant workspace from its package manifest and lockfile. Implement against that version's API, types, and version-matched official documentation. When adding or upgrading a dependency, verify the target version and read its official migration guidance before editing dependent code.
+**Scanner → Researcher when needed → Orchestrator Plan → Implementer → Reviewer → Debugger when needed → Verifier → Final Report**
 
-## Native application
+The orchestrator owns planning, delegation, escalation, context handoff, final completion decisions, and the final report.
 
-When creating or changing native screens, components, or styles, read `apps/native/AGENTS.md` for the dashboard design standard.
+Do not bypass the orchestration workflow when the task clearly matches it.
+
+User instructions take precedence over this workflow.
