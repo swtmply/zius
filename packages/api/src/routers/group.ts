@@ -7,10 +7,11 @@ import {
   participant,
 } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, gt, inArray, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { participantProcedure, requireParticipant, router } from "../index";
+import { assertGroupIsActive } from "./helpers";
 
 const groupParticipantInputSchema = z.object({
   id: z.string().optional(),
@@ -41,6 +42,7 @@ const createSchema = z
 
 const listSchema = z.object({
   type: z.enum(["owner", "member"]).optional(),
+  status: z.enum(["active", "archived", "all"]).default("active"),
   sort: z.enum(["newest", "oldest"]).default("newest"),
   limit: z.number().int().min(1).max(50).default(20),
   cursor: z
@@ -65,6 +67,7 @@ const updateSchema = z
 const groupMutationOutputSchema = z.object({
   id: z.string(),
   name: z.string(),
+  archivedAt: z.iso.datetime().nullable(),
 });
 
 const groupParticipantSchema = z.object({
@@ -98,6 +101,7 @@ const groupListOutputSchema = z.object({
       name: z.string(),
       type: z.enum(["owner", "member"]),
       createdAt: z.iso.datetime(),
+      archivedAt: z.iso.datetime().nullable(),
       participants: z.array(groupListParticipantSchema),
     }),
   ),
@@ -113,6 +117,7 @@ const groupGetOutputSchema = z.object({
   id: z.string(),
   name: z.string(),
   createdAt: z.iso.datetime(),
+  archivedAt: z.iso.datetime().nullable(),
   participants: z.array(groupParticipantSchema),
   expenses: z.array(
     z.object({
@@ -120,8 +125,12 @@ const groupGetOutputSchema = z.object({
       title: z.string(),
       totalMinor: z.number().int().positive(),
       currency: z.string(),
-      status: z.enum(["active", "settled"]),
+      status: z.enum(["active", "settled", "cancelled"]),
       occurredAt: z.iso.datetime(),
+      settledAt: z.iso.datetime().nullable(),
+      cancelledAt: z.iso.datetime().nullable(),
+      cancelledByUserId: z.string().nullable(),
+      createdByUserId: z.string(),
       participants: z.array(expenseParticipantSchema),
     }),
   ),
@@ -199,7 +208,7 @@ export const groupRouter = router({
           })),
         );
 
-        return { id, name: input.name };
+        return { id, name: input.name, archivedAt: null };
       });
     }),
 
@@ -237,6 +246,12 @@ export const groupRouter = router({
               )
           : undefined;
       const typeFilter = input.type ? eq(groupMember.role, input.type) : undefined;
+      const statusFilter =
+        input.status === "active"
+          ? isNull(group.archivedAt)
+          : input.status === "archived"
+            ? isNotNull(group.archivedAt)
+            : undefined;
       const orderBy =
         input.sort === "newest"
           ? [desc(group.createdAt), desc(group.id)]
@@ -248,10 +263,18 @@ export const groupRouter = router({
           name: group.name,
           type: groupMember.role,
           createdAt: group.createdAt,
+          archivedAt: group.archivedAt,
         })
         .from(groupMember)
         .innerJoin(group, eq(group.id, groupMember.groupId))
-        .where(and(eq(groupMember.participantId, currentParticipant.id), typeFilter, cursorFilter))
+        .where(
+          and(
+            eq(groupMember.participantId, currentParticipant.id),
+            typeFilter,
+            statusFilter,
+            cursorFilter,
+          ),
+        )
         .orderBy(...orderBy)
         .limit(input.limit + 1);
 
@@ -287,6 +310,7 @@ export const groupRouter = router({
           name: row.name,
           type: row.type,
           createdAt: row.createdAt.toISOString(),
+          archivedAt: row.archivedAt?.toISOString() ?? null,
           participants: participantsByGroupId.get(row.id) ?? [],
         })),
         nextCursor:
@@ -313,7 +337,12 @@ export const groupRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       const [currentGroup] = await ctx.db
-        .select({ id: group.id, name: group.name, createdAt: group.createdAt })
+        .select({
+          id: group.id,
+          name: group.name,
+          createdAt: group.createdAt,
+          archivedAt: group.archivedAt,
+        })
         .from(group)
         .innerJoin(groupMember, eq(groupMember.groupId, group.id))
         .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
@@ -345,10 +374,14 @@ export const groupRouter = router({
           currency: expense.currency,
           status: expense.status,
           occurredAt: expense.occurredAt,
+          settledAt: expense.settledAt,
           payerId: expense.payerId,
           payerName: participant.name,
           payerEmail: participant.email,
           payerImage: user.image,
+          cancelledAt: expense.cancelledAt,
+          cancelledByUserId: expense.cancelledByUserId,
+          createdByUserId: expense.createdByUserId,
         })
         .from(expense)
         .innerJoin(participant, eq(participant.id, expense.payerId))
@@ -393,6 +426,7 @@ export const groupRouter = router({
         id: currentGroup.id,
         name: currentGroup.name,
         createdAt: currentGroup.createdAt.toISOString(),
+        archivedAt: currentGroup.archivedAt?.toISOString() ?? null,
         participants: participantRows,
         expenses: expenses.map((expenseRow) => {
           const expenseParticipants = participantsByExpenseId.get(expenseRow.id) ?? [];
@@ -415,6 +449,10 @@ export const groupRouter = router({
             currency: expenseRow.currency,
             status: expenseRow.status,
             occurredAt: expenseRow.occurredAt.toISOString(),
+            settledAt: expenseRow.settledAt?.toISOString() ?? null,
+            cancelledAt: expenseRow.cancelledAt?.toISOString() ?? null,
+            cancelledByUserId: expenseRow.cancelledByUserId,
+            createdByUserId: expenseRow.createdByUserId,
             participants: [payer, ...expenseParticipants.filter((entry) => entry.id !== payer.id)],
           };
         }),
@@ -429,7 +467,7 @@ export const groupRouter = router({
         protect: true,
         tags: ["Groups"],
         summary: "Update a group name",
-        errorResponses: [400, 401, 403, 404, 500],
+        errorResponses: [400, 401, 403, 404, 409, 500],
       },
     })
     .input(updateSchema)
@@ -437,23 +475,162 @@ export const groupRouter = router({
     .mutation(async ({ ctx, input }) => {
       const currentParticipant = requireParticipant(ctx.participant);
 
-      const [membership] = await ctx.db
-        .select({ id: group.id, role: groupMember.role })
-        .from(group)
-        .innerJoin(groupMember, eq(groupMember.groupId, group.id))
-        .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
-        .limit(1);
+      return ctx.db.transaction(async (tx) => {
+        const [membership] = await tx
+          .select({ id: group.id, role: groupMember.role })
+          .from(group)
+          .innerJoin(groupMember, eq(groupMember.groupId, group.id))
+          .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
+          .limit(1);
 
-      if (!membership) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
-      }
+        if (!membership) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+        }
 
-      if (membership.role !== "owner") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Only the group owner can update it" });
-      }
+        if (membership.role !== "owner") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the group owner can update it",
+          });
+        }
 
-      await ctx.db.update(group).set({ name: input.name }).where(eq(group.id, membership.id));
+        await assertGroupIsActive(tx, membership.id);
+        await tx
+          .update(group)
+          .set({ name: input.name })
+          .where(and(eq(group.id, membership.id), isNull(group.archivedAt)));
 
-      return { id: membership.id, name: input.name };
+        const [updatedGroup] = await tx
+          .select({ id: group.id, name: group.name, archivedAt: group.archivedAt })
+          .from(group)
+          .where(eq(group.id, membership.id))
+          .limit(1);
+
+        if (!updatedGroup || updatedGroup.archivedAt) {
+          throw new TRPCError({ code: "CONFLICT", message: "Group is archived" });
+        }
+
+        return {
+          id: updatedGroup.id,
+          name: updatedGroup.name,
+          archivedAt: null,
+        };
+      });
+    }),
+
+  archive: participantProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/groups/{id}/archive",
+        protect: true,
+        tags: ["Groups"],
+        summary: "Archive a group",
+        errorResponses: [400, 401, 403, 404, 500],
+      },
+    })
+    .input(groupIdInputSchema)
+    .output(groupMutationOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const currentParticipant = requireParticipant(ctx.participant);
+
+      return ctx.db.transaction(async (tx) => {
+        const [membership] = await tx
+          .select({ id: group.id, name: group.name, role: groupMember.role })
+          .from(group)
+          .innerJoin(groupMember, eq(groupMember.groupId, group.id))
+          .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
+          .limit(1);
+
+        if (!membership) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+        }
+
+        if (membership.role !== "owner") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the group owner can archive it",
+          });
+        }
+
+        await tx
+          .update(group)
+          .set({ archivedAt: new Date() })
+          .where(and(eq(group.id, membership.id), isNull(group.archivedAt)));
+
+        const [archivedGroup] = await tx
+          .select({ id: group.id, name: group.name, archivedAt: group.archivedAt })
+          .from(group)
+          .where(eq(group.id, membership.id))
+          .limit(1);
+
+        if (!archivedGroup) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+        }
+
+        return {
+          id: archivedGroup.id,
+          name: archivedGroup.name,
+          archivedAt: archivedGroup.archivedAt?.toISOString() ?? null,
+        };
+      });
+    }),
+
+  restore: participantProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/groups/{id}/restore",
+        protect: true,
+        tags: ["Groups"],
+        summary: "Restore a group",
+        errorResponses: [400, 401, 403, 404, 500],
+      },
+    })
+    .input(groupIdInputSchema)
+    .output(groupMutationOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const currentParticipant = requireParticipant(ctx.participant);
+
+      return ctx.db.transaction(async (tx) => {
+        const [membership] = await tx
+          .select({ id: group.id, name: group.name, role: groupMember.role })
+          .from(group)
+          .innerJoin(groupMember, eq(groupMember.groupId, group.id))
+          .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
+          .limit(1);
+
+        if (!membership) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+        }
+
+        if (membership.role !== "owner") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the group owner can restore it",
+          });
+        }
+
+        await tx
+          .update(group)
+          .set({ archivedAt: null })
+          .where(and(eq(group.id, membership.id), isNotNull(group.archivedAt)));
+
+        const [restoredGroup] = await tx
+          .select({ id: group.id, name: group.name, archivedAt: group.archivedAt })
+          .from(group)
+          .where(eq(group.id, membership.id))
+          .limit(1);
+
+        if (!restoredGroup) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
+        }
+
+        return {
+          id: restoredGroup.id,
+          name: restoredGroup.name,
+          archivedAt: restoredGroup.archivedAt?.toISOString() ?? null,
+        };
+      });
     }),
 });

@@ -28,6 +28,7 @@ const typeOptions = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "settled", label: "Settled" },
+  { value: "cancelled", label: "Cancelled" },
 ] as const;
 const sortOptions = [
   { value: "newest", label: "Newest First" },
@@ -39,7 +40,10 @@ type ExpenseSort = (typeof sortOptions)[number]["value"];
 export default function ExpensesPage() {
   const params = useLocalSearchParams<{ sort?: string; type?: string }>();
   const router = useRouter();
-  const type = params.type === "active" || params.type === "settled" ? params.type : "all";
+  const type =
+    params.type === "active" || params.type === "settled" || params.type === "cancelled"
+      ? params.type
+      : "all";
   const sort = params.sort === "oldest" || params.sort === "asc" ? "oldest" : "newest";
   const query = useInfiniteQuery(
     trpc.expense.list.infiniteQueryOptions(
@@ -85,7 +89,9 @@ export default function ExpensesPage() {
                     accessibilityLabel="Clear type filter"
                     onPress={() => router.setParams({ type: "all" })}
                   >
-                    <Button.Label>{type === "active" ? "Active" : "Settled"}</Button.Label>
+                    <Button.Label>
+                      {type === "active" ? "Active" : type === "settled" ? "Settled" : "Cancelled"}
+                    </Button.Label>
                     <HugeiconsIcon icon={Cancel01Icon} size={16} />
                   </Button>
                 </View>
@@ -155,6 +161,10 @@ export default function ExpensesPage() {
         }
         renderItem={({ item }) => (
           <PressableFeedback
+            accessibilityRole="button"
+            accessibilityLabel={`${item.title}, ${formatCurrency(item.totalMinor)}${
+              item.status === "cancelled" ? ", Cancelled" : ""
+            }`}
             onPress={() =>
               router.push({
                 pathname: "/(modals)/expenses/[expenseId]",
@@ -162,15 +172,34 @@ export default function ExpensesPage() {
               })
             }
           >
-            <View className="bg-surface border border-border rounded-xl p-4 gap-2">
+            <View
+              className={`bg-surface border border-border rounded-xl p-4 gap-2${
+                item.status === "cancelled" ? " opacity-70" : ""
+              }`}
+            >
               <View className="flex-row items-center justify-between gap-2">
                 <View className="flex-1 gap-1">
-                  <Typography className="text-sm">{item.title}</Typography>
-                  <Typography className="text-xs text-muted">
-                    {formatDate(new Date(item.occurredAt))}
+                  <Typography
+                    className={`text-sm${item.status === "cancelled" ? " text-muted" : ""}`}
+                  >
+                    {item.title}
                   </Typography>
+                  <View className="flex-row items-center gap-2">
+                    <Typography className="text-xs text-muted">
+                      {formatDate(new Date(item.occurredAt))}
+                    </Typography>
+                    {item.status === "cancelled" ? (
+                      <View className="bg-default rounded-full px-2 py-0.5">
+                        <Typography className="text-xs text-muted">Cancelled</Typography>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
-                <Typography className="text-sm font-semibold">
+                <Typography
+                  className={`text-sm font-semibold${
+                    item.status === "cancelled" ? " text-muted line-through" : ""
+                  }`}
+                >
                   {formatCurrency(item.totalMinor)}
                 </Typography>
               </View>
@@ -243,8 +272,7 @@ function ExpenseFilters({ type, sort }: { type: ExpenseType; sort: ExpenseSort }
   }
 
   function selectType(value: ExpenseType) {
-    // Selecting both statuses, or clearing the only selection, means all.
-    setDraftType((current) => (current === "all" ? value : "all"));
+    setDraftType((current) => (current === value ? "all" : value));
   }
 
   return (

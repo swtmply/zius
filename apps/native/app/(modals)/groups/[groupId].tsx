@@ -2,9 +2,9 @@ import { useState } from "react";
 import { FlatList, Keyboard, Pressable, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Skeleton, Typography, useToast } from "heroui-native";
+import { Button, Dialog, Skeleton, Typography, useToast } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Check, ChevronLeftFreeIcons, Edit02Icon, Trash } from "@hugeicons/core-free-icons";
+import { Check, ChevronLeftFreeIcons, Edit02Icon } from "@hugeicons/core-free-icons";
 import { trpc } from "@/utils/trpc";
 import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { GroupParticipants, GroupExpenseCard } from "@/components/groups/group-details";
@@ -22,7 +22,18 @@ export default function GroupDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const query = useQuery(trpc.group.get.queryOptions({ id: groupId }));
+  const currentParticipantQuery = useQuery(trpc.participant.current.queryOptions());
   const group = query.data;
+  const currentParticipant = currentParticipantQuery.data;
+  const isOwner =
+    !!group &&
+    !!currentParticipant &&
+    group.participants.find((participant) => participant.id === currentParticipant.id)?.role ===
+      "owner";
+  const isArchived = !!group?.archivedAt;
+  const canRename = isOwner && !isArchived;
+  const canManageArchive = isOwner;
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const updateGroup = useMutation(
     trpc.group.update.mutationOptions({
       onSuccess: async (updated) => {
@@ -43,8 +54,9 @@ export default function GroupDetailsPage() {
             />
           ),
         });
-        void queryClient.invalidateQueries({ queryKey: trpc.group.list.pathKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.expense.get.pathKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() });
+        void queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() });
       },
       onError: (error) => {
         toast.show({
@@ -62,8 +74,67 @@ export default function GroupDetailsPage() {
     }),
   );
 
+  const archiveGroup = useMutation(trpc.group.archive.mutationOptions());
+  const restoreGroup = useMutation(trpc.group.restore.mutationOptions());
+  const archiveActionPending = archiveGroup.isPending || restoreGroup.isPending;
+
+  const invalidateGroupState = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: trpc.group.get.queryKey({ id: groupId }) }),
+      queryClient.invalidateQueries({ queryKey: trpc.group.list.pathKey() }),
+      queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
+      queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
+    ]);
+  };
+
+  const submitArchiveAction = async () => {
+    if (!group || !canManageArchive || archiveActionPending) return;
+
+    try {
+      if (isArchived) {
+        await restoreGroup.mutateAsync({ id: group.id });
+      } else {
+        await archiveGroup.mutateAsync({ id: group.id });
+      }
+      await invalidateGroupState();
+      setIsArchiveDialogOpen(false);
+      setIsEditing(false);
+      Keyboard.dismiss();
+      toast.show({
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="success"
+            title={isArchived ? "Group restored" : "Group archived"}
+            description={
+              isArchived
+                ? "This group is back in your active groups."
+                : "This group is hidden from your active groups."
+            }
+          />
+        ),
+      });
+    } catch (error) {
+      toast.show({
+        duration: 6000,
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="danger"
+            title={isArchived ? "Failed to restore group" : "Failed to archive group"}
+            description={
+              error instanceof Error && error.message.trim()
+                ? error.message
+                : "Something went wrong. Please try again."
+            }
+          />
+        ),
+      });
+    }
+  };
+
   const submit = () => {
-    if (!group || !isEditing || updateGroup.isPending) return;
+    if (!group || !isEditing || !canRename || updateGroup.isPending) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
       toast.show({
@@ -99,12 +170,10 @@ export default function GroupDetailsPage() {
               <Button
                 isIconOnly
                 variant="ghost"
-                isDisabled={isEditing}
-                accessibilityLabel={isEditing ? "Delete group unavailable" : "Go back"}
-                accessibilityHint={isEditing ? "Group deletion is not supported yet" : undefined}
+                accessibilityLabel="Go back"
                 onPress={() => (router.canGoBack() ? router.back() : router.replace("/groups"))}
               >
-                <HugeiconsIcon icon={isEditing ? Trash : ChevronLeftFreeIcons} size={24} />
+                <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
               </Button>
               {query.isPending ? (
                 <Skeleton className="h-8 w-32 rounded-md" />
@@ -125,23 +194,27 @@ export default function GroupDetailsPage() {
                   {group?.name ?? "Group"}
                 </Typography>
               )}
-              <Button
-                isIconOnly
-                variant="ghost"
-                isDisabled={!group || updateGroup.isPending}
-                accessibilityLabel={isEditing ? "Save group name" : "Edit group name"}
-                accessibilityState={{ busy: updateGroup.isPending }}
-                onPress={() => {
-                  if (isEditing) {
-                    submit();
-                  } else if (group) {
-                    setName(group.name);
-                    setIsEditing(true);
-                  }
-                }}
-              >
-                <HugeiconsIcon icon={isEditing ? Check : Edit02Icon} size={24} />
-              </Button>
+              {group && canRename ? (
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  isDisabled={updateGroup.isPending || archiveActionPending}
+                  accessibilityLabel={isEditing ? "Save group name" : "Edit group name"}
+                  accessibilityState={{ busy: updateGroup.isPending }}
+                  onPress={() => {
+                    if (isEditing) {
+                      submit();
+                    } else {
+                      setName(group.name);
+                      setIsEditing(true);
+                    }
+                  }}
+                >
+                  <HugeiconsIcon icon={isEditing ? Check : Edit02Icon} size={24} />
+                </Button>
+              ) : (
+                <View className="size-10" />
+              )}
             </View>
             {isEditing && (
               <Button
@@ -156,6 +229,31 @@ export default function GroupDetailsPage() {
                 <Button.Label>Cancel</Button.Label>
               </Button>
             )}
+            {group && isArchived ? (
+              <View
+                className="bg-default border border-border rounded-xl px-4 py-3 gap-1"
+                accessible
+                accessibilityLabel="Archived group. New expenses and name changes are disabled. Existing payments and expense cancellation remain available."
+              >
+                <Typography className="text-sm font-semibold text-muted">Archived group</Typography>
+                <Typography className="text-xs text-muted">
+                  New expenses and name changes are disabled. Existing payments and expense
+                  cancellation remain available.
+                </Typography>
+              </View>
+            ) : null}
+            {group && canManageArchive ? (
+              <Button
+                className="w-full"
+                variant={isArchived ? "secondary" : "danger-soft"}
+                isDisabled={archiveActionPending || isEditing}
+                accessibilityLabel={isArchived ? "Restore group" : "Archive group"}
+                accessibilityState={{ busy: archiveActionPending }}
+                onPress={() => setIsArchiveDialogOpen(true)}
+              >
+                <Button.Label>{isArchived ? "Restore group" : "Archive group"}</Button.Label>
+              </Button>
+            ) : null}
             {(query.isPending || group) && (
               <>
                 <View className="flex-row items-center justify-between">
@@ -179,17 +277,20 @@ export default function GroupDetailsPage() {
                 )}
                 <View className="flex-row items-center justify-between gap-4">
                   <Typography className="text-sm">Expenses</Typography>
-                  <Pressable
-                    disabled={!group}
-                    hitSlop={12}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: !group }}
-                    onPress={() =>
-                      router.push({ pathname: "/create-expense", params: { groupId } })
-                    }
-                  >
-                    <Typography className="text-xs text-muted">Create Expense</Typography>
-                  </Pressable>
+                  {group?.archivedAt ? null : (
+                    <Pressable
+                      disabled={!group}
+                      hitSlop={12}
+                      accessibilityRole="button"
+                      accessibilityLabel="Create expense"
+                      accessibilityState={{ disabled: !group }}
+                      onPress={() =>
+                        router.push({ pathname: "/create-expense", params: { groupId } })
+                      }
+                    >
+                      <Typography className="text-xs text-muted">Create Expense</Typography>
+                    </Pressable>
+                  )}
                 </View>
               </>
             )}
@@ -228,6 +329,51 @@ export default function GroupDetailsPage() {
         }
         renderItem={({ item }) => <GroupExpenseCard expense={item} />}
       />
+      <Dialog
+        isOpen={isArchiveDialogOpen}
+        onOpenChange={(isOpen) => {
+          if (!archiveActionPending) setIsArchiveDialogOpen(isOpen);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay />
+          <Dialog.Content>
+            <View className="mb-5 gap-1">
+              <Dialog.Title>{isArchived ? "Restore group?" : "Archive group?"}</Dialog.Title>
+              <Dialog.Description>
+                {isArchived
+                  ? "This group will appear in your active groups again."
+                  : "This hides the group from active lists. Existing debts remain, and payments or expense cancellation stay available. You can restore the group later."}
+              </Dialog.Description>
+            </View>
+            <View className="gap-1">
+              <Button
+                variant={isArchived ? "primary" : "danger"}
+                isDisabled={archiveActionPending}
+                accessibilityState={{ busy: archiveActionPending }}
+                onPress={() => void submitArchiveAction()}
+              >
+                <Button.Label>
+                  {archiveActionPending
+                    ? isArchived
+                      ? "Restoring..."
+                      : "Archiving..."
+                    : isArchived
+                      ? "Restore group"
+                      : "Archive group"}
+                </Button.Label>
+              </Button>
+              <Button
+                variant="ghost"
+                isDisabled={archiveActionPending}
+                onPress={() => setIsArchiveDialogOpen(false)}
+              >
+                <Button.Label>Cancel</Button.Label>
+              </Button>
+            </View>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
     </View>
   );
 }

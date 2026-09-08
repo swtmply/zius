@@ -60,6 +60,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-PH", {
 
 export function GroupExpenseCard({ expense }: { expense: Group["expenses"][number] }) {
   const router = useRouter();
+  const isCancelled = expense.status === "cancelled";
   const amount = new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: expense.currency,
@@ -71,25 +72,39 @@ export function GroupExpenseCard({ expense }: { expense: Group["expenses"][numbe
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${expense.title}, ${amount}`}
+      accessibilityLabel={`${expense.title}, ${amount}${isCancelled ? ", Cancelled" : ""}`}
       onPress={() =>
         router.push({
           pathname: "/expenses/[expenseId]",
           params: { expenseId: expense.id },
         })
       }
-      className="bg-surface border border-border rounded-xl p-4 gap-2 active:opacity-70"
+      className={`bg-surface border border-border rounded-xl p-4 gap-2 active:opacity-70${
+        isCancelled ? " opacity-70" : ""
+      }`}
     >
       <View className="gap-1">
         <View className="flex-row items-center justify-between gap-2">
-          <Typography className="text-sm flex-1">{expense.title}</Typography>
-          <Typography className="text-sm font-semibold" style={{ fontVariant: ["tabular-nums"] }}>
+          <Typography className={`text-sm flex-1${isCancelled ? " text-muted" : ""}`}>
+            {expense.title}
+          </Typography>
+          <Typography
+            className={`text-sm font-semibold${isCancelled ? " text-muted line-through" : ""}`}
+            style={{ fontVariant: ["tabular-nums"] }}
+          >
             {amount}
           </Typography>
         </View>
-        <Typography className="text-xs text-muted">
-          {dateFormatter.format(new Date(expense.occurredAt))}
-        </Typography>
+        <View className="flex-row items-center gap-2">
+          <Typography className="text-xs text-muted">
+            {dateFormatter.format(new Date(expense.occurredAt))}
+          </Typography>
+          {isCancelled ? (
+            <View className="bg-default rounded-full px-2 py-0.5">
+              <Typography className="text-xs text-muted">Cancelled</Typography>
+            </View>
+          ) : null}
+        </View>
       </View>
       <View className="border-t border-dashed border-border pt-2">
         <View className="flex-row flex-wrap items-center justify-start">

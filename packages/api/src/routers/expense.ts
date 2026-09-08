@@ -8,21 +8,11 @@ import {
   participant,
 } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  exists,
-  gt,
-  inArray,
-  lt,
-  or,
-  sql,
-} from "drizzle-orm";
+import { and, asc, desc, eq, exists, gt, inArray, lt, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { participantProcedure, requireParticipant, router } from "../index";
+import { assertGroupIsActive } from "./helpers";
 
 const FULL_PERCENTAGE_BASIS_POINTS = 10_000;
 
@@ -43,10 +33,7 @@ const createSchema = z
       .trim()
       .length(3)
       .transform((currency) => currency.toUpperCase())
-      .refine(
-        (currency) => /^[A-Z]{3}$/.test(currency),
-        "Invalid currency code",
-      )
+      .refine((currency) => /^[A-Z]{3}$/.test(currency), "Invalid currency code")
       .default("PHP"),
     splitMethod: z.enum(["equal", "fixed", "percentage"]),
     payer: z.email().transform((email) => email.toLowerCase()),
@@ -81,8 +68,7 @@ const createSchema = z
     if (input.groupId !== undefined && input.createGroup) {
       ctx.addIssue({
         code: "custom",
-        message:
-          "An expense cannot be assigned to a group and create a new group",
+        message: "An expense cannot be assigned to a group and create a new group",
         path: ["createGroup"],
       });
     }
@@ -96,18 +82,13 @@ function divideEvenly(total: number, count: number) {
   const baseAmount = Math.floor(total / count);
   const remainder = total % count;
 
-  return Array.from(
-    { length: count },
-    (_, index) => baseAmount + (index < remainder ? 1 : 0),
-  );
+  return Array.from({ length: count }, (_, index) => baseAmount + (index < remainder ? 1 : 0));
 }
 
 function percentageOf(totalMinor: number, basisPoints: number) {
   const numerator = BigInt(totalMinor) * BigInt(basisPoints);
   const roundingOffset = BigInt(FULL_PERCENTAGE_BASIS_POINTS / 2);
-  return Number(
-    (numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS),
-  );
+  return Number((numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS));
 }
 
 function calculateParticipantAmounts(
@@ -115,10 +96,7 @@ function calculateParticipantAmounts(
   totalMinor: number,
   splitMethod: z.infer<typeof createSchema>["splitMethod"],
 ) {
-  const providedTotal = participants.reduce(
-    (total, entry) => total + entry.owedMinor,
-    0,
-  );
+  const providedTotal = participants.reduce((total, entry) => total + entry.owedMinor, 0);
 
   if (splitMethod === "equal") {
     const amounts = divideEvenly(totalMinor, participants.length);
@@ -129,8 +107,7 @@ function calculateParticipantAmounts(
     }));
   }
 
-  const maximumTotal =
-    splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
+  const maximumTotal = splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
 
   if (providedTotal > maximumTotal) {
     throw new TRPCError({
@@ -142,9 +119,7 @@ function calculateParticipantAmounts(
     });
   }
 
-  const hasAutomaticParticipants = participants.some(
-    (entry) => entry.owedMinor === 0,
-  );
+  const hasAutomaticParticipants = participants.some((entry) => entry.owedMinor === 0);
 
   if (providedTotal < maximumTotal && !hasAutomaticParticipants) {
     throw new TRPCError({
@@ -198,7 +173,7 @@ function calculateParticipantAmounts(
 }
 
 const listSchema = z.object({
-  status: z.enum(["all", "active", "settled"]).default("all"),
+  status: z.enum(["all", "active", "settled", "cancelled"]).default("all"),
   sort: z.enum(["newest", "oldest"]).default("newest"),
   limit: z.number().int().min(1).max(50).default(20),
   cursor: z
@@ -211,7 +186,7 @@ const listSchema = z.object({
 
 const expenseCreateOutputSchema = z.object({
   id: z.string(),
-  status: z.enum(["active", "settled"]),
+  status: z.enum(["active", "settled", "cancelled"]),
 });
 
 const expenseGetInputSchema = z.object({
@@ -272,8 +247,12 @@ const expenseListOutputSchema = z.object({
       title: z.string(),
       totalMinor: z.number().int().positive(),
       currency: z.string(),
-      status: z.enum(["active", "settled"]),
+      status: z.enum(["active", "settled", "cancelled"]),
       occurredAt: z.iso.datetime(),
+      settledAt: z.iso.datetime().nullable(),
+      cancelledAt: z.iso.datetime().nullable(),
+      cancelledByUserId: z.string().nullable(),
+      createdByUserId: z.string(),
       participants: z.array(expenseParticipantSchema),
     }),
   ),
@@ -294,11 +273,9 @@ const expenseGetOutputSchema = z.object({
     .number()
     .int()
     .nonnegative()
-    .describe(
-      "Unpaid shares owed to the current payer, or the current participant's owedMinor",
-    ),
+    .describe("Unpaid shares owed to the current payer, or the current participant's owedMinor"),
   currency: z.string(),
-  status: z.enum(["active", "settled"]),
+  status: z.enum(["active", "settled", "cancelled"]),
   splitMethod: z.enum(["equal", "fixed", "percentage"]),
   payerId: z.string(),
   payerName: z.string(),
@@ -306,6 +283,11 @@ const expenseGetOutputSchema = z.object({
   groupName: z.string().nullable(),
   occurredAt: z.iso.datetime(),
   settledAt: z.iso.datetime().nullable(),
+  canCancel: z.boolean(),
+  cancelledBy: z.object({ id: z.string(), name: z.string() }).nullable(),
+  cancelledAt: z.iso.datetime().nullable(),
+  cancelledByUserId: z.string().nullable(),
+  createdByUserId: z.string(),
   participants: z.array(expenseParticipantSchema),
 });
 
@@ -316,10 +298,7 @@ const expenseGetOutputSchema = z.object({
  * Takes the database handle so the same filter can be built against a
  * transaction as well as against the request-scoped database.
  */
-function buildInvolvementFilter(
-  db: Pick<Database, "select">,
-  participantId: string,
-) {
+function buildInvolvementFilter(db: Pick<Database, "select">, participantId: string) {
   return or(
     eq(expense.payerId, participantId),
     exists(
@@ -336,6 +315,34 @@ function buildInvolvementFilter(
   );
 }
 
+/**
+ * An expense is visible to someone who is involved in it, recorded it, or
+ * owns its group. The latter two cases let an owner or recorder inspect an
+ * expense even when they are not listed in its split.
+ */
+function buildVisibilityFilter(
+  db: Pick<Database, "select">,
+  participantId: string,
+  userId: string,
+) {
+  return or(
+    buildInvolvementFilter(db, participantId),
+    eq(expense.createdByUserId, userId),
+    exists(
+      db
+        .select({ groupId: groupMember.groupId })
+        .from(groupMember)
+        .where(
+          and(
+            eq(groupMember.groupId, expense.groupId),
+            eq(groupMember.participantId, participantId),
+            eq(groupMember.role, "owner"),
+          ),
+        ),
+    ),
+  );
+}
+
 export const expenseRouter = router({
   create: participantProcedure
     .meta({
@@ -345,7 +352,7 @@ export const expenseRouter = router({
         protect: true,
         tags: ["Expenses"],
         summary: "Create an expense",
-        errorResponses: [400, 401, 403, 404, 500],
+        errorResponses: [400, 401, 403, 404, 409, 500],
       },
     })
     .input(createSchema)
@@ -358,9 +365,7 @@ export const expenseRouter = router({
         input.totalMinor,
         input.splitMethod,
       );
-      const payerEntry = participants.find(
-        (entry) => entry.email === input.payer,
-      );
+      const payerEntry = participants.find((entry) => entry.email === input.payer);
 
       if (!payerEntry) {
         throw new TRPCError({
@@ -369,9 +374,7 @@ export const expenseRouter = router({
         });
       }
 
-      const otherParticipants = participants.filter(
-        (entry) => entry.email !== input.payer,
-      );
+      const otherParticipants = participants.filter((entry) => entry.email !== input.payer);
 
       return ctx.db.transaction(async (tx) => {
         if (input.groupId) {
@@ -392,13 +395,12 @@ export const expenseRouter = router({
               message: "You are not a member of this group",
             });
           }
+
+          await assertGroupIsActive(tx, input.groupId);
         }
 
         const emails = [
-          ...new Set([
-            ...input.participants.map((entry) => entry.email),
-            input.payer,
-          ]),
+          ...new Set([...input.participants.map((entry) => entry.email), input.payer]),
         ];
         const existingParticipants = await tx
           .select({
@@ -408,10 +410,7 @@ export const expenseRouter = router({
           .from(participant)
           .where(inArray(sql<string>`lower(${participant.email})`, emails));
         const participantIdsByEmail = new Map(
-          existingParticipants.map((entry) => [
-            entry.email.toLowerCase(),
-            entry.id,
-          ]),
+          existingParticipants.map((entry) => [entry.email.toLowerCase(), entry.id]),
         );
         const newParticipants = input.participants.filter(
           (entry) => !participantIdsByEmail.has(entry.email),
@@ -451,9 +450,7 @@ export const expenseRouter = router({
           });
         }
 
-        const createdGroupId = input.createGroup
-          ? crypto.randomUUID()
-          : undefined;
+        const createdGroupId = input.createGroup ? crypto.randomUUID() : undefined;
 
         if (createdGroupId) {
           await tx.insert(group).values({
@@ -462,28 +459,21 @@ export const expenseRouter = router({
             createdByUserId: ctx.session.user.id,
           });
 
-          const memberIds = new Set([
-            currentParticipant.id,
-            ...participantIdsByEmail.values(),
-          ]);
+          const memberIds = new Set([currentParticipant.id, ...participantIdsByEmail.values()]);
 
           await tx.insert(groupMember).values(
             [...memberIds].map((participantId) => ({
               groupId: createdGroupId,
               participantId,
               role:
-                participantId === currentParticipant.id
-                  ? ("owner" as const)
-                  : ("member" as const),
+                participantId === currentParticipant.id ? ("owner" as const) : ("member" as const),
             })),
           );
         }
 
         const now = new Date();
         const id = crypto.randomUUID();
-        const isSettled = otherParticipants.every(
-          (entry) => entry.status === "paid",
-        );
+        const isSettled = otherParticipants.every((entry) => entry.status === "paid");
 
         await tx.insert(expense).values({
           id,
@@ -544,7 +534,7 @@ export const expenseRouter = router({
         protect: true,
         tags: ["Expenses"],
         summary: "Update expense participant payment statuses",
-        errorResponses: [400, 401, 404, 500],
+        errorResponses: [400, 401, 404, 409, 500],
       },
     })
     .input(updateSchema)
@@ -553,14 +543,12 @@ export const expenseRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const involvementFilter = buildInvolvementFilter(
-          tx,
-          currentParticipant.id,
-        );
+        const involvementFilter = buildInvolvementFilter(tx, currentParticipant.id);
         const [currentExpense] = await tx
           .select({
             id: expense.id,
             payerId: expense.payerId,
+            status: expense.status,
           })
           .from(expense)
           .where(and(eq(expense.id, input.id), involvementFilter))
@@ -573,6 +561,13 @@ export const expenseRouter = router({
           });
         }
 
+        if (currentExpense.status === "cancelled") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Cancelled expenses cannot be updated",
+          });
+        }
+
         const persistedParticipants = await tx
           .select({
             participantId: expenseParticipant.participantId,
@@ -582,18 +577,12 @@ export const expenseRouter = router({
         const persistedParticipantIds = new Set(
           persistedParticipants.map((entry) => entry.participantId),
         );
-        const hasStoredPayer = persistedParticipantIds.has(
-          currentExpense.payerId,
-        );
+        const hasStoredPayer = persistedParticipantIds.has(currentExpense.payerId);
         const now = new Date();
 
         for (const entry of input.participants) {
           if (!persistedParticipantIds.has(entry.id)) {
-            if (
-              entry.id === currentExpense.payerId &&
-              !hasStoredPayer &&
-              entry.status === "paid"
-            ) {
+            if (entry.id === currentExpense.payerId && !hasStoredPayer && entry.status === "paid") {
               continue;
             }
 
@@ -621,9 +610,7 @@ export const expenseRouter = router({
           .select({ status: expenseParticipant.status })
           .from(expenseParticipant)
           .where(eq(expenseParticipant.expenseId, currentExpense.id));
-        const isSettled = updatedParticipants.every(
-          (entry) => entry.status === "paid",
-        );
+        const isSettled = updatedParticipants.every((entry) => entry.status === "paid");
         const status = isSettled ? ("settled" as const) : ("active" as const);
 
         await tx
@@ -632,12 +619,118 @@ export const expenseRouter = router({
             status,
             settledAt: isSettled ? now : null,
           })
-          .where(eq(expense.id, currentExpense.id));
+          .where(and(eq(expense.id, currentExpense.id), eq(expense.status, currentExpense.status)));
+
+        const [updatedExpense] = await tx
+          .select({ status: expense.status })
+          .from(expense)
+          .where(eq(expense.id, currentExpense.id))
+          .limit(1);
+
+        if (!updatedExpense || updatedExpense.status !== status) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Expense is no longer active",
+          });
+        }
 
         return {
           id: currentExpense.id,
           status,
         };
+      });
+    }),
+
+  cancel: participantProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/expenses/{id}/cancel",
+        protect: true,
+        tags: ["Expenses"],
+        summary: "Cancel an active expense",
+        errorResponses: [400, 401, 403, 404, 409, 500],
+      },
+    })
+    .input(expenseGetInputSchema)
+    .output(expenseCreateOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const currentParticipant = requireParticipant(ctx.participant);
+
+      return ctx.db.transaction(async (tx) => {
+        const [currentExpense] = await tx
+          .select({
+            id: expense.id,
+            status: expense.status,
+            groupId: expense.groupId,
+            createdByUserId: expense.createdByUserId,
+          })
+          .from(expense)
+          .where(eq(expense.id, input.id))
+          .limit(1);
+
+        if (!currentExpense) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Expense not found",
+          });
+        }
+
+        const [groupOwnerMembership] = currentExpense.groupId
+          ? await tx
+              .select({ groupId: groupMember.groupId })
+              .from(groupMember)
+              .where(
+                and(
+                  eq(groupMember.groupId, currentExpense.groupId),
+                  eq(groupMember.participantId, currentParticipant.id),
+                  eq(groupMember.role, "owner"),
+                ),
+              )
+              .limit(1)
+          : [];
+        const canCancel =
+          currentExpense.createdByUserId === ctx.session.user.id || Boolean(groupOwnerMembership);
+
+        if (!canCancel) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the expense recorder or group owner can cancel it",
+          });
+        }
+
+        if (currentExpense.status !== "active") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Cannot cancel a ${currentExpense.status} expense`,
+          });
+        }
+
+        const cancelledAt = new Date();
+        await tx
+          .update(expense)
+          .set({
+            status: "cancelled",
+            settledAt: null,
+            cancelledAt,
+            cancelledByUserId: ctx.session.user.id,
+          })
+          .where(and(eq(expense.id, currentExpense.id), eq(expense.status, "active")));
+
+        const [cancelledExpense] = await tx
+          .select({ status: expense.status })
+          .from(expense)
+          .where(eq(expense.id, currentExpense.id))
+          .limit(1);
+
+        if (!cancelledExpense || cancelledExpense.status !== "cancelled") {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Expense is no longer active",
+          });
+        }
+
+        return { id: currentExpense.id, status: "cancelled" as const };
       });
     }),
 
@@ -657,9 +750,10 @@ export const expenseRouter = router({
     .query(async ({ ctx, input }) => {
       const currentParticipant = requireParticipant(ctx.participant);
 
-      const involvementFilter = buildInvolvementFilter(
+      const visibilityFilter = buildVisibilityFilter(
         ctx.db,
         currentParticipant.id,
+        ctx.session.user.id,
       );
       const [expenseRow] = await ctx.db
         .select({
@@ -674,6 +768,9 @@ export const expenseRouter = router({
           groupName: group.name,
           occurredAt: expense.occurredAt,
           settledAt: expense.settledAt,
+          cancelledAt: expense.cancelledAt,
+          cancelledByUserId: expense.cancelledByUserId,
+          createdByUserId: expense.createdByUserId,
           payerName: participant.name,
           payerEmail: participant.email,
           payerImage: user.image,
@@ -682,7 +779,7 @@ export const expenseRouter = router({
         .innerJoin(participant, eq(participant.id, expense.payerId))
         .leftJoin(group, eq(group.id, expense.groupId))
         .leftJoin(user, eq(user.id, participant.userId))
-        .where(and(eq(expense.id, input.id), involvementFilter))
+        .where(and(eq(expense.id, input.id), visibilityFilter))
         .limit(1);
 
       if (!expenseRow) {
@@ -691,6 +788,30 @@ export const expenseRouter = router({
           message: "Expense not found",
         });
       }
+
+      const [groupOwnerMembership] = expenseRow.groupId
+        ? await ctx.db
+            .select({ groupId: groupMember.groupId })
+            .from(groupMember)
+            .where(
+              and(
+                eq(groupMember.groupId, expenseRow.groupId),
+                eq(groupMember.participantId, currentParticipant.id),
+                eq(groupMember.role, "owner"),
+              ),
+            )
+            .limit(1)
+        : [];
+      const canCancel =
+        expenseRow.status === "active" &&
+        (expenseRow.createdByUserId === ctx.session.user.id || Boolean(groupOwnerMembership));
+      const cancelledBy = expenseRow.cancelledByUserId
+        ? await ctx.db
+            .select({ id: user.id, name: user.name })
+            .from(user)
+            .where(eq(user.id, expenseRow.cancelledByUserId))
+            .limit(1)
+        : [];
 
       const expenseParticipants = await ctx.db
         .select({
@@ -702,10 +823,7 @@ export const expenseRouter = router({
           status: expenseParticipant.status,
         })
         .from(expenseParticipant)
-        .innerJoin(
-          participant,
-          eq(expenseParticipant.participantId, participant.id),
-        )
+        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
         .leftJoin(user, eq(user.id, participant.userId))
         .where(eq(expenseParticipant.expenseId, expenseRow.id));
 
@@ -721,9 +839,7 @@ export const expenseRouter = router({
                 : total,
             0,
           )
-        : (expenseParticipants.find(
-            (entry) => entry.id === currentParticipant.id,
-          )?.owedMinor ?? 0);
+        : (expenseParticipants.find((entry) => entry.id === currentParticipant.id)?.owedMinor ?? 0);
       const payer =
         storedPayer ??
         ({
@@ -750,11 +866,14 @@ export const expenseRouter = router({
         groupName: expenseRow.groupName,
         occurredAt: expenseRow.occurredAt.toISOString(),
         settledAt: expenseRow.settledAt?.toISOString() ?? null,
+        canCancel,
+        cancelledBy: cancelledBy[0] ?? null,
+        cancelledAt: expenseRow.cancelledAt?.toISOString() ?? null,
+        cancelledByUserId: expenseRow.cancelledByUserId,
+        createdByUserId: expenseRow.createdByUserId,
         participants: [
           payer,
-          ...expenseParticipants.filter(
-            (expenseParticipant) => expenseParticipant.id !== payer.id,
-          ),
+          ...expenseParticipants.filter((expenseParticipant) => expenseParticipant.id !== payer.id),
         ],
       };
     }),
@@ -779,31 +898,19 @@ export const expenseRouter = router({
 
       const currentParticipant = ctx.participant;
 
-      const involvementFilter = buildInvolvementFilter(
-        ctx.db,
-        currentParticipant.id,
-      );
-      const statusFilter =
-        input.status === "all" ? undefined : eq(expense.status, input.status);
-      const cursorDate = input.cursor
-        ? new Date(input.cursor.occurredAt)
-        : undefined;
+      const involvementFilter = buildInvolvementFilter(ctx.db, currentParticipant.id);
+      const statusFilter = input.status === "all" ? undefined : eq(expense.status, input.status);
+      const cursorDate = input.cursor ? new Date(input.cursor.occurredAt) : undefined;
       const cursorFilter =
         input.cursor && cursorDate
           ? input.sort === "newest"
             ? or(
                 lt(expense.occurredAt, cursorDate),
-                and(
-                  eq(expense.occurredAt, cursorDate),
-                  lt(expense.id, input.cursor.id),
-                ),
+                and(eq(expense.occurredAt, cursorDate), lt(expense.id, input.cursor.id)),
               )
             : or(
                 gt(expense.occurredAt, cursorDate),
-                and(
-                  eq(expense.occurredAt, cursorDate),
-                  gt(expense.id, input.cursor.id),
-                ),
+                and(eq(expense.occurredAt, cursorDate), gt(expense.id, input.cursor.id)),
               )
           : undefined;
       const orderBy =
@@ -819,6 +926,10 @@ export const expenseRouter = router({
           currency: expense.currency,
           occurredAt: expense.occurredAt,
           status: expense.status,
+          settledAt: expense.settledAt,
+          cancelledAt: expense.cancelledAt,
+          cancelledByUserId: expense.cancelledByUserId,
+          createdByUserId: expense.createdByUserId,
           payerId: expense.payerId,
         })
         .from(expense)
@@ -834,9 +945,7 @@ export const expenseRouter = router({
       }
 
       const expenseIds = pageRows.map((expenseRow) => expenseRow.id);
-      const payerIds = [
-        ...new Set(pageRows.map((expenseRow) => expenseRow.payerId)),
-      ];
+      const payerIds = [...new Set(pageRows.map((expenseRow) => expenseRow.payerId))];
 
       const participantRows = await ctx.db
         .select({
@@ -849,10 +958,7 @@ export const expenseRouter = router({
           status: expenseParticipant.status,
         })
         .from(expenseParticipant)
-        .innerJoin(
-          participant,
-          eq(expenseParticipant.participantId, participant.id),
-        )
+        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
         .leftJoin(user, eq(user.id, participant.userId))
         .where(inArray(expenseParticipant.expenseId, expenseIds));
 
@@ -894,8 +1000,7 @@ export const expenseRouter = router({
       );
 
       const items = pageRows.map((expenseRow) => {
-        const expenseParticipants =
-          participantsByExpenseId.get(expenseRow.id) ?? [];
+        const expenseParticipants = participantsByExpenseId.get(expenseRow.id) ?? [];
         const storedPayer = expenseParticipants.find(
           (participant) => participant.id === expenseRow.payerId,
         );
@@ -911,6 +1016,10 @@ export const expenseRouter = router({
           currency: expenseRow.currency,
           status: expenseRow.status,
           occurredAt: expenseRow.occurredAt.toISOString(),
+          settledAt: expenseRow.settledAt?.toISOString() ?? null,
+          cancelledAt: expenseRow.cancelledAt?.toISOString() ?? null,
+          cancelledByUserId: expenseRow.cancelledByUserId,
+          createdByUserId: expenseRow.createdByUserId,
           participants: payer ? [payer, ...participants] : participants,
         };
       });
