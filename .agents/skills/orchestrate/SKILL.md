@@ -1,11 +1,11 @@
 ---
 name: orchestrate
-description: Coordinate evidence-driven implementation, debugging, architecture, and multi-file coding through specialized agents.
+description: Coordinate implementation through specialized agents only when the user explicitly invokes $orchestrate or asks for orchestration.
 ---
 
 # Orchestrated implementation
 
-The main agent owns planning, delegation, escalation, and completion. Follow repository workflow requirements and user overrides.
+Use this skill only when the user explicitly invokes `$orchestrate` or asks for orchestration. The main agent owns planning, delegation, escalation, and completion. Follow repository workflow requirements and user overrides.
 
 ## Dispatch
 
