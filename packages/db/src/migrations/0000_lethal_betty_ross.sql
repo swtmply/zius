@@ -65,17 +65,20 @@ CREATE TABLE `expense` (
 	`split_method` text NOT NULL,
 	`occurred_at` integer NOT NULL,
 	`settled_at` integer,
+	`cancelled_at` integer,
+	`cancelled_by_user_id` text,
 	`created_by_user_id` text NOT NULL,
 	`created_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
 	`updated_at` integer DEFAULT (cast(unixepoch('subsecond') * 1000 as integer)) NOT NULL,
 	FOREIGN KEY (`payer_id`) REFERENCES `participant`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`group_id`) REFERENCES `group`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`cancelled_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`created_by_user_id`) REFERENCES `user`(`id`) ON UPDATE no action ON DELETE no action,
 	CONSTRAINT "expense_total_positive_check" CHECK("expense"."total_minor" > 0),
 	CONSTRAINT "expense_currency_check" CHECK("expense"."currency" glob '[A-Z][A-Z][A-Z]'),
-	CONSTRAINT "expense_status_check" CHECK("expense"."status" in ('active', 'settled')),
+	CONSTRAINT "expense_status_check" CHECK("expense"."status" in ('active', 'settled', 'cancelled')),
 	CONSTRAINT "expense_split_method_check" CHECK("expense"."split_method" in ('equal', 'fixed', 'percentage')),
-	CONSTRAINT "expense_settlement_check" CHECK(("expense"."status" = 'active' and "expense"."settled_at" is null) or ("expense"."status" = 'settled' and "expense"."settled_at" is not null))
+	CONSTRAINT "expense_state_metadata_check" CHECK(("expense"."status" = 'active' and "expense"."settled_at" is null and "expense"."cancelled_at" is null and "expense"."cancelled_by_user_id" is null) or ("expense"."status" = 'settled' and "expense"."settled_at" is not null and "expense"."cancelled_at" is null and "expense"."cancelled_by_user_id" is null) or ("expense"."status" = 'cancelled' and "expense"."settled_at" is null and "expense"."cancelled_at" is not null and "expense"."cancelled_by_user_id" is not null))
 );
 --> statement-breakpoint
 CREATE INDEX `expense_group_id_idx` ON `expense` (`group_id`);--> statement-breakpoint
