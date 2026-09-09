@@ -4,7 +4,7 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
-import { Button, Dialog, Typography, useToast } from "heroui-native";
+import { Button, Dialog, PressableFeedback, Typography, useToast } from "heroui-native";
 import { useState } from "react";
 import { Keyboard, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -39,6 +39,9 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
+  const [groupChoice, setGroupChoice] = useState<
+    NonNullable<SubmitMeta["groupChoice"]>
+  >("group");
   const groupParticipants = group?.participants ?? [currentParticipant];
   const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
     (group?.participants ?? []).map((participant) =>
@@ -99,6 +102,7 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
 
       if (needsGroupChoice && !meta.groupChoice) {
         Keyboard.dismiss();
+        setGroupChoice("group");
         setIsGroupDialogOpen(true);
         return;
       }
@@ -398,70 +402,79 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
       <Dialog isOpen={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <Dialog.Portal>
           <Dialog.Overlay />
-          <Dialog.Content>
-            <form.Subscribe
-              selector={(state) => ({
-                groupId: state.values.group_id,
-                participants: state.values.participants,
-                isSubmitting: state.isSubmitting,
-              })}
-            >
-              {({ groupId, participants, isSubmitting }) => {
-                const outsideParticipants = findOutsideParticipants(
-                  groupId,
-                  participants,
-                );
-                const hasOutsideParticipants = outsideParticipants.length > 0;
-                const outsideNames = outsideParticipants
-                  .map((participant) => participant.name)
-                  .join(", ");
-
-                return (
-                  <>
-                    <View className="mb-5 gap-1">
-                      <Dialog.Title>
-                        {hasOutsideParticipants
-                          ? "Not everyone is in this group"
-                          : "Create a group?"}
-                      </Dialog.Title>
-                      <Dialog.Description>
-                        {hasOutsideParticipants
-                          ? `${outsideNames} ${
-                              outsideParticipants.length === 1
-                                ? "is not a member"
-                                : "are not members"
-                            } of this group. Create a new group with everyone on this expense, or save a standalone expense. The group will use the expense title as its name.`
-                          : "Create a group with these participants, or save a standalone expense. The group will use the expense title as its name."}
-                      </Dialog.Description>
-                    </View>
-                    <View className="gap-1">
-                      <Button
-                        isDisabled={isSubmitting}
-                        onPress={() => submit({ groupChoice: "group" })}
-                      >
-                        <Button.Label>
-                          {hasOutsideParticipants
-                            ? "Create new group"
-                            : "Create group"}
-                        </Button.Label>
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        isDisabled={isSubmitting}
-                        onPress={() => submit({ groupChoice: "standalone" })}
-                      >
-                        <Button.Label>Standalone expense</Button.Label>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        onPress={() => setIsGroupDialogOpen(false)}
-                      >
-                        <Button.Label>Cancel</Button.Label>
-                      </Button>
-                    </View>
-                  </>
-                );
-              }}
+          <Dialog.Content className="gap-5 rounded-3xl p-5">
+            <View className="flex-row items-start gap-3">
+              <View className="flex-1 gap-1">
+                <Dialog.Title>Confirm Expense</Dialog.Title>
+                <Dialog.Description>
+                  Select what to do with this expense.
+                </Dialog.Description>
+              </View>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                accessibilityLabel="Close expense confirmation"
+                onPress={() => setIsGroupDialogOpen(false)}
+              >
+                <Button.Label>×</Button.Label>
+              </Button>
+            </View>
+            <form.Subscribe selector={(state) => state.isSubmitting}>
+              {(isSubmitting) => (
+                <>
+                  <View className="gap-4" accessibilityRole="radiogroup">
+                    <PressableFeedback
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: groupChoice === "group" }}
+                      isDisabled={isSubmitting}
+                      onPress={() => setGroupChoice("group")}
+                      className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
+                        groupChoice === "group"
+                          ? "border-foreground"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <Typography className="font-medium">
+                        Create new group
+                      </Typography>
+                      <Typography className="text-muted leading-6">
+                        Creates a new group with the selected participants and
+                        adds this expense to it. The expense title will be the
+                        group name.
+                      </Typography>
+                    </PressableFeedback>
+                    <PressableFeedback
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: groupChoice === "standalone" }}
+                      isDisabled={isSubmitting}
+                      onPress={() => setGroupChoice("standalone")}
+                      className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
+                        groupChoice === "standalone"
+                          ? "border-foreground"
+                          : "border-transparent"
+                      }`}
+                    >
+                      <Typography className="font-medium">
+                        Create standalone expense
+                      </Typography>
+                      <Typography className="text-muted leading-6">
+                        Creates a one-off expense. This will only be available
+                        on dashboard and history.
+                      </Typography>
+                    </PressableFeedback>
+                  </View>
+                  <Button
+                    className="rounded-2xl bg-foreground"
+                    isDisabled={isSubmitting}
+                    onPress={() => submit({ groupChoice })}
+                  >
+                    <Button.Label className="text-background">
+                      Submit
+                    </Button.Label>
+                  </Button>
+                </>
+              )}
             </form.Subscribe>
           </Dialog.Content>
         </Dialog.Portal>
