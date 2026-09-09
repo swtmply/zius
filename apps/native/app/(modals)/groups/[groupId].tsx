@@ -2,9 +2,18 @@ import { useState } from "react";
 import { FlatList, Keyboard, Pressable, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Dialog, Skeleton, Typography, useToast } from "heroui-native";
+import { Button, Dialog, Menu, Skeleton, Typography, useToast } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { Check, ChevronLeftFreeIcons, Edit02Icon } from "@hugeicons/core-free-icons";
+import {
+  Archive02Icon,
+  Check,
+  ChevronLeftFreeIcons,
+  Delete02Icon,
+  Edit02Icon,
+  MoreHorizontalIcon,
+  RestoreBinIcon,
+  XIcon,
+} from "@hugeicons/core-free-icons";
 import { trpc } from "@/utils/trpc";
 import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { GroupParticipants, GroupExpenseCard } from "@/components/groups/group-details";
@@ -170,10 +179,20 @@ export default function GroupDetailsPage() {
               <Button
                 isIconOnly
                 variant="ghost"
-                accessibilityLabel="Go back"
-                onPress={() => (router.canGoBack() ? router.back() : router.replace("/groups"))}
+                isDisabled={isEditing && updateGroup.isPending}
+                accessibilityLabel={isEditing ? "Cancel editing group name" : "Go back"}
+                onPress={() => {
+                  if (isEditing) {
+                    setIsEditing(false);
+                    Keyboard.dismiss();
+                  } else if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace("/groups");
+                  }
+                }}
               >
-                <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
+                <HugeiconsIcon icon={isEditing ? XIcon : ChevronLeftFreeIcons} size={24} />
               </Button>
               {query.isPending ? (
                 <Skeleton className="h-8 w-32 rounded-md" />
@@ -194,41 +213,74 @@ export default function GroupDetailsPage() {
                   {group?.name ?? "Group"}
                 </Typography>
               )}
-              {group && canRename ? (
+              {group && canRename && isEditing ? (
                 <Button
                   isIconOnly
                   variant="ghost"
                   isDisabled={updateGroup.isPending || archiveActionPending}
-                  accessibilityLabel={isEditing ? "Save group name" : "Edit group name"}
+                  accessibilityLabel="Save group name"
                   accessibilityState={{ busy: updateGroup.isPending }}
-                  onPress={() => {
-                    if (isEditing) {
-                      submit();
-                    } else {
-                      setName(group.name);
-                      setIsEditing(true);
-                    }
-                  }}
+                  onPress={submit}
                 >
-                  <HugeiconsIcon icon={isEditing ? Check : Edit02Icon} size={24} />
+                  <HugeiconsIcon icon={Check} size={24} />
+                </Button>
+              ) : group && canManageArchive && !isArchived ? (
+                <Menu>
+                  <Menu.Trigger asChild isDisabled={updateGroup.isPending || archiveActionPending}>
+                    <Button
+                      isIconOnly
+                      variant="ghost"
+                      isDisabled={updateGroup.isPending || archiveActionPending}
+                      accessibilityLabel="Group actions"
+                      accessibilityState={{
+                        disabled: updateGroup.isPending || archiveActionPending,
+                      }}
+                    >
+                      <HugeiconsIcon icon={MoreHorizontalIcon} size={24} />
+                    </Button>
+                  </Menu.Trigger>
+                  <Menu.Portal>
+                    <Menu.Overlay />
+                    <Menu.Content presentation="popover" width={220}>
+                      <Menu.Item
+                        isDisabled={updateGroup.isPending || archiveActionPending}
+                        onPress={() => {
+                          setName(group.name);
+                          setIsEditing(true);
+                        }}
+                      >
+                        <HugeiconsIcon icon={Edit02Icon} size={24} />
+                        <Menu.ItemTitle>Edit</Menu.ItemTitle>
+                      </Menu.Item>
+                      <Menu.Item isDisabled variant="danger">
+                        <HugeiconsIcon icon={Delete02Icon} size={24} />
+                        <Menu.ItemTitle>Delete</Menu.ItemTitle>
+                      </Menu.Item>
+                      <Menu.Item
+                        isDisabled={archiveActionPending}
+                        onPress={() => setIsArchiveDialogOpen(true)}
+                      >
+                        <HugeiconsIcon icon={Archive02Icon} size={24} />
+                        <Menu.ItemTitle>Archive</Menu.ItemTitle>
+                      </Menu.Item>
+                    </Menu.Content>
+                  </Menu.Portal>
+                </Menu>
+              ) : group && canManageArchive && isArchived ? (
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  isDisabled={archiveActionPending}
+                  accessibilityLabel="Restore group"
+                  accessibilityState={{ busy: archiveActionPending }}
+                  onPress={() => setIsArchiveDialogOpen(true)}
+                >
+                  <HugeiconsIcon icon={RestoreBinIcon} size={24} />
                 </Button>
               ) : (
                 <View className="size-10" />
               )}
             </View>
-            {isEditing && (
-              <Button
-                variant="ghost"
-                size="sm"
-                isDisabled={updateGroup.isPending}
-                onPress={() => {
-                  setIsEditing(false);
-                  Keyboard.dismiss();
-                }}
-              >
-                <Button.Label>Cancel</Button.Label>
-              </Button>
-            )}
             {group && isArchived ? (
               <View
                 className="bg-default border border-border rounded-xl px-4 py-3 gap-1"
@@ -241,18 +293,6 @@ export default function GroupDetailsPage() {
                   cancellation remain available.
                 </Typography>
               </View>
-            ) : null}
-            {group && canManageArchive ? (
-              <Button
-                className="w-full"
-                variant={isArchived ? "secondary" : "danger-soft"}
-                isDisabled={archiveActionPending || isEditing}
-                accessibilityLabel={isArchived ? "Restore group" : "Archive group"}
-                accessibilityState={{ busy: archiveActionPending }}
-                onPress={() => setIsArchiveDialogOpen(true)}
-              >
-                <Button.Label>{isArchived ? "Restore group" : "Archive group"}</Button.Label>
-              </Button>
             ) : null}
             {(query.isPending || group) && (
               <>
