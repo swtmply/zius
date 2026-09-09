@@ -1,5 +1,5 @@
-import { expense, expenseParticipant, participant } from "@zius/db/schema/expense";
-import { and, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
+import { expense, expenseParticipant, group, participant } from "@zius/db/schema/expense";
+import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 
 import { participantProcedure, router } from "../index";
 
@@ -69,11 +69,13 @@ export const dashboardRouter = router({
       involvedExpenseIds.length > 0
         ? or(eq(expense.payerId, participantId), inArray(expense.id, involvedExpenseIds))
         : eq(expense.payerId, participantId);
+    const activeGroupCondition = or(isNull(expense.groupId), isNull(group.archivedAt));
 
     const activeExpenseRows = await ctx.db
       .select(dashboardExpenseColumns)
       .from(expense)
-      .where(and(eq(expense.status, "active"), involvementCondition))
+      .leftJoin(group, eq(group.id, expense.groupId))
+      .where(and(eq(expense.status, "active"), involvementCondition, activeGroupCondition))
       .orderBy(desc(expense.occurredAt))
       .limit(10);
 
@@ -111,7 +113,8 @@ export const dashboardRouter = router({
     const recentExpenses = await ctx.db
       .select(dashboardExpenseColumns)
       .from(expense)
-      .where(involvementCondition)
+      .leftJoin(group, eq(group.id, expense.groupId))
+      .where(and(involvementCondition, ne(expense.status, "cancelled"), activeGroupCondition))
       .orderBy(desc(expense.occurredAt))
       .limit(10);
 

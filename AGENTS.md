@@ -1,8 +1,8 @@
 # Agent Workflow
 
-For non-trivial implementation, debugging, architecture, API, database, authentication, deployment, or multi-file coding tasks, use the `$orchestrate` skill.
+Use the `$orchestrate` skill only when the user explicitly invokes it or asks for orchestration. Otherwise, handle the task directly.
 
-The main agent acts as the **Orchestrator and Planner**.
+The following workflow and model policy apply only when the user requests orchestration. The main agent then acts as the **Orchestrator and Planner**.
 
 The orchestrator may be Astra, Sol, Opus, or Fable.
 
@@ -16,12 +16,12 @@ The orchestrator may be Astra, Sol, Opus, or Fable.
 
 ## Required Workflow
 
-For applicable tasks:
+For explicitly requested orchestration:
 
 **Scanner → Researcher when needed → Orchestrator Plan → Implementer → Reviewer → Debugger when needed → Verifier → Final Report**
 
 The orchestrator owns planning, delegation, escalation, context handoff, final completion decisions, and the final report.
 
-Do not bypass the orchestration workflow when the task clearly matches it.
+Follow this workflow when orchestration is explicitly requested.
 
 User instructions take precedence over this workflow.

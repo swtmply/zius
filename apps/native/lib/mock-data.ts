@@ -3,7 +3,7 @@ export type ActiveExpense = {
   title: string;
   totalMinor: number;
   currency: string;
-  status: "active" | "settled";
+  status: "active" | "settled" | "cancelled";
   occurredAt: string;
   participants: {
     id: string;
@@ -17,7 +17,7 @@ export type RecentExpense = {
   title: string;
   totalMinor: number;
   currency: string;
-  status: "active" | "settled";
+  status: "active" | "settled" | "cancelled";
   occurredAt: string;
 };
 

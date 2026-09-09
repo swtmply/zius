@@ -1,10 +1,20 @@
 import { View, FlatList, ScrollView } from "react-native";
 import React, { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { Avatar, Button, Card, Separator, Switch, Typography, useToast } from "heroui-native";
+import {
+  Avatar,
+  Button,
+  Card,
+  Dialog,
+  Separator,
+  Switch,
+  Typography,
+  useToast,
+} from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   ChevronLeftFreeIcons,
+  Cancel01Icon,
   UserCheck01FreeIcons,
   Edit02FreeIcons,
   UserGroup03Icon,
@@ -15,7 +25,7 @@ import {
 import { useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { trpc } from "@/utils/trpc";
-import { formatCurrency } from "@/utils";
+import { formatCurrency, formatDate } from "@/utils";
 import { SectionHeader } from "@/components/section-header";
 import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { ExpenseDetailsLoading } from "@/components/expenses/expense-details-loading";
@@ -35,19 +45,28 @@ export default function ExpenseDetails() {
   const [participantStatuses, setParticipantStatuses] = useState<Record<string, "paid" | "unpaid">>(
     {},
   );
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const canEditPayments =
+    data?.status === "active" &&
+    !!currentParticipant &&
+    (data.payerId === currentParticipant.id ||
+      data.participants.some((participant) => participant.id === currentParticipant.id));
+  const isSettlingActive = isSettling && canEditPayments;
   const updateExpense = useMutation(
     trpc.expense.update.mutationOptions({
       onSuccess: async () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
+          queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() }),
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       },
     }),
   );
+  const cancelExpense = useMutation(trpc.expense.cancel.mutationOptions());
 
   const submit = async () => {
-    if (!data || !isSettling || updateExpense.isPending) return;
+    if (!data || !isSettlingActive || updateExpense.isPending) return;
 
     const participants = data.participants.flatMap((participant) => {
       const status = participantStatuses[participant.id];
@@ -93,6 +112,52 @@ export default function ExpenseDetails() {
         />
       ),
     });
+  };
+
+  const paidParticipantCount =
+    data?.participants.filter((participant) => participant.status === "paid").length ?? 0;
+
+  const submitCancellation = async () => {
+    if (!data || !data.canCancel || data.status !== "active" || cancelExpense.isPending) return;
+
+    try {
+      await cancelExpense.mutateAsync({ id: expenseId });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: trpc.expense.get.queryKey({ id: expenseId }) }),
+        queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
+        queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() }),
+        queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
+      ]);
+      setIsCancelDialogOpen(false);
+      setIsSettling(false);
+      setParticipantStatuses({});
+      toast.show({
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="success"
+            title="Expense cancelled"
+            description="This expense no longer affects balances. Payment records remain visible."
+          />
+        ),
+      });
+    } catch (error) {
+      toast.show({
+        duration: 6000,
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="danger"
+            title="Failed to cancel expense"
+            description={
+              error instanceof Error && error.message.trim()
+                ? error.message
+                : "Something went wrong. Please try again."
+            }
+          />
+        ),
+      });
+    }
   };
 
   const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home"));
@@ -151,15 +216,31 @@ export default function ExpenseDetails() {
           <Typography className="text-2xl font-semibold flex-1 text-center" numberOfLines={2}>
             {data.title}
           </Typography>
-          <Button
-            isIconOnly
-            variant="ghost"
-            accessibilityLabel={isSettling ? "Save payment statuses" : "Delete expense"}
-            isDisabled={updateExpense.isPending}
-            onPress={isSettling ? () => void submit() : undefined}
-          >
-            <HugeiconsIcon icon={isSettling ? Check : Trash} size={24} />
-          </Button>
+          {isSettlingActive ? (
+            <Button
+              isIconOnly
+              variant="ghost"
+              accessibilityLabel="Save payment statuses"
+              isDisabled={updateExpense.isPending}
+              accessibilityState={{ busy: updateExpense.isPending }}
+              onPress={() => void submit()}
+            >
+              <HugeiconsIcon icon={Check} size={24} />
+            </Button>
+          ) : data.canCancel ? (
+            <Button
+              isIconOnly
+              variant="ghost"
+              accessibilityLabel="Cancel expense"
+              isDisabled={cancelExpense.isPending}
+              accessibilityState={{ busy: cancelExpense.isPending }}
+              onPress={() => setIsCancelDialogOpen(true)}
+            >
+              <HugeiconsIcon icon={Trash} size={24} />
+            </Button>
+          ) : (
+            <View className="size-10" />
+          )}
         </View>
 
         <Card className="shadow-lg border border-border">
@@ -209,39 +290,72 @@ export default function ExpenseDetails() {
                 </Typography>
               </View>
               <View className="items-center flex-1 gap-1">
-                <Button
-                  variant={isSettling ? "primary" : "secondary"}
-                  isIconOnly
-                  accessibilityLabel={
-                    isSettling
-                      ? "Cancel settling"
-                      : data.status === "settled"
-                        ? "Expense already settled"
-                        : "Edit payment statuses"
-                  }
-                  isDisabled={data.status === "settled" || updateExpense.isPending}
-                  onPress={
-                    data.status === "settled"
-                      ? undefined
-                      : () => {
-                          setParticipantStatuses({});
-                          setIsSettling((value) => !value);
-                        }
-                  }
-                >
-                  <HugeiconsIcon
-                    icon={data.status === "settled" ? Check : Edit02FreeIcons}
-                    size={24}
-                    color={isSettling ? "#ffffff" : undefined}
-                  />
-                </Button>
+                {canEditPayments ? (
+                  <Button
+                    variant={isSettlingActive ? "primary" : "secondary"}
+                    isIconOnly
+                    accessibilityLabel={
+                      isSettlingActive ? "Cancel settling" : "Edit payment statuses"
+                    }
+                    isDisabled={updateExpense.isPending}
+                    onPress={() => {
+                      setParticipantStatuses({});
+                      setIsSettling((value) => !value);
+                    }}
+                  >
+                    <HugeiconsIcon
+                      icon={Edit02FreeIcons}
+                      size={24}
+                      color={isSettlingActive ? "#ffffff" : undefined}
+                    />
+                  </Button>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    isIconOnly
+                    isDisabled
+                    accessibilityLabel={
+                      data.status === "settled" ? "Expense already settled" : "Expense cancelled"
+                    }
+                  >
+                    <HugeiconsIcon
+                      icon={data.status === "settled" ? Check : Cancel01Icon}
+                      size={24}
+                    />
+                  </Button>
+                )}
                 <Typography className="text-xs text-muted">
-                  {data.status === "settled" ? "Settled" : "Settle"}
+                  {data.status === "settled"
+                    ? "Settled"
+                    : data.status === "cancelled"
+                      ? "Cancelled"
+                      : isSettlingActive
+                        ? "Save"
+                        : "Settle"}
                 </Typography>
               </View>
             </View>
           </Card.Body>
         </Card>
+
+        {data.status === "cancelled" ? (
+          <View
+            className="bg-default border border-border rounded-xl px-4 py-3 gap-1"
+            accessible
+            accessibilityLabel={`Cancelled by ${data.cancelledBy?.name ?? "an unknown user"} on ${
+              data.cancelledAt ? formatDate(new Date(data.cancelledAt)) : "an unknown date"
+            }. Paid participant records remain visible.`}
+          >
+            <Typography className="text-sm font-semibold text-muted">Cancelled</Typography>
+            <Typography className="text-xs text-muted">
+              Cancelled by {data.cancelledBy?.name ?? "an unknown user"}
+              {data.cancelledAt ? ` on ${formatDate(new Date(data.cancelledAt))}` : ""}.
+            </Typography>
+            <Typography className="text-xs text-muted">
+              This expense no longer affects balances. Paid participant records remain visible.
+            </Typography>
+          </View>
+        ) : null}
 
         <SectionHeader title="Participants" />
 
@@ -272,7 +386,7 @@ export default function ExpenseDetails() {
                   <Typography className="text-sm font-semibold">
                     {formatCurrency(item.owedMinor)}
                   </Typography>
-                  {isSettling ? (
+                  {isSettlingActive ? (
                     <Switch
                       accessibilityLabel={`${item.name} paid`}
                       isSelected={isPaid}
@@ -291,6 +405,47 @@ export default function ExpenseDetails() {
           }}
         />
       </View>
+      <Dialog
+        isOpen={isCancelDialogOpen}
+        onOpenChange={(isOpen) => {
+          if (!cancelExpense.isPending) setIsCancelDialogOpen(isOpen);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay />
+          <Dialog.Content>
+            <View className="mb-5 gap-1">
+              <Dialog.Title>Cancel this expense?</Dialog.Title>
+              <Dialog.Description>
+                {paidParticipantCount === 0
+                  ? "No participant payments have been recorded yet."
+                  : `${paidParticipantCount} participant${paidParticipantCount === 1 ? " has" : "s have"} already paid.`}{" "}
+                Cancellation is permanent and removes this expense from balances. Existing payment
+                records remain visible.
+              </Dialog.Description>
+            </View>
+            <View className="gap-1">
+              <Button
+                variant="danger"
+                isDisabled={cancelExpense.isPending}
+                accessibilityState={{ busy: cancelExpense.isPending }}
+                onPress={() => void submitCancellation()}
+              >
+                <Button.Label>
+                  {cancelExpense.isPending ? "Cancelling..." : "Cancel expense"}
+                </Button.Label>
+              </Button>
+              <Button
+                variant="ghost"
+                isDisabled={cancelExpense.isPending}
+                onPress={() => setIsCancelDialogOpen(false)}
+              >
+                <Button.Label>Keep expense</Button.Label>
+              </Button>
+            </View>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog>
     </ScrollView>
   );
 }

@@ -6,6 +6,11 @@ import { BottomSheet, Button, Typography } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SlidersVertical } from "@hugeicons/core-free-icons";
 
+const statusOptions = [
+  { value: "active", label: "Active" },
+  { value: "archived", label: "Archived" },
+  { value: "all", label: "All" },
+] as const;
 const typeOptions = [
   { value: "all", label: "All" },
   { value: "owner", label: "Owner" },
@@ -17,15 +22,26 @@ const sortOptions = [
 ] as const;
 type GroupType = (typeof typeOptions)[number]["value"];
 type GroupSort = (typeof sortOptions)[number]["value"];
+export type GroupStatus = (typeof statusOptions)[number]["value"];
 
-export function GroupFilters({ type, sort }: { type: GroupType; sort: GroupSort }) {
+export function GroupFilters({
+  status,
+  type,
+  sort,
+}: {
+  status: GroupStatus;
+  type: GroupType;
+  sort: GroupSort;
+}) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<GroupStatus>(status);
   const [draftType, setDraftType] = useState<GroupType>(type);
   const [draftSort, setDraftSort] = useState<GroupSort>(sort);
 
   function openFilters() {
+    setDraftStatus(status);
     setDraftType(type);
     setDraftSort(sort);
     setIsFiltersOpen(true);
@@ -50,6 +66,22 @@ export function GroupFilters({ type, sort }: { type: GroupType; sort: GroupSort 
           <View className="flex-row items-center justify-between">
             <BottomSheet.Title className="text-2xl font-semibold">Filters</BottomSheet.Title>
             <BottomSheet.Close accessibilityLabel="Close filters" />
+          </View>
+          <Typography className="text-sm">Status</Typography>
+          <View className="flex-row flex-wrap items-center gap-4">
+            {statusOptions.map((option) => (
+              <Button
+                key={option.value}
+                size="sm"
+                className="rounded-full"
+                variant={draftStatus === option.value ? "primary" : "secondary"}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: draftStatus === option.value }}
+                onPress={() => setDraftStatus(option.value)}
+              >
+                <Button.Label>{option.label}</Button.Label>
+              </Button>
+            ))}
           </View>
           <Typography className="text-sm">Type</Typography>
           <View className="flex-row flex-wrap items-center gap-4">
@@ -86,7 +118,7 @@ export function GroupFilters({ type, sort }: { type: GroupType; sort: GroupSort 
           <Button
             className="w-full"
             onPress={() => {
-              router.setParams({ type: draftType, sort: draftSort });
+              router.setParams({ status: draftStatus, type: draftType, sort: draftSort });
               setIsFiltersOpen(false);
             }}
           >

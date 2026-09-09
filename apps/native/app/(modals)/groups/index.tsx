@@ -1,4 +1,4 @@
-import { GroupFilters } from "@/components/groups/group-filters";
+import { GroupFilters, type GroupStatus } from "@/components/groups/group-filters";
 import { GroupsLoading } from "@/components/groups/groups-loading";
 import { FlatList, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,13 +10,15 @@ import { Add, Cancel01Icon, ChevronLeftFreeIcons } from "@hugeicons/core-free-ic
 import { trpc } from "@/utils/trpc";
 
 export default function GroupsPage() {
-  const params = useLocalSearchParams<{ sort?: string; type?: string }>();
+  const params = useLocalSearchParams<{ sort?: string; type?: string; status?: string }>();
   const router = useRouter();
   const type = params.type === "owner" || params.type === "member" ? params.type : "all";
   const sort = params.sort === "oldest" || params.sort === "asc" ? "oldest" : "newest";
+  const status: GroupStatus =
+    params.status === "archived" || params.status === "all" ? params.status : "active";
   const query = useInfiniteQuery(
     trpc.group.list.infiniteQueryOptions(
-      { type: type === "all" ? undefined : type, sort },
+      { type: type === "all" ? undefined : type, sort, status },
       { getNextPageParam: (page) => page.nextCursor ?? undefined },
     ),
   );
@@ -47,7 +49,7 @@ export default function GroupsPage() {
               </Button>
             </View>
             <View className="flex-row flex-wrap items-center gap-4">
-              <GroupFilters type={type} sort={sort} />
+              <GroupFilters status={status} type={type} sort={sort} />
               {type !== "all" && (
                 <View className="flex-row items-center gap-4">
                   <Typography className="text-sm">Type:</Typography>
@@ -132,7 +134,7 @@ export default function GroupsPage() {
           <Pressable
             className="bg-surface border border-border rounded-xl p-4 gap-2 active:opacity-70"
             accessibilityRole="button"
-            accessibilityLabel={`Open ${item.name}`}
+            accessibilityLabel={`Open ${item.name}${item.archivedAt ? ", Archived" : ""}`}
             onPress={() =>
               router.push({
                 pathname: "/groups/[groupId]",
@@ -143,6 +145,11 @@ export default function GroupsPage() {
             <Typography selectable className="text-sm font-semibold">
               {item.name}
             </Typography>
+            {item.archivedAt ? (
+              <View className="self-start bg-default rounded-full px-2 py-0.5">
+                <Typography className="text-xs text-muted">Archived</Typography>
+              </View>
+            ) : null}
             <View className="flex-row flex-wrap items-center justify-start">
               {item.participants.map((participant, index) => (
                 <Avatar

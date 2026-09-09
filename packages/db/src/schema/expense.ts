@@ -87,7 +87,7 @@ export const expense = sqliteTable(
       .notNull()
       .references(() => participant.id),
     groupId: text("group_id").references(() => group.id),
-    status: text("status", { enum: ["active", "settled"] })
+    status: text("status", { enum: ["active", "settled", "cancelled"] })
       .default("active")
       .notNull(),
     splitMethod: text("split_method", {
@@ -95,6 +95,8 @@ export const expense = sqliteTable(
     }).notNull(),
     occurredAt: integer("occurred_at", { mode: "timestamp_ms" }).notNull(),
     settledAt: integer("settled_at", { mode: "timestamp_ms" }),
+    cancelledAt: integer("cancelled_at", { mode: "timestamp_ms" }),
+    cancelledByUserId: text("cancelled_by_user_id").references(() => user.id),
     createdByUserId: text("created_by_user_id")
       .notNull()
       .references(() => user.id),
@@ -103,14 +105,14 @@ export const expense = sqliteTable(
   (table) => [
     check("expense_total_positive_check", sql`${table.totalMinor} > 0`),
     check("expense_currency_check", sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`),
-    check("expense_status_check", sql`${table.status} in ('active', 'settled')`),
+    check("expense_status_check", sql`${table.status} in ('active', 'settled', 'cancelled')`),
     check(
       "expense_split_method_check",
       sql`${table.splitMethod} in ('equal', 'fixed', 'percentage')`,
     ),
     check(
-      "expense_settlement_check",
-      sql`(${table.status} = 'active' and ${table.settledAt} is null) or (${table.status} = 'settled' and ${table.settledAt} is not null)`,
+      "expense_state_metadata_check",
+      sql`(${table.status} = 'active' and ${table.settledAt} is null and ${table.cancelledAt} is null and ${table.cancelledByUserId} is null) or (${table.status} = 'settled' and ${table.settledAt} is not null and ${table.cancelledAt} is null and ${table.cancelledByUserId} is null) or (${table.status} = 'cancelled' and ${table.settledAt} is null and ${table.cancelledAt} is not null and ${table.cancelledByUserId} is not null)`,
     ),
     index("expense_group_id_idx").on(table.groupId),
     index("expense_payer_id_idx").on(table.payerId),
@@ -188,6 +190,10 @@ export const expenseRelations = relations(expense, ({ one, many }) => ({
   }),
   createdBy: one(user, {
     fields: [expense.createdByUserId],
+    references: [user.id],
+  }),
+  cancelledBy: one(user, {
+    fields: [expense.cancelledByUserId],
     references: [user.id],
   }),
   participants: many(expenseParticipant),
