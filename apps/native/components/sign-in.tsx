@@ -155,7 +155,7 @@ export function SignIn() {
                 onBlur={field.handleBlur}
                 onChangeText={field.handleChange}
                 onSubmitEditing={() => emailInputRef.current?.focus()}
-                placeholder="Email"
+                placeholder="Name"
                 autoComplete="name"
                 textContentType="name"
                 returnKeyType="next"
