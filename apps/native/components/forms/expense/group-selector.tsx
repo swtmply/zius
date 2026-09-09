@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Button, Typography } from "heroui-native";
+import { Button, Skeleton, Typography } from "heroui-native";
 import { FlatList, View } from "react-native";
 
 import { trpc } from "@/utils/trpc";
@@ -46,10 +46,10 @@ export function GroupSelector({
       onEndReachedThreshold={0.4}
       ListHeaderComponent={
         query.isPending ? (
-          <View className="items-center justify-center pr-2">
-            <Typography className="text-xs text-muted">
-              Loading groups…
-            </Typography>
+          <View className="flex-row items-center justify-center pr-1 gap-2">
+            <Skeleton className="h-10 w-24 rounded-full " />
+            <Skeleton className="h-10 w-24 rounded-full " />
+            <Skeleton className="h-10 w-24 rounded-full " />
           </View>
         ) : query.isError && !query.data ? (
           <View className="flex-row items-center gap-1 pr-2">
@@ -64,12 +64,6 @@ export function GroupSelector({
             >
               <Button.Label>Try again</Button.Label>
             </Button>
-          </View>
-        ) : groups.length === 0 ? (
-          <View className="items-center justify-center pr-2">
-            <Typography className="text-xs text-muted">
-              No groups available.
-            </Typography>
           </View>
         ) : null
       }
