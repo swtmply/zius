@@ -104,8 +104,14 @@ export const expense = sqliteTable(
   },
   (table) => [
     check("expense_total_positive_check", sql`${table.totalMinor} > 0`),
-    check("expense_currency_check", sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`),
-    check("expense_status_check", sql`${table.status} in ('active', 'settled', 'cancelled')`),
+    check(
+      "expense_currency_check",
+      sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`,
+    ),
+    check(
+      "expense_status_check",
+      sql`${table.status} in ('active', 'settled', 'cancelled')`,
+    ),
     check(
       "expense_split_method_check",
       sql`${table.splitMethod} in ('equal', 'fixed', 'percentage')`,
@@ -139,7 +145,10 @@ export const expenseParticipant = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.expenseId, table.participantId] }),
     check("expense_participant_owed_check", sql`${table.owedMinor} >= 0`),
-    check("expense_participant_status_check", sql`${table.status} in ('paid', 'unpaid')`),
+    check(
+      "expense_participant_status_check",
+      sql`${table.status} in ('paid', 'unpaid')`,
+    ),
     check(
       "expense_participant_payment_check",
       sql`(${table.status} = 'unpaid' and ${table.paidAt} is null) or (${table.status} = 'paid' and ${table.paidAt} is not null)`,
@@ -199,13 +208,16 @@ export const expenseRelations = relations(expense, ({ one, many }) => ({
   participants: many(expenseParticipant),
 }));
 
-export const expenseParticipantRelations = relations(expenseParticipant, ({ one }) => ({
-  expense: one(expense, {
-    fields: [expenseParticipant.expenseId],
-    references: [expense.id],
+export const expenseParticipantRelations = relations(
+  expenseParticipant,
+  ({ one }) => ({
+    expense: one(expense, {
+      fields: [expenseParticipant.expenseId],
+      references: [expense.id],
+    }),
+    participant: one(participant, {
+      fields: [expenseParticipant.participantId],
+      references: [participant.id],
+    }),
   }),
-  participant: one(participant, {
-    fields: [expenseParticipant.participantId],
-    references: [participant.id],
-  }),
-}));
+);
