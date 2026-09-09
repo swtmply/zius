@@ -534,7 +534,7 @@ export const expenseRouter = router({
         protect: true,
         tags: ["Expenses"],
         summary: "Update expense participant payment statuses",
-        errorResponses: [400, 401, 404, 409, 500],
+        errorResponses: [400, 401, 403, 404, 409, 500],
       },
     })
     .input(updateSchema)
@@ -558,6 +558,13 @@ export const expenseRouter = router({
           throw new TRPCError({
             code: "NOT_FOUND",
             message: "Expense not found",
+          });
+        }
+
+        if (currentExpense.payerId !== currentParticipant.id) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only the payer can update payment statuses",
           });
         }
 

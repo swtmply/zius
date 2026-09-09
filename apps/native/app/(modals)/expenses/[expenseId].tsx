@@ -49,8 +49,7 @@ export default function ExpenseDetails() {
   const canEditPayments =
     data?.status === "active" &&
     !!currentParticipant &&
-    (data.payerId === currentParticipant.id ||
-      data.participants.some((participant) => participant.id === currentParticipant.id));
+    data.payerId === currentParticipant.id;
   const isSettlingActive = isSettling && canEditPayments;
   const updateExpense = useMutation(
     trpc.expense.update.mutationOptions({
@@ -315,11 +314,21 @@ export default function ExpenseDetails() {
                     isIconOnly
                     isDisabled
                     accessibilityLabel={
-                      data.status === "settled" ? "Expense already settled" : "Expense cancelled"
+                      data.status === "settled"
+                        ? "Expense already settled"
+                        : data.status === "cancelled"
+                          ? "Expense cancelled"
+                          : "Only the payer can settle this expense"
                     }
                   >
                     <HugeiconsIcon
-                      icon={data.status === "settled" ? Check : Cancel01Icon}
+                      icon={
+                        data.status === "settled"
+                          ? Check
+                          : data.status === "cancelled"
+                            ? Cancel01Icon
+                            : Edit02FreeIcons
+                      }
                       size={24}
                     />
                   </Button>
