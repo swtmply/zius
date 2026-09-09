@@ -1,4 +1,4 @@
-import { GroupFilters } from "@/components/groups/group-filters";
+import { GroupFilters, type GroupStatus } from "@/components/groups/group-filters";
 import { GroupsLoading } from "@/components/groups/groups-loading";
 import { FlatList, Pressable, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,13 +8,6 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Add, Cancel01Icon, ChevronLeftFreeIcons } from "@hugeicons/core-free-icons";
 
 import { trpc } from "@/utils/trpc";
-
-const statusOptions = [
-  { value: "active", label: "Active" },
-  { value: "archived", label: "Archived" },
-  { value: "all", label: "All" },
-] as const;
-type GroupStatus = (typeof statusOptions)[number]["value"];
 
 export default function GroupsPage() {
   const params = useLocalSearchParams<{ sort?: string; type?: string; status?: string }>();
@@ -56,25 +49,7 @@ export default function GroupsPage() {
               </Button>
             </View>
             <View className="flex-row flex-wrap items-center gap-4">
-              <View className="w-full gap-2">
-                <Typography className="text-sm">Status</Typography>
-                <View className="flex-row flex-wrap items-center gap-2">
-                  {statusOptions.map((option) => (
-                    <Button
-                      key={option.value}
-                      variant={status === option.value ? "primary" : "secondary"}
-                      size="sm"
-                      className="rounded-full"
-                      accessibilityRole="radio"
-                      accessibilityState={{ checked: status === option.value }}
-                      onPress={() => router.setParams({ status: option.value })}
-                    >
-                      <Button.Label>{option.label}</Button.Label>
-                    </Button>
-                  ))}
-                </View>
-              </View>
-              <GroupFilters type={type} sort={sort} />
+              <GroupFilters status={status} type={type} sort={sort} />
               {type !== "all" && (
                 <View className="flex-row items-center gap-4">
                   <Typography className="text-sm">Type:</Typography>
