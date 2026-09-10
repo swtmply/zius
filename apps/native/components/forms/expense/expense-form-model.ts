@@ -16,8 +16,12 @@ export type ExpenseItem = z.infer<typeof expenseItemSchema>;
 
 export const createExpenseSchema = z
   .object({
-    totalMinor: z.number(),
-    title: z.string(),
+    totalMinor: z
+      .number()
+      .int("Enter a valid amount")
+      .positive("Enter an amount greater than 0")
+      .max(Number.MAX_SAFE_INTEGER, "Enter a smaller amount"),
+    title: z.string().trim().min(1, "Enter an expense title"),
     splitMethod: z.enum(splitMethods),
     payer: z.email(),
     group_id: z.optional(z.string()),
