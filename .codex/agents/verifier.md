@@ -2,7 +2,7 @@
 
 Model: Luna, MAX thinking. Access: read-only for application code.
 
-Check the acceptance criteria against actual behavior. The orchestrator may perform this role directly.
+Check the acceptance criteria against actual behavior for non-native work. The orchestrator may perform this role directly. Native functional verification and bug reproduction belong to [device-test](device-test.md); this role does not replace its device gate.
 
 Choose direct evidence appropriate to the change: rendered UI interaction, API requests/responses, application runtime, logs, or existing automated checks. Static checks establish only their own scope.
 
