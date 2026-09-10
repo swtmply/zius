@@ -3,6 +3,7 @@ import { SectionHeader } from "@/components/section-header";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
+import { TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@zius/api/routers/index";
 import {
   Button,
@@ -59,6 +60,7 @@ export function ExpenseForm({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string>();
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [groupChoice, setGroupChoice] =
     useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
@@ -123,10 +125,15 @@ export function ExpenseForm({
     defaultValues,
     onSubmitMeta: defaultSubmitMeta,
     validators: {
+      onChange: createExpenseSchema,
+      onBlur: createExpenseSchema,
       onSubmit: createExpenseSchema,
     },
     onSubmitInvalid: () => {
       setHasSubmitted(true);
+      setSubmitError(undefined);
+      setIsGroupDialogOpen(false);
+      Keyboard.dismiss();
     },
     onSubmit: async ({ value, meta }) => {
       // A selected group can only take the expense when every participant already
@@ -143,6 +150,7 @@ export function ExpenseForm({
       }
 
       setIsGroupDialogOpen(false);
+      setSubmitError(undefined);
       const items =
         value.splitMethod === "items"
           ? (value.items ?? []).map((item) => ({
@@ -156,6 +164,7 @@ export function ExpenseForm({
       try {
         await createExpense.mutateAsync({
           ...value,
+          title: value.title.trim(),
           items,
           groupId: needsGroupChoice ? undefined : value.group_id,
           createGroup: needsGroupChoice && meta.groupChoice === "group",
@@ -166,10 +175,18 @@ export function ExpenseForm({
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       } catch (error) {
+        const code =
+          error instanceof TRPCClientError ? error.data?.code : undefined;
         const description =
-          error instanceof Error && error.message.trim()
-            ? error.message
-            : "Something went wrong. Please try again.";
+          code === "UNAUTHORIZED"
+            ? "Your session has expired. Sign in again before submitting."
+            : code === "FORBIDDEN" || code === "NOT_FOUND"
+              ? "This group may no longer be available. Select another group or create a standalone expense."
+              : code === "BAD_REQUEST"
+                ? "Check the expense details and participant splits, then submit again."
+                : "We couldn't confirm that your expense was saved. Check your connection and expense history before trying again.";
+
+        setSubmitError(description);
 
         toast.show({
           duration: 6000,
@@ -183,6 +200,12 @@ export function ExpenseForm({
         });
         return;
       }
+
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() }),
+        queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
+        queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
+      ]);
 
       form.reset();
       setHasSubmitted(false);
@@ -363,6 +386,13 @@ export function ExpenseForm({
         {(field) => (
           <CurrencyInput
             value={field.state.value === 0 ? "" : String(field.state.value)}
+            onBlur={field.handleBlur}
+            errorMessage={
+              hasSubmitted || field.state.meta.isBlurred
+                ? createExpenseSchema.shape.totalMinor.safeParse(field.state.value)
+                    .error?.issues[0]?.message
+                : undefined
+            }
             onValueChange={(value) =>
               setTotalMinor(value === "" ? 0 : Number(value))
             }
@@ -376,6 +406,12 @@ export function ExpenseForm({
             value={field.state.value}
             onBlur={field.handleBlur}
             onChange={field.handleChange}
+            errorMessage={
+              hasSubmitted || field.state.meta.isBlurred
+                ? createExpenseSchema.shape.title.safeParse(field.state.value)
+                    .error?.issues[0]?.message
+                : undefined
+            }
           />
         )}
       </form.Field>
@@ -608,7 +644,7 @@ export function ExpenseForm({
                     onPress={() => submit({ groupChoice })}
                   >
                     <Button.Label className="text-background">
-                      Submit
+                      {isSubmitting ? "Creating expense..." : "Submit"}
                     </Button.Label>
                   </Button>
                 </>

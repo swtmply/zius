@@ -1,6 +1,6 @@
 import { TextInput, View } from "react-native";
 import React, { useRef } from "react";
-import { Button, Typography } from "heroui-native";
+import { Button, cn, Typography } from "heroui-native";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -11,9 +11,16 @@ const currencyFormatter = new Intl.NumberFormat("en-PH", {
 type CurrencyInputProps = {
   value: string;
   onValueChange: (value: string) => void;
+  onBlur?: () => void;
+  errorMessage?: string;
 };
 
-export function CurrencyInput({ value, onValueChange }: CurrencyInputProps) {
+export function CurrencyInput({
+  value,
+  onValueChange,
+  onBlur,
+  errorMessage,
+}: CurrencyInputProps) {
   const inputRef = useRef<TextInput>(null);
 
   const { maximumFractionDigits } = currencyFormatter.resolvedOptions();
@@ -49,16 +56,25 @@ export function CurrencyInput({ value, onValueChange }: CurrencyInputProps) {
   return (
     <View>
       <Button variant="ghost" className="w-full h-24" onPress={focus}>
-        <Typography className="text-2xl font-semibold">
+        <Typography
+          className={cn(
+            "text-2xl font-semibold",
+            errorMessage && "text-danger",
+          )}
+        >
           {symbol}
           {formattedValue}
         </Typography>
       </Button>
 
-      <View className="flex-row items-center absolute inset-0 justify-center opacity-0">
+      <View className="flex-row items-center absolute inset-x-0 top-0 h-24 justify-center opacity-0">
         <TextInput
           value={`₱${formattedValue}`}
           onChangeText={handleChangeText}
+          onBlur={onBlur}
+          accessibilityLabel="Expense amount"
+          accessibilityHint={errorMessage}
+          aria-invalid={Boolean(errorMessage)}
           ref={inputRef}
           keyboardType="number-pad"
           inputMode="numeric"
@@ -67,6 +83,14 @@ export function CurrencyInput({ value, onValueChange }: CurrencyInputProps) {
           returnKeyType="next"
         />
       </View>
+      {errorMessage ? (
+        <Typography
+          className="text-xs text-danger text-center"
+          accessibilityLiveRegion="polite"
+        >
+          {errorMessage}
+        </Typography>
+      ) : null}
     </View>
   );
 }
