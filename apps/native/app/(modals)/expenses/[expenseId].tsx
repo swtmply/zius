@@ -366,6 +366,53 @@ export default function ExpenseDetails() {
           </View>
         ) : null}
 
+        {data.items.length > 0 ? (
+          <>
+            <SectionHeader title="Items" />
+            <View className="gap-2">
+              <View className="flex-row items-center gap-1 border-b border-dashed border-border pb-2">
+                <Typography className="w-8 px-1 text-xs text-muted">Qty.</Typography>
+                <Typography className="min-w-0 flex-1 text-xs text-muted">Name</Typography>
+                <Typography className="w-24 text-xs text-muted">Assigned To</Typography>
+                <Typography className="w-20 text-right text-xs text-muted">Price</Typography>
+              </View>
+
+              <FlatList
+                scrollEnabled={false}
+                data={data.items}
+                keyExtractor={(item) => item.id}
+                ItemSeparatorComponent={<View className="h-2" />}
+                renderItem={({ item }) => {
+                  const assignedParticipant = data.participants.find(
+                    (participant) => participant.id === item.assignedParticipantId,
+                  );
+
+                  return (
+                    <View className="min-h-7 flex-row items-center gap-1">
+                      <Typography className="w-8 px-1 text-sm">
+                        {item.quantity}
+                      </Typography>
+                      <Typography className="min-w-0 flex-1 text-sm" numberOfLines={1}>
+                        {item.name}
+                      </Typography>
+                      <View className="w-24">
+                        <View className="self-start rounded-full bg-default px-2 py-0.5">
+                          <Typography className="text-xs text-muted" numberOfLines={1}>
+                            {assignedParticipant?.name ?? "None"}
+                          </Typography>
+                        </View>
+                      </View>
+                      <Typography className="w-20 text-right text-sm font-semibold">
+                        {formatCurrency(item.priceMinor)}
+                      </Typography>
+                    </View>
+                  );
+                }}
+              />
+            </View>
+          </>
+        ) : null}
+
         <SectionHeader title="Participants" />
 
         <FlatList
