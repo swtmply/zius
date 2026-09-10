@@ -52,7 +52,7 @@ export function ParticipantSplitInput({
       <TextInput
         accessibilityLabel={`${splitMethod} split for ${participantName}`}
         className={`border border-border rounded-lg px-2 py-1 text-right w-24 ${splitMethod !== "percentage" ? "font-semibold" : ""}`}
-        editable={splitMethod !== "equal"}
+        editable={splitMethod !== "equal" && splitMethod !== "items"}
         inputMode="decimal"
         keyboardType="decimal-pad"
         onBlur={() => {

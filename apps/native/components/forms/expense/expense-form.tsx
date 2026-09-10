@@ -4,7 +4,13 @@ import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
-import { Button, Dialog, PressableFeedback, Typography, useToast } from "heroui-native";
+import {
+  Button,
+  Dialog,
+  PressableFeedback,
+  Typography,
+  useToast,
+} from "heroui-native";
 import { useState } from "react";
 import { Keyboard, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -15,33 +21,47 @@ import { GroupSelector } from "./group-selector";
 import { ParticipantList } from "./participant-list";
 import { SplitMethodSelector } from "./split-method-selector";
 import { ExpenseFormHeader } from "./expense-form-header";
+import { ExpenseItemList } from "./expense-item-list";
 import {
+  clearInvalidItemAssignments,
+  createExpenseItem,
   createExpenseSchema,
   recalculateParticipants,
   splitMethods,
+  sumExpenseItemPrices,
+  type ExpenseItem,
   type FormParticipant,
   type SplitMethod,
   type ExpenseFormValues,
 } from "./expense-form-model";
 import { ExpenseTitleInput } from "./expense-title-input";
+import { formatCurrency } from "@/utils";
 import { trpc } from "@/utils/trpc";
+import type { ParsedReceipt } from "@/utils/scan";
 import { useRouter } from "expo-router";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import { XIcon } from "@hugeicons/core-free-icons";
 
 type ExpenseFormProps = {
   currentParticipant: inferRouterOutputs<AppRouter>["participant"]["current"];
   group?: inferRouterOutputs<AppRouter>["group"]["get"];
+  initialReceipt?: ParsedReceipt;
 };
 
 type SubmitMeta = { groupChoice?: "group" | "standalone" };
 const defaultSubmitMeta: SubmitMeta = {};
 
-export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
+export function ExpenseForm({
+  currentParticipant,
+  group,
+  initialReceipt,
+}: ExpenseFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [groupChoice, setGroupChoice] = useState<
-    NonNullable<SubmitMeta["groupChoice"]>
-  >("group");
+  const [groupChoice, setGroupChoice] =
+    useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
   const groupParticipants = group?.participants ?? [currentParticipant];
   const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
     (group?.participants ?? []).map((participant) =>
@@ -65,9 +85,17 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
   };
 
   const defaultValues: ExpenseFormValues = {
-    totalMinor: 0,
+    totalMinor:
+      initialReceipt?.totalMinor ??
+      (initialReceipt
+        ? (sumExpenseItemPrices(
+            initialReceipt.items.map((item, index) =>
+              createExpenseItem(item, `receipt_${index}`),
+            ),
+          ) ?? 0)
+        : 0),
     title: "",
-    splitMethod: splitMethods[0],
+    splitMethod: initialReceipt ? "items" : splitMethods[0],
     payer: currentParticipant.email,
     group_id: group?.id,
     participants: groupParticipants.map(({ id, name, email, userId }) => ({
@@ -80,6 +108,10 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
       isSplitValueEdited: false,
       status: "unpaid",
     })),
+    items:
+      initialReceipt?.items.map((item, index) =>
+        createExpenseItem(item, `receipt_${index}`),
+      ) ?? [],
     occurredAt: Date.now(),
     currency: "PHP",
   };
@@ -92,6 +124,9 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
     onSubmitMeta: defaultSubmitMeta,
     validators: {
       onSubmit: createExpenseSchema,
+    },
+    onSubmitInvalid: () => {
+      setHasSubmitted(true);
     },
     onSubmit: async ({ value, meta }) => {
       // A selected group can only take the expense when every participant already
@@ -108,9 +143,20 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
       }
 
       setIsGroupDialogOpen(false);
+      const items =
+        value.splitMethod === "items"
+          ? (value.items ?? []).map((item) => ({
+              name: item.name.trim(),
+              quantity: item.quantity,
+              priceMinor: item.priceMinor,
+              participantEmail:
+                item.participantEmail?.trim().toLowerCase() ?? "",
+            }))
+          : [];
       try {
         await createExpense.mutateAsync({
           ...value,
+          items,
           groupId: needsGroupChoice ? undefined : value.group_id,
           createGroup: needsGroupChoice && meta.groupChoice === "group",
         });
@@ -139,6 +185,7 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
       }
 
       form.reset();
+      setHasSubmitted(false);
       setGroupMemberEmails(
         (group?.participants ?? []).map((participant) =>
           participant.email.toLowerCase(),
@@ -174,6 +221,7 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
         participants,
         totalMinor,
         form.state.values.splitMethod,
+        form.state.values.items ?? [],
       ),
     );
   };
@@ -189,17 +237,43 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
         })),
         form.state.values.totalMinor,
         splitMethod,
+        form.state.values.items ?? [],
       ),
     );
   };
 
-  const setParticipants = (participants: FormParticipant[]) => {
+  const setParticipants = (
+    participants: FormParticipant[],
+    items: ExpenseItem[] = form.state.values.items ?? [],
+  ) => {
+    const validItems = clearInvalidItemAssignments(items, participants);
+
+    form.setFieldValue("items", validItems);
     form.setFieldValue(
       "participants",
       recalculateParticipants(
         participants,
         form.state.values.totalMinor,
         form.state.values.splitMethod,
+        validItems,
+      ),
+    );
+  };
+
+  const setItems = (items: ExpenseItem[]) => {
+    const validItems = clearInvalidItemAssignments(
+      items,
+      form.state.values.participants,
+    );
+
+    form.setFieldValue("items", validItems);
+    form.setFieldValue(
+      "participants",
+      recalculateParticipants(
+        form.state.values.participants,
+        form.state.values.totalMinor,
+        form.state.values.splitMethod,
+        validItems,
       ),
     );
   };
@@ -317,6 +391,68 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
         )}
       </form.Field>
 
+      <form.Subscribe
+        selector={(state) => ({
+          items: state.values.items ?? [],
+          participants: state.values.participants,
+          splitMethod: state.values.splitMethod,
+          totalMinor: state.values.totalMinor,
+          isSubmitting: state.isSubmitting,
+        })}
+      >
+        {({ items, participants, splitMethod, totalMinor, isSubmitting }) => {
+          if (splitMethod !== "items") {
+            return null;
+          }
+
+          const itemTotal = sumExpenseItemPrices(items);
+          const hasMismatch =
+            itemTotal !== undefined && itemTotal !== totalMinor;
+
+          return (
+            <View className="gap-2">
+              <SectionHeader title="Items" />
+              <ExpenseItemList
+                items={items}
+                participants={participants}
+                isDisabled={isSubmitting}
+                showErrors={hasSubmitted}
+                onAdd={() =>
+                  setItems([
+                    ...items,
+                    createExpenseItem({ name: "", quantity: 1, priceMinor: 0 }),
+                  ])
+                }
+                onChange={(index, item) => {
+                  setItems(
+                    items.map((current, itemIndex) =>
+                      itemIndex === index ? item : current,
+                    ),
+                  );
+                }}
+                onRemove={(index) => {
+                  setItems(items.filter((_, itemIndex) => itemIndex !== index));
+                }}
+              />
+              {hasSubmitted && items.length === 0 ? (
+                <Typography className="px-1 text-xs text-danger" selectable>
+                  Add at least one item before submitting.
+                </Typography>
+              ) : hasMismatch ? (
+                <Typography className="px-1 text-xs text-danger" selectable>
+                  Items total {formatCurrency(itemTotal)} must match the expense
+                  amount {formatCurrency(totalMinor)}.
+                </Typography>
+              ) : itemTotal === undefined && hasSubmitted ? (
+                <Typography className="px-1 text-xs text-danger" selectable>
+                  Enter valid line totals before submitting.
+                </Typography>
+              ) : null}
+            </View>
+          );
+        }}
+      </form.Subscribe>
+
       <SectionHeader title="Groups" />
 
       <form.Subscribe
@@ -413,11 +549,11 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
               <Button
                 isIconOnly
                 size="sm"
-                variant="ghost"
+                variant="secondary"
                 accessibilityLabel="Close expense confirmation"
                 onPress={() => setIsGroupDialogOpen(false)}
               >
-                <Button.Label>×</Button.Label>
+                <HugeiconsIcon icon={XIcon} />
               </Button>
             </View>
             <form.Subscribe selector={(state) => state.isSubmitting}>
@@ -446,7 +582,9 @@ export function ExpenseForm({ currentParticipant, group }: ExpenseFormProps) {
                     </PressableFeedback>
                     <PressableFeedback
                       accessibilityRole="radio"
-                      accessibilityState={{ checked: groupChoice === "standalone" }}
+                      accessibilityState={{
+                        checked: groupChoice === "standalone",
+                      }}
                       isDisabled={isSubmitting}
                       onPress={() => setGroupChoice("standalone")}
                       className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
