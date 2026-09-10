@@ -168,6 +168,7 @@ export function SignIn() {
         <form.Field name="email">
           {(field) => (
             <AuthField
+              testID="auth-email"
               inputRef={emailInputRef}
               label="Email"
               value={field.state.value}
@@ -188,6 +189,7 @@ export function SignIn() {
         <form.Field name="password">
           {(field) => (
             <AuthField
+              testID="auth-password"
               inputRef={passwordInputRef}
               label="Password"
               value={field.state.value}
@@ -213,6 +215,7 @@ export function SignIn() {
               ) : null}
 
               <Pressable
+                testID={isSignUp ? "auth-sign-up" : "auth-login"}
                 accessibilityRole="button"
                 disabled={isSubmitting}
                 onPress={() => void form.handleSubmit()}
