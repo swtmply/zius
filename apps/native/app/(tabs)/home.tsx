@@ -14,7 +14,9 @@ import { useRouter } from "expo-router";
 import { FlatList, View } from "react-native";
 
 export default function Home() {
-  const { data, isLoading } = useQuery(trpc.dashboard.get.queryOptions());
+  const { data, isLoading, isRefetching, refetch } = useQuery(
+    trpc.dashboard.get.queryOptions(),
+  );
   const router = useRouter();
 
   if (isLoading) {
@@ -24,6 +26,10 @@ export default function Home() {
   return (
     <View className="bg-background flex-1">
       <FlatList
+        refreshing={isRefetching}
+        onRefresh={() => {
+          void refetch();
+        }}
         ListHeaderComponent={
           <View className="pt-safe gap-4">
             <DashboardHeader />

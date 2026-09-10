@@ -59,7 +59,11 @@ export function ParticipantList({
               <ParticipantSplitInput
                 participantName={participant.name}
                 splitMethod={splitMethod}
-                value={splitMethod === "equal" ? participant.owedMinor : participant.splitValue}
+                value={
+                  splitMethod === "equal" || splitMethod === "items"
+                    ? participant.owedMinor
+                    : participant.splitValue
+                }
                 onValueChange={(value) => onSplitValueChange(participant.id, value)}
               />
               <Button

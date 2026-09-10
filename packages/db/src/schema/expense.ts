@@ -91,7 +91,7 @@ export const expense = sqliteTable(
       .default("active")
       .notNull(),
     splitMethod: text("split_method", {
-      enum: ["equal", "fixed", "percentage"],
+      enum: ["equal", "fixed", "percentage", "items"],
     }).notNull(),
     occurredAt: integer("occurred_at", { mode: "timestamp_ms" }).notNull(),
     settledAt: integer("settled_at", { mode: "timestamp_ms" }),
@@ -104,17 +104,11 @@ export const expense = sqliteTable(
   },
   (table) => [
     check("expense_total_positive_check", sql`${table.totalMinor} > 0`),
-    check(
-      "expense_currency_check",
-      sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`,
-    ),
-    check(
-      "expense_status_check",
-      sql`${table.status} in ('active', 'settled', 'cancelled')`,
-    ),
+    check("expense_currency_check", sql`${table.currency} glob '[A-Z][A-Z][A-Z]'`),
+    check("expense_status_check", sql`${table.status} in ('active', 'settled', 'cancelled')`),
     check(
       "expense_split_method_check",
-      sql`${table.splitMethod} in ('equal', 'fixed', 'percentage')`,
+      sql`${table.splitMethod} in ('equal', 'fixed', 'percentage', 'items')`,
     ),
     check(
       "expense_state_metadata_check",
@@ -145,16 +139,39 @@ export const expenseParticipant = sqliteTable(
   (table) => [
     primaryKey({ columns: [table.expenseId, table.participantId] }),
     check("expense_participant_owed_check", sql`${table.owedMinor} >= 0`),
-    check(
-      "expense_participant_status_check",
-      sql`${table.status} in ('paid', 'unpaid')`,
-    ),
+    check("expense_participant_status_check", sql`${table.status} in ('paid', 'unpaid')`),
     check(
       "expense_participant_payment_check",
       sql`(${table.status} = 'unpaid' and ${table.paidAt} is null) or (${table.status} = 'paid' and ${table.paidAt} is not null)`,
     ),
     index("expense_participant_participant_id_idx").on(table.participantId),
     index("expense_participant_status_idx").on(table.status),
+  ],
+);
+
+export const expenseItem = sqliteTable(
+  "expense_item",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    expenseId: text("expense_id")
+      .notNull()
+      .references(() => expense.id, { onDelete: "cascade" }),
+    position: integer("position").notNull(),
+    name: text("name").notNull(),
+    quantity: integer("quantity").notNull(),
+    priceMinor: integer("price_minor").notNull(),
+    assignedParticipantId: text("assigned_participant_id")
+      .notNull()
+      .references(() => participant.id),
+  },
+  (table) => [
+    uniqueIndex("expense_item_expense_position_uidx").on(table.expenseId, table.position),
+    check("expense_item_position_check", sql`${table.position} >= 0`),
+    check("expense_item_quantity_check", sql`${table.quantity} > 0`),
+    check("expense_item_price_minor_check", sql`${table.priceMinor} >= 0`),
+    index("expense_item_assigned_participant_id_idx").on(table.assignedParticipantId),
   ],
 );
 
@@ -166,6 +183,7 @@ export const participantRelations = relations(participant, ({ one, many }) => ({
   groupMemberships: many(groupMember),
   paidExpenses: many(expense),
   expenseParticipants: many(expenseParticipant),
+  assignedExpenseItems: many(expenseItem),
 }));
 
 export const groupRelations = relations(group, ({ one, many }) => ({
@@ -206,18 +224,27 @@ export const expenseRelations = relations(expense, ({ one, many }) => ({
     references: [user.id],
   }),
   participants: many(expenseParticipant),
+  items: many(expenseItem),
 }));
 
-export const expenseParticipantRelations = relations(
-  expenseParticipant,
-  ({ one }) => ({
-    expense: one(expense, {
-      fields: [expenseParticipant.expenseId],
-      references: [expense.id],
-    }),
-    participant: one(participant, {
-      fields: [expenseParticipant.participantId],
-      references: [participant.id],
-    }),
+export const expenseParticipantRelations = relations(expenseParticipant, ({ one }) => ({
+  expense: one(expense, {
+    fields: [expenseParticipant.expenseId],
+    references: [expense.id],
   }),
-);
+  participant: one(participant, {
+    fields: [expenseParticipant.participantId],
+    references: [participant.id],
+  }),
+}));
+
+export const expenseItemRelations = relations(expenseItem, ({ one }) => ({
+  expense: one(expense, {
+    fields: [expenseItem.expenseId],
+    references: [expense.id],
+  }),
+  assignedParticipant: one(participant, {
+    fields: [expenseItem.assignedParticipantId],
+    references: [participant.id],
+  }),
+}));

@@ -1,0 +1,32 @@
+executionPrerequisite: Zius is open on Android on the sign-in screen, signed out,
+  with empty email and password fields and the software keyboard enabled.
+  ZIUS_TEST_EMAIL and ZIUS_TEST_PASSWORD must resolve to an existing account.
+steps:
+  - echo: On the sign-in screen, enter credentials and log in. Expect the Home dashboard.
+  - await:
+      visible: { id: auth-login }
+  - await:
+      idle: true
+  - type:
+      into: { id: auth-password }
+      text: "{{secret:ZIUS_TEST_PASSWORD}}"
+      submit: false
+  - await:
+      visible: { id: "android:id/input_method_nav_back" }
+  - type:
+      into: { id: auth-email }
+      text: "{{secret:ZIUS_TEST_EMAIL}}"
+      submit: false
+  - tool: button
+    args:
+      button: back
+  - await:
+      hidden: { id: "android:id/input_method_nav_back" }
+  - tap: { id: auth-login }
+  - await:
+      hidden: { id: auth-login }
+  - await:
+      visible: { text: Dashboard }
+      timeout: 15000
+  - await:
+      idle: true
