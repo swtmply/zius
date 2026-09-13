@@ -7,9 +7,9 @@ import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SlidersVertical } from "@hugeicons/core-free-icons";
 
 const statusOptions = [
+  { value: "all", label: "All" },
   { value: "active", label: "Active" },
   { value: "archived", label: "Archived" },
-  { value: "all", label: "All" },
 ] as const;
 const typeOptions = [
   { value: "all", label: "All" },
@@ -20,8 +20,8 @@ const sortOptions = [
   { value: "newest", label: "Newest First" },
   { value: "oldest", label: "Oldest First" },
 ] as const;
-type GroupType = (typeof typeOptions)[number]["value"];
-type GroupSort = (typeof sortOptions)[number]["value"];
+export type GroupType = (typeof typeOptions)[number]["value"];
+export type GroupSort = (typeof sortOptions)[number]["value"];
 export type GroupStatus = (typeof statusOptions)[number]["value"];
 
 export function GroupFilters({
@@ -49,9 +49,13 @@ export function GroupFilters({
 
   return (
     <BottomSheet isOpen={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-      <Button variant="secondary" size="sm" onPress={openFilters}>
-        <HugeiconsIcon icon={SlidersVertical} size={24} />
-        <Button.Label>Filters</Button.Label>
+      <Button
+        isIconOnly
+        className="size-12 rounded-full bg-dark-gradient"
+        accessibilityLabel="Open group filters"
+        onPress={openFilters}
+      >
+        <HugeiconsIcon icon={SlidersVertical} size={22} color="#FFFFFF" />
       </Button>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
@@ -60,7 +64,7 @@ export function GroupFilters({
           bottomInset={insets.bottom + 12}
           className="mx-4"
           backgroundClassName="rounded-[32px]"
-          contentContainerClassName="gap-4 p-5"
+          contentContainerClassName="gap-4 p-4"
           handleComponent={null}
         >
           <View className="flex-row items-center justify-between">
@@ -116,7 +120,7 @@ export function GroupFilters({
             ))}
           </View>
           <Button
-            className="w-full"
+            className="w-full bg-dark-gradient"
             onPress={() => {
               router.setParams({ status: draftStatus, type: draftType, sort: draftSort });
               setIsFiltersOpen(false);

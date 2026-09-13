@@ -9,23 +9,15 @@ type GroupFormHeaderProps = {
   onSubmit: () => void;
 };
 
-export function GroupFormHeader({
-  isDisabled,
-  onSubmit,
-}: GroupFormHeaderProps) {
+export function GroupFormHeader({ isDisabled, onSubmit }: GroupFormHeaderProps) {
   const router = useRouter();
 
   return (
     <View className="flex-row items-center justify-between py-4">
-      <Button
-        isIconOnly
-        variant="ghost"
-        accessibilityLabel="Go back"
-        onPress={() => router.back()}
-      >
-        <HugeiconsIcon icon={ChevronLeft} size={24} />
+      <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
+        <HugeiconsIcon icon={ChevronLeft} size={24} color="#000000" />
       </Button>
-      <Typography className="text-2xl font-semibold">Create Group</Typography>
+      <Typography className="text-xl font-semibold text-ink">Create Group</Typography>
       <Button
         isIconOnly
         variant="ghost"
@@ -33,7 +25,7 @@ export function GroupFormHeader({
         isDisabled={isDisabled}
         onPress={onSubmit}
       >
-        <HugeiconsIcon icon={Check} size={24} />
+        <HugeiconsIcon icon={Check} size={24} color="#000000" />
       </Button>
     </View>
   );

@@ -64,6 +64,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@swmansion/argent": "^0.25.0",
     "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@zius/config": "workspace:*",

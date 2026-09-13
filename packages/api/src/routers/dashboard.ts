@@ -1,3 +1,4 @@
+import { user } from "@zius/db/schema/auth";
 import { expense, expenseParticipant, group, participant } from "@zius/db/schema/expense";
 import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 
@@ -6,6 +7,8 @@ import { participantProcedure, router } from "../index";
 const dashboardExpenseColumns = {
   id: expense.id,
   title: expense.title,
+  category: expense.category,
+  iconName: expense.iconName,
   totalMinor: expense.totalMinor,
   currency: expense.currency,
   occurredAt: expense.occurredAt,
@@ -24,6 +27,7 @@ export const dashboardRouter = router({
         },
         activeExpenses: [],
         recentExpenses: [],
+        settledExpenses: [],
       };
     }
 
@@ -79,9 +83,19 @@ export const dashboardRouter = router({
       .orderBy(desc(expense.occurredAt))
       .limit(10);
 
-    const activeExpenseIds = activeExpenseRows.map((item) => item.id);
-    const activeParticipantRows =
-      activeExpenseIds.length === 0
+    const settledExpenseRows = await ctx.db
+      .select(dashboardExpenseColumns)
+      .from(expense)
+      .leftJoin(group, eq(group.id, expense.groupId))
+      .where(and(eq(expense.status, "settled"), involvementCondition, activeGroupCondition))
+      .orderBy(desc(expense.occurredAt))
+      .limit(10);
+
+    const dashboardExpenseIds = [...activeExpenseRows, ...settledExpenseRows].map(
+      (item) => item.id,
+    );
+    const dashboardParticipantRows =
+      dashboardExpenseIds.length === 0
         ? []
         : await ctx.db
             .select({
@@ -89,19 +103,21 @@ export const dashboardRouter = router({
               id: participant.id,
               name: participant.name,
               email: participant.email,
+              image: user.image,
             })
             .from(expenseParticipant)
             .innerJoin(participant, eq(participant.id, expenseParticipant.participantId))
-            .where(inArray(expenseParticipant.expenseId, activeExpenseIds));
+            .leftJoin(user, eq(user.id, participant.userId))
+            .where(inArray(expenseParticipant.expenseId, dashboardExpenseIds));
 
     const participantsByExpenseId = new Map<
       string,
-      Array<{ id: string; name: string; email: string }>
+      Array<{ id: string; name: string; email: string; image: string | null }>
     >();
 
-    for (const row of activeParticipantRows) {
+    for (const row of dashboardParticipantRows) {
       const current = participantsByExpenseId.get(row.expenseId) ?? [];
-      current.push({ id: row.id, name: row.name, email: row.email });
+      current.push({ id: row.id, name: row.name, email: row.email, image: row.image });
       participantsByExpenseId.set(row.expenseId, current);
     }
 
@@ -130,6 +146,10 @@ export const dashboardRouter = router({
       },
       activeExpenses,
       recentExpenses,
+      settledExpenses: settledExpenseRows.map((item) => ({
+        ...item,
+        participants: participantsByExpenseId.get(item.id) ?? [],
+      })),
     };
   }),
 });

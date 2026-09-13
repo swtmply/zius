@@ -1,14 +1,27 @@
+import { expenseCategories, expenseCategoryNames } from "../expense-categories";
 import type { Database } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import {
   expense,
+  expenseItem,
   expenseParticipant,
   group,
   groupMember,
   participant,
 } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, exists, gt, inArray, lt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  gt,
+  inArray,
+  lt,
+  or,
+  sql,
+} from "drizzle-orm";
 import { z } from "zod";
 
 import { participantProcedure, requireParticipant, router } from "../index";
@@ -24,23 +37,35 @@ const createParticipantSchema = z.object({
   status: z.enum(["paid", "unpaid"]).default("unpaid"),
 });
 
+const createItemSchema = z.object({
+  name: z.string().trim().min(1),
+  quantity: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  priceMinor: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  participantEmail: z.email().transform((email) => email.toLowerCase()),
+});
+
 const createSchema = z
   .object({
     title: z.string().trim().min(1),
+    category: z.enum(expenseCategoryNames).default("others"),
     totalMinor: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     currency: z
       .string()
       .trim()
       .length(3)
       .transform((currency) => currency.toUpperCase())
-      .refine((currency) => /^[A-Z]{3}$/.test(currency), "Invalid currency code")
+      .refine(
+        (currency) => /^[A-Z]{3}$/.test(currency),
+        "Invalid currency code",
+      )
       .default("PHP"),
-    splitMethod: z.enum(["equal", "fixed", "percentage"]),
+    splitMethod: z.enum(["equal", "fixed", "percentage", "items"]),
     payer: z.email().transform((email) => email.toLowerCase()),
     groupId: z.string().optional(),
     createGroup: z.boolean().default(false),
     occurredAt: z.number().int().nonnegative().max(8_640_000_000_000_000),
     participants: z.array(createParticipantSchema),
+    items: z.array(createItemSchema).default([]),
   })
   .superRefine((input, ctx) => {
     const emails = new Set<string>();
@@ -68,8 +93,50 @@ const createSchema = z
     if (input.groupId !== undefined && input.createGroup) {
       ctx.addIssue({
         code: "custom",
-        message: "An expense cannot be assigned to a group and create a new group",
+        message:
+          "An expense cannot be assigned to a group and create a new group",
         path: ["createGroup"],
+      });
+    }
+
+    if (input.splitMethod === "items") {
+      if (input.items.length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Items split requires at least one item",
+          path: ["items"],
+        });
+      }
+
+      const participantEmails = new Set(
+        input.participants.map((entry) => entry.email),
+      );
+      let itemTotalMinor = 0;
+
+      for (const [index, item] of input.items.entries()) {
+        itemTotalMinor += item.priceMinor;
+
+        if (!participantEmails.has(item.participantEmail)) {
+          ctx.addIssue({
+            code: "custom",
+            message: "Item participant must be included in participants",
+            path: ["items", index, "participantEmail"],
+          });
+        }
+      }
+
+      if (input.items.length > 0 && itemTotalMinor !== input.totalMinor) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Item prices must equal the expense total",
+          path: ["items"],
+        });
+      }
+    } else if (input.items.length > 0) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Items can only be provided for the items split method",
+        path: ["items"],
       });
     }
   });
@@ -82,13 +149,16 @@ function divideEvenly(total: number, count: number) {
   const baseAmount = Math.floor(total / count);
   const remainder = total % count;
 
-  return Array.from({ length: count }, (_, index) => baseAmount + (index < remainder ? 1 : 0));
+  return Array.from(
+    { length: count },
+    (_, index) => baseAmount + (index < remainder ? 1 : 0),
+  );
 }
 
 function percentageOf(totalMinor: number, basisPoints: number) {
-  const numerator = BigInt(totalMinor) * BigInt(basisPoints);
-  const roundingOffset = BigInt(FULL_PERCENTAGE_BASIS_POINTS / 2);
-  return Number((numerator + roundingOffset) / BigInt(FULL_PERCENTAGE_BASIS_POINTS));
+  const numerator = totalMinor * basisPoints;
+  const roundingOffset = FULL_PERCENTAGE_BASIS_POINTS / 2;
+  return Number((numerator + roundingOffset) / FULL_PERCENTAGE_BASIS_POINTS);
 }
 
 function calculateParticipantAmounts(
@@ -96,7 +166,10 @@ function calculateParticipantAmounts(
   totalMinor: number,
   splitMethod: z.infer<typeof createSchema>["splitMethod"],
 ) {
-  const providedTotal = participants.reduce((total, entry) => total + entry.owedMinor, 0);
+  const providedTotal = participants.reduce(
+    (total, entry) => total + entry.owedMinor,
+    0,
+  );
 
   if (splitMethod === "equal") {
     const amounts = divideEvenly(totalMinor, participants.length);
@@ -107,7 +180,8 @@ function calculateParticipantAmounts(
     }));
   }
 
-  const maximumTotal = splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
+  const maximumTotal =
+    splitMethod === "percentage" ? FULL_PERCENTAGE_BASIS_POINTS : totalMinor;
 
   if (providedTotal > maximumTotal) {
     throw new TRPCError({
@@ -119,7 +193,9 @@ function calculateParticipantAmounts(
     });
   }
 
-  const hasAutomaticParticipants = participants.some((entry) => entry.owedMinor === 0);
+  const hasAutomaticParticipants = participants.some(
+    (entry) => entry.owedMinor === 0,
+  );
 
   if (providedTotal < maximumTotal && !hasAutomaticParticipants) {
     throw new TRPCError({
@@ -169,6 +245,25 @@ function calculateParticipantAmounts(
       entry.owedMinor === 0
         ? (automaticAmountsByIndex.get(index) ?? 0)
         : (calculatedAmounts[index] ?? 0),
+  }));
+}
+
+function calculateItemParticipantAmounts(
+  participants: z.infer<typeof createParticipantSchema>[],
+  items: z.infer<typeof createItemSchema>[],
+) {
+  const amountsByEmail = new Map<string, number>();
+
+  for (const item of items) {
+    amountsByEmail.set(
+      item.participantEmail,
+      (amountsByEmail.get(item.participantEmail) ?? 0) + item.priceMinor,
+    );
+  }
+
+  return participants.map((entry) => ({
+    ...entry,
+    owedMinor: Number(amountsByEmail.get(entry.email) ?? 0),
   }));
 }
 
@@ -245,6 +340,8 @@ const expenseListOutputSchema = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
+      category: z.enum(expenseCategoryNames),
+      iconName: z.string(),
       totalMinor: z.number().int().positive(),
       currency: z.string(),
       status: z.enum(["active", "settled", "cancelled"]),
@@ -267,16 +364,20 @@ const expenseListOutputSchema = z.object({
 const expenseGetOutputSchema = z.object({
   id: z.string(),
   title: z.string(),
+  category: z.enum(expenseCategoryNames),
+  iconName: z.string(),
   totalMinor: z.number().int().positive(),
   isPayer: z.boolean(),
   amountMinor: z
     .number()
     .int()
     .nonnegative()
-    .describe("Unpaid shares owed to the current payer, or the current participant's owedMinor"),
+    .describe(
+      "Unpaid shares owed to the current payer, or the current participant's owedMinor",
+    ),
   currency: z.string(),
   status: z.enum(["active", "settled", "cancelled"]),
-  splitMethod: z.enum(["equal", "fixed", "percentage"]),
+  splitMethod: z.enum(["equal", "fixed", "percentage", "items"]),
   payerId: z.string(),
   payerName: z.string(),
   groupId: z.string().nullable(),
@@ -289,6 +390,16 @@ const expenseGetOutputSchema = z.object({
   cancelledByUserId: z.string().nullable(),
   createdByUserId: z.string(),
   participants: z.array(expenseParticipantSchema),
+  items: z.array(
+    z.object({
+      id: z.string(),
+      position: z.number().int().nonnegative(),
+      name: z.string(),
+      quantity: z.number().int().positive(),
+      priceMinor: z.number().int().nonnegative(),
+      assignedParticipantId: z.string(),
+    }),
+  ),
 });
 
 /**
@@ -298,7 +409,10 @@ const expenseGetOutputSchema = z.object({
  * Takes the database handle so the same filter can be built against a
  * transaction as well as against the request-scoped database.
  */
-function buildInvolvementFilter(db: Pick<Database, "select">, participantId: string) {
+function buildInvolvementFilter(
+  db: Pick<Database, "select">,
+  participantId: string,
+) {
   return or(
     eq(expense.payerId, participantId),
     exists(
@@ -360,12 +474,17 @@ export const expenseRouter = router({
     .mutation(async ({ ctx, input }) => {
       const currentParticipant = requireParticipant(ctx.participant);
 
-      const participants = calculateParticipantAmounts(
-        input.participants,
-        input.totalMinor,
-        input.splitMethod,
+      const participants =
+        input.splitMethod === "items"
+          ? calculateItemParticipantAmounts(input.participants, input.items)
+          : calculateParticipantAmounts(
+              input.participants,
+              input.totalMinor,
+              input.splitMethod,
+            );
+      const payerEntry = participants.find(
+        (entry) => entry.email === input.payer,
       );
-      const payerEntry = participants.find((entry) => entry.email === input.payer);
 
       if (!payerEntry) {
         throw new TRPCError({
@@ -374,7 +493,9 @@ export const expenseRouter = router({
         });
       }
 
-      const otherParticipants = participants.filter((entry) => entry.email !== input.payer);
+      const otherParticipants = participants.filter(
+        (entry) => entry.email !== input.payer,
+      );
 
       return ctx.db.transaction(async (tx) => {
         if (input.groupId) {
@@ -400,7 +521,10 @@ export const expenseRouter = router({
         }
 
         const emails = [
-          ...new Set([...input.participants.map((entry) => entry.email), input.payer]),
+          ...new Set([
+            ...input.participants.map((entry) => entry.email),
+            input.payer,
+          ]),
         ];
         const existingParticipants = await tx
           .select({
@@ -410,7 +534,10 @@ export const expenseRouter = router({
           .from(participant)
           .where(inArray(sql<string>`lower(${participant.email})`, emails));
         const participantIdsByEmail = new Map(
-          existingParticipants.map((entry) => [entry.email.toLowerCase(), entry.id]),
+          existingParticipants.map((entry) => [
+            entry.email.toLowerCase(),
+            entry.id,
+          ]),
         );
         const newParticipants = input.participants.filter(
           (entry) => !participantIdsByEmail.has(entry.email),
@@ -450,7 +577,9 @@ export const expenseRouter = router({
           });
         }
 
-        const createdGroupId = input.createGroup ? crypto.randomUUID() : undefined;
+        const createdGroupId = input.createGroup
+          ? crypto.randomUUID()
+          : undefined;
 
         if (createdGroupId) {
           await tx.insert(group).values({
@@ -459,25 +588,34 @@ export const expenseRouter = router({
             createdByUserId: ctx.session.user.id,
           });
 
-          const memberIds = new Set([currentParticipant.id, ...participantIdsByEmail.values()]);
+          const memberIds = new Set([
+            currentParticipant.id,
+            ...participantIdsByEmail.values(),
+          ]);
 
           await tx.insert(groupMember).values(
             [...memberIds].map((participantId) => ({
               groupId: createdGroupId,
               participantId,
               role:
-                participantId === currentParticipant.id ? ("owner" as const) : ("member" as const),
+                participantId === currentParticipant.id
+                  ? ("owner" as const)
+                  : ("member" as const),
             })),
           );
         }
 
         const now = new Date();
         const id = crypto.randomUUID();
-        const isSettled = otherParticipants.every((entry) => entry.status === "paid");
+        const isSettled = otherParticipants.every(
+          (entry) => entry.status === "paid",
+        );
 
         await tx.insert(expense).values({
           id,
           title: input.title,
+          category: input.category,
+          iconName: expenseCategories[input.category].iconName,
           totalMinor: input.totalMinor,
           currency: input.currency,
           payerId,
@@ -519,6 +657,33 @@ export const expenseRouter = router({
           ...participantValues,
         ]);
 
+        if (input.items.length > 0) {
+          await tx.insert(expenseItem).values(
+            input.items.map((item, position) => {
+              const assignedParticipantId = participantIdsByEmail.get(
+                item.participantEmail,
+              );
+
+              if (!assignedParticipantId) {
+                throw new TRPCError({
+                  code: "INTERNAL_SERVER_ERROR",
+                  message: "Item participant could not be resolved",
+                });
+              }
+
+              return {
+                id: crypto.randomUUID(),
+                expenseId: id,
+                position,
+                name: item.name,
+                quantity: item.quantity,
+                priceMinor: item.priceMinor,
+                assignedParticipantId,
+              };
+            }),
+          );
+        }
+
         return {
           id,
           status: isSettled ? ("settled" as const) : ("active" as const),
@@ -543,7 +708,10 @@ export const expenseRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const involvementFilter = buildInvolvementFilter(tx, currentParticipant.id);
+        const involvementFilter = buildInvolvementFilter(
+          tx,
+          currentParticipant.id,
+        );
         const [currentExpense] = await tx
           .select({
             id: expense.id,
@@ -584,12 +752,18 @@ export const expenseRouter = router({
         const persistedParticipantIds = new Set(
           persistedParticipants.map((entry) => entry.participantId),
         );
-        const hasStoredPayer = persistedParticipantIds.has(currentExpense.payerId);
+        const hasStoredPayer = persistedParticipantIds.has(
+          currentExpense.payerId,
+        );
         const now = new Date();
 
         for (const entry of input.participants) {
           if (!persistedParticipantIds.has(entry.id)) {
-            if (entry.id === currentExpense.payerId && !hasStoredPayer && entry.status === "paid") {
+            if (
+              entry.id === currentExpense.payerId &&
+              !hasStoredPayer &&
+              entry.status === "paid"
+            ) {
               continue;
             }
 
@@ -617,7 +791,9 @@ export const expenseRouter = router({
           .select({ status: expenseParticipant.status })
           .from(expenseParticipant)
           .where(eq(expenseParticipant.expenseId, currentExpense.id));
-        const isSettled = updatedParticipants.every((entry) => entry.status === "paid");
+        const isSettled = updatedParticipants.every(
+          (entry) => entry.status === "paid",
+        );
         const status = isSettled ? ("settled" as const) : ("active" as const);
 
         await tx
@@ -626,7 +802,12 @@ export const expenseRouter = router({
             status,
             settledAt: isSettled ? now : null,
           })
-          .where(and(eq(expense.id, currentExpense.id), eq(expense.status, currentExpense.status)));
+          .where(
+            and(
+              eq(expense.id, currentExpense.id),
+              eq(expense.status, currentExpense.status),
+            ),
+          );
 
         const [updatedExpense] = await tx
           .select({ status: expense.status })
@@ -697,7 +878,8 @@ export const expenseRouter = router({
               .limit(1)
           : [];
         const canCancel =
-          currentExpense.createdByUserId === ctx.session.user.id || Boolean(groupOwnerMembership);
+          currentExpense.createdByUserId === ctx.session.user.id ||
+          Boolean(groupOwnerMembership);
 
         if (!canCancel) {
           throw new TRPCError({
@@ -722,7 +904,12 @@ export const expenseRouter = router({
             cancelledAt,
             cancelledByUserId: ctx.session.user.id,
           })
-          .where(and(eq(expense.id, currentExpense.id), eq(expense.status, "active")));
+          .where(
+            and(
+              eq(expense.id, currentExpense.id),
+              eq(expense.status, "active"),
+            ),
+          );
 
         const [cancelledExpense] = await tx
           .select({ status: expense.status })
@@ -766,6 +953,8 @@ export const expenseRouter = router({
         .select({
           id: expense.id,
           title: expense.title,
+          category: expense.category,
+          iconName: expense.iconName,
           totalMinor: expense.totalMinor,
           currency: expense.currency,
           status: expense.status,
@@ -811,7 +1000,8 @@ export const expenseRouter = router({
         : [];
       const canCancel =
         expenseRow.status === "active" &&
-        (expenseRow.createdByUserId === ctx.session.user.id || Boolean(groupOwnerMembership));
+        (expenseRow.createdByUserId === ctx.session.user.id ||
+          Boolean(groupOwnerMembership));
       const cancelledBy = expenseRow.cancelledByUserId
         ? await ctx.db
             .select({ id: user.id, name: user.name })
@@ -830,9 +1020,25 @@ export const expenseRouter = router({
           status: expenseParticipant.status,
         })
         .from(expenseParticipant)
-        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
+        .innerJoin(
+          participant,
+          eq(expenseParticipant.participantId, participant.id),
+        )
         .leftJoin(user, eq(user.id, participant.userId))
         .where(eq(expenseParticipant.expenseId, expenseRow.id));
+
+      const expenseItems = await ctx.db
+        .select({
+          id: expenseItem.id,
+          position: expenseItem.position,
+          name: expenseItem.name,
+          quantity: expenseItem.quantity,
+          priceMinor: expenseItem.priceMinor,
+          assignedParticipantId: expenseItem.assignedParticipantId,
+        })
+        .from(expenseItem)
+        .where(eq(expenseItem.expenseId, expenseRow.id))
+        .orderBy(asc(expenseItem.position));
 
       const storedPayer = expenseParticipants.find(
         (expenseParticipant) => expenseParticipant.id === expenseRow.payerId,
@@ -846,7 +1052,9 @@ export const expenseRouter = router({
                 : total,
             0,
           )
-        : (expenseParticipants.find((entry) => entry.id === currentParticipant.id)?.owedMinor ?? 0);
+        : (expenseParticipants.find(
+            (entry) => entry.id === currentParticipant.id,
+          )?.owedMinor ?? 0);
       const payer =
         storedPayer ??
         ({
@@ -861,6 +1069,8 @@ export const expenseRouter = router({
       return {
         id: expenseRow.id,
         title: expenseRow.title,
+        category: expenseRow.category,
+        iconName: expenseRow.iconName,
         totalMinor: expenseRow.totalMinor,
         isPayer,
         amountMinor,
@@ -880,8 +1090,11 @@ export const expenseRouter = router({
         createdByUserId: expenseRow.createdByUserId,
         participants: [
           payer,
-          ...expenseParticipants.filter((expenseParticipant) => expenseParticipant.id !== payer.id),
+          ...expenseParticipants.filter(
+            (expenseParticipant) => expenseParticipant.id !== payer.id,
+          ),
         ],
+        items: expenseItems,
       };
     }),
 
@@ -905,19 +1118,31 @@ export const expenseRouter = router({
 
       const currentParticipant = ctx.participant;
 
-      const involvementFilter = buildInvolvementFilter(ctx.db, currentParticipant.id);
-      const statusFilter = input.status === "all" ? undefined : eq(expense.status, input.status);
-      const cursorDate = input.cursor ? new Date(input.cursor.occurredAt) : undefined;
+      const involvementFilter = buildInvolvementFilter(
+        ctx.db,
+        currentParticipant.id,
+      );
+      const statusFilter =
+        input.status === "all" ? undefined : eq(expense.status, input.status);
+      const cursorDate = input.cursor
+        ? new Date(input.cursor.occurredAt)
+        : undefined;
       const cursorFilter =
         input.cursor && cursorDate
           ? input.sort === "newest"
             ? or(
                 lt(expense.occurredAt, cursorDate),
-                and(eq(expense.occurredAt, cursorDate), lt(expense.id, input.cursor.id)),
+                and(
+                  eq(expense.occurredAt, cursorDate),
+                  lt(expense.id, input.cursor.id),
+                ),
               )
             : or(
                 gt(expense.occurredAt, cursorDate),
-                and(eq(expense.occurredAt, cursorDate), gt(expense.id, input.cursor.id)),
+                and(
+                  eq(expense.occurredAt, cursorDate),
+                  gt(expense.id, input.cursor.id),
+                ),
               )
           : undefined;
       const orderBy =
@@ -929,6 +1154,8 @@ export const expenseRouter = router({
         .select({
           id: expense.id,
           title: expense.title,
+          category: expense.category,
+          iconName: expense.iconName,
           totalMinor: expense.totalMinor,
           currency: expense.currency,
           occurredAt: expense.occurredAt,
@@ -952,7 +1179,9 @@ export const expenseRouter = router({
       }
 
       const expenseIds = pageRows.map((expenseRow) => expenseRow.id);
-      const payerIds = [...new Set(pageRows.map((expenseRow) => expenseRow.payerId))];
+      const payerIds = [
+        ...new Set(pageRows.map((expenseRow) => expenseRow.payerId)),
+      ];
 
       const participantRows = await ctx.db
         .select({
@@ -965,7 +1194,10 @@ export const expenseRouter = router({
           status: expenseParticipant.status,
         })
         .from(expenseParticipant)
-        .innerJoin(participant, eq(expenseParticipant.participantId, participant.id))
+        .innerJoin(
+          participant,
+          eq(expenseParticipant.participantId, participant.id),
+        )
         .leftJoin(user, eq(user.id, participant.userId))
         .where(inArray(expenseParticipant.expenseId, expenseIds));
 
@@ -1007,7 +1239,8 @@ export const expenseRouter = router({
       );
 
       const items = pageRows.map((expenseRow) => {
-        const expenseParticipants = participantsByExpenseId.get(expenseRow.id) ?? [];
+        const expenseParticipants =
+          participantsByExpenseId.get(expenseRow.id) ?? [];
         const storedPayer = expenseParticipants.find(
           (participant) => participant.id === expenseRow.payerId,
         );
@@ -1019,6 +1252,8 @@ export const expenseRouter = router({
         return {
           id: expenseRow.id,
           title: expenseRow.title,
+          category: expenseRow.category,
+          iconName: expenseRow.iconName,
           totalMinor: expenseRow.totalMinor,
           currency: expenseRow.currency,
           status: expenseRow.status,

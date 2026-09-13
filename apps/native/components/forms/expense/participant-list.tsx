@@ -16,6 +16,19 @@ type ParticipantListProps = {
   onSplitValueChange: (participantId: string, value: number) => void;
 };
 
+function ParticipantAvatar({ participant }: { participant: FormParticipant }) {
+  return (
+    <Avatar className="size-8 bg-page" size="sm" alt={participant.name}>
+      {participant.image ? <Avatar.Image source={{ uri: participant.image }} /> : null}
+      <Avatar.Fallback>
+        <Typography className="text-xs text-ink">
+          {participant.name.slice(0, 1).toUpperCase()}
+        </Typography>
+      </Avatar.Fallback>
+    </Avatar>
+  );
+}
+
 export function ParticipantList({
   participants,
   payer,
@@ -26,55 +39,62 @@ export function ParticipantList({
   onSplitValueChange,
 }: ParticipantListProps) {
   return (
-    <View className="gap-4">
-      {participants.map((participant) => {
-        const isPayer = participant.email === payer;
+    <View className="rounded-2xl bg-panel px-4">
+      {participants.length === 0 ? (
+        <Typography className="py-4 text-center text-xs text-supporting">
+          Add at least one participant to split this expense.
+        </Typography>
+      ) : (
+        participants.map((participant, index) => {
+          const isPayer = participant.email.toLowerCase() === payer.toLowerCase();
 
-        return (
-          <View key={participant.id} className="flex-row justify-between items-center">
-            <View className="flex-row items-center gap-1">
+          return (
+            <View
+              key={participant.id}
+              className={`flex-row items-center gap-2 py-2${index > 0 ? " border-t border-dashed border-border" : ""}`}
+            >
               <PressableFeedback
                 accessibilityLabel={`Select ${participant.name} as payer`}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isPayer }}
-                className="flex-row items-center gap-1 rounded-xl"
+                className="min-w-0 flex-1 flex-row items-center gap-2 rounded-xl"
                 hitSlop={8}
                 onPress={() => onPayerChange(participant.email)}
               >
-                <Avatar size="sm">
-                  <Avatar.Fallback>{participant.name[0]}</Avatar.Fallback>
-                </Avatar>
-                <Typography className="text-sm">{participant.name}</Typography>
+                <ParticipantAvatar participant={participant} />
+                <Typography selectable className="shrink text-sm text-ink" numberOfLines={1}>
+                  {participant.name}
+                </Typography>
               </PressableFeedback>
-              {isPayer ? (
-                <View className="bg-accent rounded-full px-2">
-                  <Typography type="body-xs" className="text-accent-foreground">
-                    Payer
-                  </Typography>
-                </View>
-              ) : null}
-            </View>
 
-            <View className="flex-row items-center gap-1">
-              <ParticipantSplitInput
-                participantName={participant.name}
-                splitMethod={splitMethod}
-                value={splitMethod === "equal" ? participant.owedMinor : participant.splitValue}
-                onValueChange={(value) => onSplitValueChange(participant.id, value)}
-              />
-              <Button
-                isIconOnly
-                variant="danger"
-                className="size-8"
-                isDisabled={participant.id === currentParticipantId}
-                onPress={() => onRemove(participant.id)}
-              >
-                <HugeiconsIcon icon={X} size={16} color="#ffffff" />
-              </Button>
+              <View className="shrink-0 flex-row items-center gap-1">
+                <ParticipantSplitInput
+                  participantName={participant.name}
+                  splitMethod={splitMethod}
+                  value={
+                    splitMethod === "equal" || splitMethod === "items"
+                      ? participant.owedMinor
+                      : participant.splitValue
+                  }
+                  onValueChange={(value) => onSplitValueChange(participant.id, value)}
+                />
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  className={`size-7 rounded-full${
+                    participant.id === currentParticipantId ? " opacity-40" : ""
+                  }`}
+                  isDisabled={participant.id === currentParticipantId}
+                  accessibilityLabel={`Remove ${participant.name}`}
+                  onPress={() => onRemove(participant.id)}
+                >
+                  <HugeiconsIcon icon={X} size={16} color="#8A8A8E" />
+                </Button>
+              </View>
             </View>
-          </View>
-        );
-      })}
+          );
+        })
+      )}
     </View>
   );
 }

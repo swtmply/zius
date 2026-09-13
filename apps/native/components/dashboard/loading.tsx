@@ -1,141 +1,123 @@
-import { View, FlatList } from "react-native";
-import React from "react";
-import { Button, Card, cn, Separator, Skeleton, Typography } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import {
-  Add,
-  MoreHorizontal,
-  TransactionHistoryIcon,
-  UserGroup03Icon,
-} from "@hugeicons/core-free-icons";
-import { SectionHeader } from "../section-header";
+import { Skeleton, Typography } from "heroui-native";
+import { ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function DashboardLoading() {
+function DashboardHeaderLoading() {
   return (
-    <View className="bg-background flex-1">
-      <FlatList
-        ListHeaderComponent={
-          <View className="pt-safe gap-4">
-            <View className="pt-8 flex-row justify-between items-center">
-              <Typography className="text-2xl font-semibold">Dashboard</Typography>
+    <View className="pt-4 flex-row items-center justify-between">
+      <Typography className="text-2xl font-semibold text-ink">
+        Dashboard
+      </Typography>
+      <View className="flex-row items-center gap-2">
+        <Skeleton className="size-12 rounded-full" />
+        <Skeleton className="size-12 rounded-full" />
+      </View>
+    </View>
+  );
+}
 
-              <Skeleton className="size-12 rounded-full" />
-            </View>
-
-            <Card className="shadow-lg border border-border">
-              <Card.Body className="gap-4">
-                <View className="items-center justify-between flex-row px-4">
-                  <View className="items-center justify-center flex-1 gap-1">
-                    <Typography className="text-sm text-muted">Utang sayo</Typography>
-                    <Skeleton className="w-24 h-8 rounded-lg" />
-                  </View>
-                  <View className="items-center justify-center flex-1 gap-1">
-                    <Typography className="text-sm text-muted">Utang mo</Typography>
-                    <Skeleton className="w-24 h-8 rounded-lg" />
-                  </View>
-                </View>
-                <Separator className="border-t-2 border-dashed border-border bg-transparent" />
-                <View className="items-center flex-row">
-                  <View className="items-center flex-1 gap-1">
-                    <Button variant="secondary" isIconOnly>
-                      <HugeiconsIcon icon={Add} size={24} />
-                    </Button>
-                    <Typography className="text-xs text-muted">Expense</Typography>
-                  </View>
-                  <View className="items-center flex-1 gap-1">
-                    <Button variant="secondary" isIconOnly>
-                      <HugeiconsIcon icon={UserGroup03Icon} size={24} />
-                    </Button>
-                    <Typography className="text-xs text-muted">Groups</Typography>
-                  </View>
-                  <View className="items-center flex-1 gap-1">
-                    <Button variant="secondary" isIconOnly>
-                      <HugeiconsIcon icon={TransactionHistoryIcon} size={24} />
-                    </Button>
-                    <Typography className="text-xs text-muted">History</Typography>
-                  </View>
-                  <View className="items-center flex-1 gap-1">
-                    <Button variant="secondary" isIconOnly>
-                      <HugeiconsIcon icon={MoreHorizontal} size={24} />
-                    </Button>
-                    <Typography className="text-xs text-muted">More</Typography>
-                  </View>
-                </View>
-              </Card.Body>
-            </Card>
-
-            <View className="gap-2">
-              <SectionHeader
-                title="Active Expenses"
-                action={
-                  <Button variant="ghost">
-                    <Typography className="text-sm">See All</Typography>
-                  </Button>
-                }
-              />
-
-              <FlatList
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                ItemSeparatorComponent={<View className="w-4" />}
-                data={[1, 2, 3, 4, 5]}
-                keyExtractor={(item) => item.toString()}
-                renderItem={() => (
-                  <View className="bg-surface border border-border rounded-xl p-4 w-[250px] gap-2">
-                    <View className="flex-row items-center justify-between gap-2">
-                      <View className="flex-1 gap-1">
-                        <Skeleton className="h-5 w-20 rounded-sm" />
-                        <Skeleton className="h-4 w-20 rounded-sm" />
-                      </View>
-                      <Skeleton className="h-5 w-20 rounded-sm" />
-                    </View>
-
-                    <Separator className="border-t border-dashed border-border bg-transparent" />
-
-                    <View className="flex-row items-center">
-                      {["A", "B", "C", "D", "E"].map((participant, index) => (
-                        <Skeleton
-                          key={participant}
-                          className={
-                            index === 0 ? "size-10 rounded-full" : "size-10 rounded-full -ml-4"
-                          }
-                        />
-                      ))}
-                    </View>
-                  </View>
-                )}
-              />
-            </View>
-
-            <SectionHeader
-              title="Recent Expenses"
-              action={
-                <Button variant="ghost">
-                  <Typography className="text-sm">See All</Typography>
-                </Button>
-              }
-            />
-          </View>
-        }
-        contentContainerClassName="px-4 pb-8"
-        data={[1, 2, 3, 4, 5]}
-        keyExtractor={(item) => item.toString()}
-        renderItem={({ item, index }) => (
+function HeaderCardLoading() {
+  return (
+    <View className="gap-4">
+      <View className="flex-row gap-2">
+        {[0, 1].map((item) => (
           <View
-            className={cn(
-              "flex-row items-center justify-between gap-2 py-2 border-border",
-              5 === index + 1 ? "" : "border-b",
-            )}
             key={item}
+            className="flex-1 rounded-2xl bg-dark-gradient p-4 gap-2"
           >
-            <View className="flex-1 gap-1">
-              <Skeleton className="h-5 w-20 rounded-sm" />
-              <Skeleton className="h-4 w-20 rounded-sm" />
-            </View>
-            <Skeleton className="h-5 w-20 rounded-sm" />
+            <Skeleton className="h-5 w-20 rounded" />
+            <Skeleton className="h-8 w-24 rounded" />
           </View>
-        )}
-      />
+        ))}
+      </View>
+
+      <View className="rounded-2xl bg-panel p-4">
+        <View className="items-center flex-row">
+          {["transaction", "groups", "history", "more"].map((item) => (
+            <View key={item} className="items-center flex-1 gap-1">
+              <Skeleton className="size-12 rounded-full" />
+              <Skeleton className="h-4 w-16 rounded" />
+            </View>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+export function ExpenseCardLoading() {
+  return (
+    <View className="bg-panel rounded-2xl p-4 gap-2">
+      <View className="flex-row items-center gap-2">
+        <Skeleton className="size-10 rounded-full" />
+        <View className="flex-1 gap-1">
+          <Skeleton className="h-5 w-24 rounded" />
+          <Skeleton className="h-4 w-20 rounded" />
+        </View>
+        <Skeleton className="h-5 w-16 rounded" />
+      </View>
+
+      <View className="border-t border-dashed border-border bg-transparent" />
+
+      <View className="flex-row items-center gap-1">
+        {[0, 1, 2].map((item) => (
+          <Skeleton key={item} className={`size-8 rounded-full`} />
+        ))}
+        <Skeleton className="size-8 rounded-full" />
+      </View>
+    </View>
+  );
+}
+
+function ExpenseSectionLoading({ title }: { title: string }) {
+  return (
+    <View className="gap-2">
+      <View className="h-12 flex-row items-center justify-between gap-4">
+        <Typography className="text-sm text-ink">{title}</Typography>
+        <Skeleton className="h-4 w-16 rounded" />
+      </View>
+      <View className="gap-2">
+        {[0, 1].map((item) => (
+          <ExpenseCardLoading key={item} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+interface DashboardLoadingProps {
+  showScanButton?: boolean;
+}
+
+export default function DashboardLoading({
+  showScanButton = true,
+}: DashboardLoadingProps) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      className="bg-page flex-1"
+      style={{
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom + 16,
+      }}
+      accessible
+      accessibilityLabel="Loading dashboard"
+      accessibilityState={{ busy: true }}
+    >
+      <ScrollView contentContainerClassName="p-4 gap-2">
+        <DashboardHeaderLoading />
+        <HeaderCardLoading />
+        <ExpenseSectionLoading title="Unsettled Expenses" />
+        <ExpenseSectionLoading title="Settled Expenses" />
+        <View className="h-14" />
+      </ScrollView>
+      {showScanButton ? (
+        <Skeleton
+          className="absolute right-4 size-18 rounded-full"
+          style={{ bottom: insets.bottom + 16 }}
+        />
+      ) : null}
     </View>
   );
 }

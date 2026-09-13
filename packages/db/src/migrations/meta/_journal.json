@@ -8,6 +8,20 @@
       "when": 1788982295390,
       "tag": "0000_lethal_betty_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789056576162,
+      "tag": "0001_lethal_tarantula",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789264638182,
+      "tag": "0002_third_the_watchers",
+      "breakpoints": true
     }
   ]
 }

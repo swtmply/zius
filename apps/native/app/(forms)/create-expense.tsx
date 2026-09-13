@@ -1,5 +1,6 @@
 import { ExpenseForm } from "@/components/forms/expense/expense-form";
 import { FormLoading } from "@/components/forms/form-loading";
+import { parseReceiptParam } from "@/utils/scan";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import { useLocalSearchParams } from "expo-router";
@@ -7,8 +8,12 @@ import { Typography } from "heroui-native";
 import { View } from "react-native";
 
 export default function CreateExpenseForm() {
-  const { groupId: groupIdParam } = useLocalSearchParams<{ groupId?: string }>();
+  const { groupId: groupIdParam, receipt: receiptParam } = useLocalSearchParams<{
+    groupId?: string;
+    receipt?: string;
+  }>();
   const groupId = typeof groupIdParam === "string" ? groupIdParam : undefined;
+  const initialReceipt = parseReceiptParam(receiptParam);
   const { data: currentParticipant, error: participantError } = useQuery(
     trpc.participant.current.queryOptions(),
   );
@@ -19,10 +24,12 @@ export default function CreateExpenseForm() {
 
   if (participantError || groupError) {
     return (
-      <View className="bg-background flex-1 items-center justify-center px-4">
-        <Typography selectable className="text-sm text-danger">
-          {groupError ? "Unable to load this group." : "Unable to load your participant details."}
-        </Typography>
+      <View className="bg-page flex-1 items-center justify-center px-4">
+        <View className="rounded-2xl bg-panel p-4">
+          <Typography selectable className="text-sm text-danger">
+            {groupError ? "Unable to load this group." : "Unable to load your participant details."}
+          </Typography>
+        </View>
       </View>
     );
   }
@@ -31,5 +38,11 @@ export default function CreateExpenseForm() {
     return <FormLoading />;
   }
 
-  return <ExpenseForm currentParticipant={currentParticipant} group={group} />;
+  return (
+    <ExpenseForm
+      currentParticipant={currentParticipant}
+      group={group}
+      initialReceipt={initialReceipt}
+    />
+  );
 }
