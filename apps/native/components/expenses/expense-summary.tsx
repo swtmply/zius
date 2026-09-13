@@ -1,9 +1,8 @@
+import { expenseCategories } from "@zius/api/expense-categories";
+import { resolveExpenseIcon } from "@/utils/expense-categories";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
 import {
-  Cancel01Icon,
-  Check,
-  ReceiptTextIcon,
   Split,
   UserGroup03Icon,
 } from "@hugeicons/core-free-icons";
@@ -37,17 +36,6 @@ function ExpenseMetric({ label, amount }: ExpenseMetricProps) {
       </Typography>
     </View>
   );
-}
-
-function ExpenseStatusIcon({ status }: { status: ExpenseDetails["status"] }) {
-  const icon =
-    status === "settled"
-      ? Check
-      : status === "cancelled"
-        ? Cancel01Icon
-        : ReceiptTextIcon;
-
-  return <HugeiconsIcon icon={icon} size={24} color="#000000" />;
 }
 
 function splitMethodLabel(splitMethod: ExpenseDetails["splitMethod"]) {
@@ -150,10 +138,14 @@ export function ExpenseOverview({ expense }: { expense: ExpenseDetails }) {
 
           <View className="flex-1 items-center gap-1">
             <View className="size-12 items-center justify-center rounded-full bg-page">
-              <ExpenseStatusIcon status={expense.status} />
+              <HugeiconsIcon
+                icon={resolveExpenseIcon(expense.iconName)}
+                size={24}
+                color="#000000"
+              />
             </View>
             <Typography className="text-xs" numberOfLines={1}>
-              {expenseStatusLabel(expense.status)}
+              {expenseCategories[expense.category].label}
             </Typography>
           </View>
         </View>
@@ -184,7 +176,12 @@ export function ExpenseSummary({
 
   return (
     <View className="gap-2">
-      <Typography className="text-sm text-ink">Expense Summary</Typography>
+      <View className="flex-row items-center justify-between gap-2">
+        <Typography className="text-sm text-ink">Expense Summary</Typography>
+        <Typography className="text-xs text-muted">
+          {expenseStatusLabel(expense.status)}
+        </Typography>
+      </View>
       <View className="gap-2 rounded-2xl bg-panel p-4">
         {expense.participants.map((participant, index) => {
           const isPaid =

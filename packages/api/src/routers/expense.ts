@@ -1,3 +1,4 @@
+import { expenseCategories, expenseCategoryNames } from "../expense-categories";
 import type { Database } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import {
@@ -46,6 +47,7 @@ const createItemSchema = z.object({
 const createSchema = z
   .object({
     title: z.string().trim().min(1),
+    category: z.enum(expenseCategoryNames).default("others"),
     totalMinor: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
     currency: z
       .string()
@@ -338,6 +340,8 @@ const expenseListOutputSchema = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
+      category: z.enum(expenseCategoryNames),
+      iconName: z.string(),
       totalMinor: z.number().int().positive(),
       currency: z.string(),
       status: z.enum(["active", "settled", "cancelled"]),
@@ -360,6 +364,8 @@ const expenseListOutputSchema = z.object({
 const expenseGetOutputSchema = z.object({
   id: z.string(),
   title: z.string(),
+  category: z.enum(expenseCategoryNames),
+  iconName: z.string(),
   totalMinor: z.number().int().positive(),
   isPayer: z.boolean(),
   amountMinor: z
@@ -608,6 +614,8 @@ export const expenseRouter = router({
         await tx.insert(expense).values({
           id,
           title: input.title,
+          category: input.category,
+          iconName: expenseCategories[input.category].iconName,
           totalMinor: input.totalMinor,
           currency: input.currency,
           payerId,
@@ -945,6 +953,8 @@ export const expenseRouter = router({
         .select({
           id: expense.id,
           title: expense.title,
+          category: expense.category,
+          iconName: expense.iconName,
           totalMinor: expense.totalMinor,
           currency: expense.currency,
           status: expense.status,
@@ -1059,6 +1069,8 @@ export const expenseRouter = router({
       return {
         id: expenseRow.id,
         title: expenseRow.title,
+        category: expenseRow.category,
+        iconName: expenseRow.iconName,
         totalMinor: expenseRow.totalMinor,
         isPayer,
         amountMinor,
@@ -1142,6 +1154,8 @@ export const expenseRouter = router({
         .select({
           id: expense.id,
           title: expense.title,
+          category: expense.category,
+          iconName: expense.iconName,
           totalMinor: expense.totalMinor,
           currency: expense.currency,
           occurredAt: expense.occurredAt,
@@ -1238,6 +1252,8 @@ export const expenseRouter = router({
         return {
           id: expenseRow.id,
           title: expenseRow.title,
+          category: expenseRow.category,
+          iconName: expenseRow.iconName,
           totalMinor: expenseRow.totalMinor,
           currency: expenseRow.currency,
           status: expenseRow.status,

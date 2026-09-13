@@ -9,6 +9,8 @@ import {
   uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 
+import type { ExpenseCategory, ExpenseIconName } from "../expense-categories";
+
 import { user } from "./auth";
 
 const timestamps = () => ({
@@ -81,6 +83,8 @@ export const expense = sqliteTable(
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
     title: text("title").notNull(),
+    category: text("category").$type<ExpenseCategory>().default("others").notNull(),
+    iconName: text("icon_name").$type<ExpenseIconName>().default("ReceiptTextIcon").notNull(),
     totalMinor: integer("total_minor").notNull(),
     currency: text("currency").default("PHP").notNull(),
     payerId: text("payer_id")
