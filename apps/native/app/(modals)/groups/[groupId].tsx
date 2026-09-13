@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { FlatList, Keyboard, Pressable, TextInput, View } from "react-native";
+import { Keyboard, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Dialog, Menu, Skeleton, Typography, useToast } from "heroui-native";
+import { BottomSheet, Button, Menu, Skeleton, Typography, useToast } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   Archive02Icon,
@@ -16,17 +16,19 @@ import {
 } from "@hugeicons/core-free-icons";
 import { trpc } from "@/utils/trpc";
 import { ExpenseCreationToast } from "@/components/expense-creation-toast";
-import { GroupParticipants, GroupExpenseCard } from "@/components/groups/group-details";
+import { GroupExpensesSection, GroupParticipants } from "@/components/groups/group-details";
 import {
   GroupParticipantsLoading,
-  GroupExpensesLoading,
+  GroupExpensesSectionLoading,
 } from "@/components/groups/group-details-loading";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function GroupDetailsPage() {
   const { groupId } = useLocalSearchParams<{ groupId: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
   const [folded, setFolded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -34,6 +36,8 @@ export default function GroupDetailsPage() {
   const currentParticipantQuery = useQuery(trpc.participant.current.queryOptions());
   const group = query.data;
   const currentParticipant = currentParticipantQuery.data;
+  const unsettledExpenses = group?.expenses.filter((expense) => expense.status === "active") ?? [];
+  const settledExpenses = group?.expenses.filter((expense) => expense.status !== "active") ?? [];
   const isOwner =
     !!group &&
     !!currentParticipant &&
@@ -161,39 +165,45 @@ export default function GroupDetailsPage() {
     updateGroup.mutate({ id: groupId, name: trimmedName });
   };
 
+  const editingNameWidth = Math.min(Math.max(name.length * 14 + 32, 112), 220);
+
   return (
-    <View className="flex-1 bg-background">
-      <FlatList
+    <View className="flex-1 bg-page">
+      <ScrollView
+        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerClassName="gap-4 px-4 pt-safe pb-safe-offset-8"
         keyboardShouldPersistTaps="handled"
-        contentContainerClassName="px-4 pt-safe pb-safe-offset-8"
-        data={group?.expenses ?? []}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={<View className="h-4" />}
-        refreshing={query.isRefetching}
-        onRefresh={() => {
-          void query.refetch();
-        }}
-        ListHeaderComponent={
-          <View className="gap-4 pb-4">
-            <View className="flex-row items-center justify-between py-4 gap-4">
-              <Button
-                isIconOnly
-                variant="ghost"
-                isDisabled={isEditing && updateGroup.isPending}
-                accessibilityLabel={isEditing ? "Cancel editing group name" : "Go back"}
-                onPress={() => {
-                  if (isEditing) {
-                    setIsEditing(false);
-                    Keyboard.dismiss();
-                  } else if (router.canGoBack()) {
-                    router.back();
-                  } else {
-                    router.replace("/groups");
-                  }
-                }}
-              >
-                <HugeiconsIcon icon={isEditing ? XIcon : ChevronLeftFreeIcons} size={24} />
-              </Button>
+        refreshControl={
+          <RefreshControl
+            refreshing={query.isRefetching}
+            onRefresh={() => {
+              void query.refetch();
+            }}
+          />
+        }
+      >
+        <View className="gap-4">
+          <View className="flex-row items-center justify-between gap-4 py-4">
+            <Button
+              isIconOnly
+              variant="ghost"
+              isDisabled={isEditing && updateGroup.isPending}
+              accessibilityLabel={isEditing ? "Cancel editing group name" : "Go back"}
+              onPress={() => {
+                if (isEditing) {
+                  setIsEditing(false);
+                  Keyboard.dismiss();
+                } else if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace("/groups");
+                }
+              }}
+            >
+              <HugeiconsIcon icon={isEditing ? XIcon : ChevronLeftFreeIcons} size={24} />
+            </Button>
+            <View className="flex-1 items-center">
               {query.isPending ? (
                 <Skeleton className="h-8 w-32 rounded-md" />
               ) : isEditing ? (
@@ -206,107 +216,125 @@ export default function GroupDetailsPage() {
                   editable={!updateGroup.isPending}
                   onSubmitEditing={submit}
                   returnKeyType="done"
-                  className="text-2xl font-semibold flex-1 text-center text-foreground"
+                  textAlignVertical="center"
+                  className="h-10 max-w-full rounded-lg border border-border px-2 py-0 text-center text-2xl font-semibold text-ink"
+                  style={{
+                    width: editingNameWidth,
+                    includeFontPadding: false,
+                  }}
                 />
               ) : (
-                <Typography className="text-2xl font-semibold flex-1 text-center" numberOfLines={2}>
+                <Typography
+                  selectable
+                  className="text-center text-2xl font-semibold text-ink"
+                  numberOfLines={2}
+                >
                   {group?.name ?? "Group"}
                 </Typography>
               )}
-              {group && canRename && isEditing ? (
-                <Button
-                  isIconOnly
-                  variant="ghost"
-                  isDisabled={updateGroup.isPending || archiveActionPending}
-                  accessibilityLabel="Save group name"
-                  accessibilityState={{ busy: updateGroup.isPending }}
-                  onPress={submit}
-                >
-                  <HugeiconsIcon icon={Check} size={24} />
-                </Button>
-              ) : group && canManageArchive && !isArchived ? (
-                <Menu>
-                  <Menu.Trigger asChild isDisabled={updateGroup.isPending || archiveActionPending}>
-                    <Button
-                      isIconOnly
-                      variant="ghost"
+            </View>
+            {group && canRename && isEditing ? (
+              <Button
+                isIconOnly
+                variant="ghost"
+                isDisabled={updateGroup.isPending || archiveActionPending}
+                accessibilityLabel="Save group name"
+                accessibilityState={{ busy: updateGroup.isPending }}
+                onPress={submit}
+              >
+                <HugeiconsIcon icon={Check} size={24} />
+              </Button>
+            ) : group && canManageArchive && !isArchived ? (
+              <Menu>
+                <Menu.Trigger asChild isDisabled={updateGroup.isPending || archiveActionPending}>
+                  <Button
+                    isIconOnly
+                    variant="ghost"
+                    isDisabled={updateGroup.isPending || archiveActionPending}
+                    accessibilityLabel="Group actions"
+                    accessibilityState={{
+                      disabled: updateGroup.isPending || archiveActionPending,
+                    }}
+                  >
+                    <HugeiconsIcon icon={MoreHorizontalIcon} size={24} />
+                  </Button>
+                </Menu.Trigger>
+                <Menu.Portal>
+                  <Menu.Overlay />
+                  <Menu.Content presentation="popover" width={120} className="p-2">
+                    <Menu.Item
+                      className="gap-2 rounded-xl px-2 py-1.5"
                       isDisabled={updateGroup.isPending || archiveActionPending}
-                      accessibilityLabel="Group actions"
-                      accessibilityState={{
-                        disabled: updateGroup.isPending || archiveActionPending,
+                      onPress={() => {
+                        setName(group.name);
+                        setIsEditing(true);
                       }}
                     >
-                      <HugeiconsIcon icon={MoreHorizontalIcon} size={24} />
-                    </Button>
-                  </Menu.Trigger>
-                  <Menu.Portal>
-                    <Menu.Overlay />
-                    <Menu.Content presentation="popover" width={220}>
-                      <Menu.Item
-                        isDisabled={updateGroup.isPending || archiveActionPending}
-                        onPress={() => {
-                          setName(group.name);
-                          setIsEditing(true);
-                        }}
-                      >
-                        <HugeiconsIcon icon={Edit02Icon} size={24} />
-                        <Menu.ItemTitle>Edit</Menu.ItemTitle>
-                      </Menu.Item>
-                      <Menu.Item isDisabled variant="danger">
-                        <HugeiconsIcon icon={Delete02Icon} size={24} />
-                        <Menu.ItemTitle>Delete</Menu.ItemTitle>
-                      </Menu.Item>
-                      <Menu.Item
-                        isDisabled={archiveActionPending}
-                        onPress={() => setIsArchiveDialogOpen(true)}
-                      >
-                        <HugeiconsIcon icon={Archive02Icon} size={24} />
-                        <Menu.ItemTitle>Archive</Menu.ItemTitle>
-                      </Menu.Item>
-                    </Menu.Content>
-                  </Menu.Portal>
-                </Menu>
-              ) : group && canManageArchive && isArchived ? (
-                <Button
-                  isIconOnly
-                  variant="ghost"
-                  isDisabled={archiveActionPending}
-                  accessibilityLabel="Restore group"
-                  accessibilityState={{ busy: archiveActionPending }}
-                  onPress={() => setIsArchiveDialogOpen(true)}
-                >
-                  <HugeiconsIcon icon={RestoreBinIcon} size={24} />
-                </Button>
-              ) : (
-                <View className="size-10" />
-              )}
-            </View>
-            {group && isArchived ? (
-              <View
-                className="bg-default border border-border rounded-xl px-4 py-3 gap-1"
-                accessible
-                accessibilityLabel="Archived group. New expenses and name changes are disabled. Existing payments and expense cancellation remain available."
+                      <HugeiconsIcon icon={Edit02Icon} size={18} color="#000000" />
+                      <Menu.ItemTitle className="text-sm font-normal">Edit</Menu.ItemTitle>
+                    </Menu.Item>
+                    <Menu.Item className="gap-2 rounded-xl px-2 py-1.5" isDisabled variant="danger">
+                      <HugeiconsIcon icon={Delete02Icon} size={18} color="#FF3B30" />
+                      <Menu.ItemTitle className="text-sm font-normal">Delete</Menu.ItemTitle>
+                    </Menu.Item>
+                    <Menu.Item
+                      className="gap-2 rounded-xl px-2 py-1.5"
+                      isDisabled={archiveActionPending}
+                      variant="danger"
+                      onPress={() => setIsArchiveDialogOpen(true)}
+                    >
+                      <HugeiconsIcon icon={Archive02Icon} size={18} color="#FF3B30" />
+                      <Menu.ItemTitle className="text-sm font-normal">Archive</Menu.ItemTitle>
+                    </Menu.Item>
+                  </Menu.Content>
+                </Menu.Portal>
+              </Menu>
+            ) : group && canManageArchive && isArchived ? (
+              <Button
+                isIconOnly
+                variant="ghost"
+                isDisabled={archiveActionPending}
+                accessibilityLabel="Restore group"
+                accessibilityState={{ busy: archiveActionPending }}
+                onPress={() => setIsArchiveDialogOpen(true)}
               >
-                <Typography className="text-sm font-semibold text-muted">Archived group</Typography>
-                <Typography className="text-xs text-muted">
-                  New expenses and name changes are disabled. Existing payments and expense
-                  cancellation remain available.
-                </Typography>
-              </View>
-            ) : null}
-            {(query.isPending || group) && (
-              <>
-                <View className="flex-row items-center justify-between">
-                  <Typography className="text-sm">Participants</Typography>
+                <HugeiconsIcon icon={RestoreBinIcon} size={24} />
+              </Button>
+            ) : (
+              <View className="size-12" />
+            )}
+          </View>
+
+          {group && isArchived ? (
+            <View
+              className="gap-1 rounded-2xl border border-border bg-default px-4 py-3"
+              accessible
+              accessibilityLabel="Archived group. New expenses and name changes are disabled. Existing payments and expense cancellation remain available."
+            >
+              <Typography className="text-sm font-semibold text-muted">Archived group</Typography>
+              <Typography className="text-xs text-muted">
+                New expenses and name changes are disabled. Existing payments and expense
+                cancellation remain available.
+              </Typography>
+            </View>
+          ) : null}
+
+          {(query.isPending || group) && (
+            <>
+              <View className="gap-2">
+                <View className="flex-row items-center justify-between gap-4">
+                  <Typography className="text-sm text-ink">Participants</Typography>
                   <Pressable
                     hitSlop={12}
                     accessibilityRole="button"
-                    accessibilityLabel={folded ? "Expand participants" : "Fold participants"}
+                    accessibilityLabel={
+                      folded ? "Show participant names" : "Hide participant names"
+                    }
                     accessibilityState={{ expanded: !folded }}
                     onPress={() => setFolded((value) => !value)}
                   >
-                    <Typography className="text-xs text-muted">
-                      {folded ? "Expand" : "Fold"}
+                    <Typography className="text-xs text-supporting">
+                      {folded ? "Show Names" : "Hide Names"}
                     </Typography>
                   </Pressable>
                 </View>
@@ -315,40 +343,38 @@ export default function GroupDetailsPage() {
                 ) : (
                   <GroupParticipantsLoading folded={folded} />
                 )}
-                <View className="flex-row items-center justify-between gap-4">
-                  <Typography className="text-sm">Expenses</Typography>
-                  {group?.archivedAt ? null : (
-                    <Pressable
-                      disabled={!group}
-                      hitSlop={12}
-                      accessibilityRole="button"
-                      accessibilityLabel="Create expense"
-                      accessibilityState={{ disabled: !group }}
-                      onPress={() =>
-                        router.push({ pathname: "/create-expense", params: { groupId } })
-                      }
-                    >
-                      <Typography className="text-xs text-muted">Create Expense</Typography>
-                    </Pressable>
-                  )}
-                </View>
-              </>
-            )}
-          </View>
-        }
-        ListEmptyComponent={
-          query.isPending ? (
-            <GroupExpensesLoading />
-          ) : group && !query.isError ? (
-            <Typography className="text-center text-xs text-muted py-8">
-              No expenses yet.
-            </Typography>
-          ) : null
-        }
-        ListFooterComponent={
-          query.isError ? (
+              </View>
+
+              {query.isPending ? (
+                <>
+                  <GroupExpensesSectionLoading title="Unsettled Expenses" showAction />
+                  <GroupExpensesSectionLoading title="Settled Expenses" />
+                </>
+              ) : group ? (
+                <>
+                  <GroupExpensesSection
+                    title="Unsettled Expenses"
+                    emptyMessage="No unsettled expenses."
+                    expenses={unsettledExpenses}
+                    onAddExpense={
+                      isArchived
+                        ? undefined
+                        : () => router.push({ pathname: "/create-expense", params: { groupId } })
+                    }
+                  />
+                  <GroupExpensesSection
+                    title="Settled Expenses"
+                    emptyMessage="No settled expenses."
+                    expenses={settledExpenses}
+                  />
+                </>
+              ) : null}
+            </>
+          )}
+
+          {query.isError ? (
             <View className="items-center gap-4 py-6">
-              <Typography selectable className="text-xs text-muted">
+              <Typography selectable className="text-xs text-supporting">
                 {query.error.data?.code === "NOT_FOUND"
                   ? "Group not found."
                   : "Unable to load group details."}
@@ -363,28 +389,35 @@ export default function GroupDetailsPage() {
                 <Button.Label>Try again</Button.Label>
               </Button>
             </View>
-          ) : group && group.expenses.length > 0 ? (
-            <Typography className="text-center text-xs text-muted py-4">No more.</Typography>
-          ) : null
-        }
-        renderItem={({ item }) => <GroupExpenseCard expense={item} />}
-      />
-      <Dialog
+          ) : null}
+        </View>
+      </ScrollView>
+      <BottomSheet
         isOpen={isArchiveDialogOpen}
         onOpenChange={(isOpen) => {
           if (!archiveActionPending) setIsArchiveDialogOpen(isOpen);
         }}
       >
-        <Dialog.Portal>
-          <Dialog.Overlay />
-          <Dialog.Content>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content
+            detached
+            bottomInset={insets.bottom + 12}
+            className="mx-4 overflow-hidden"
+            backgroundClassName="rounded-3xl"
+            contentContainerClassName="p-5"
+            enableDynamicSizing
+            handleComponent={null}
+          >
             <View className="mb-5 gap-1">
-              <Dialog.Title>{isArchived ? "Restore group?" : "Archive group?"}</Dialog.Title>
-              <Dialog.Description>
+              <BottomSheet.Title>
+                {isArchived ? "Restore group?" : "Archive group?"}
+              </BottomSheet.Title>
+              <BottomSheet.Description>
                 {isArchived
                   ? "This group will appear in your active groups again."
                   : "This hides the group from active lists. Existing debts remain, and payments or expense cancellation stay available. You can restore the group later."}
-              </Dialog.Description>
+              </BottomSheet.Description>
             </View>
             <View className="gap-1">
               <Button
@@ -411,9 +444,9 @@ export default function GroupDetailsPage() {
                 <Button.Label>Cancel</Button.Label>
               </Button>
             </View>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     </View>
   );
 }

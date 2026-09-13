@@ -30,6 +30,7 @@ export const createExpenseSchema = z
         id: z.string(),
         name: z.string(),
         email: z.string(),
+        image: z.string().nullable().optional(),
         userId: z.optional(z.string()),
         owedMinor: z.number(),
         splitValue: z.number(),

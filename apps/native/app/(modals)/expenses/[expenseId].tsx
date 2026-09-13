@@ -1,34 +1,23 @@
-import { View, FlatList, ScrollView } from "react-native";
-import React, { useState } from "react";
-import { useLocalSearchParams } from "expo-router";
-import {
-  Avatar,
-  Button,
-  Card,
-  Dialog,
-  Separator,
-  Switch,
-  Typography,
-  useToast,
-} from "heroui-native";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BottomSheet, Button, Menu, Typography, useToast } from "heroui-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
+  Archive02Icon,
   ChevronLeftFreeIcons,
-  Cancel01Icon,
-  UserCheck01FreeIcons,
-  Edit02FreeIcons,
-  UserGroup03Icon,
-  Split,
   Check,
-  Trash,
+  Edit02Icon,
+  MoreHorizontalIcon,
 } from "@hugeicons/core-free-icons";
-import { useRouter } from "expo-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { trpc } from "@/utils/trpc";
-import { formatCurrency, formatDate } from "@/utils";
-import { SectionHeader } from "@/components/section-header";
+import { formatDate } from "@/utils";
 import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { ExpenseDetailsLoading } from "@/components/expenses/expense-details-loading";
+import { ExpenseOverview, ExpenseSummary } from "@/components/expenses/expense-summary";
 
 export default function ExpenseDetails() {
   const { expenseId } = useLocalSearchParams<{ expenseId: string }>();
@@ -41,15 +30,14 @@ export default function ExpenseDetails() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const insets = useSafeAreaInsets();
   const [isSettling, setIsSettling] = useState(false);
   const [participantStatuses, setParticipantStatuses] = useState<Record<string, "paid" | "unpaid">>(
     {},
   );
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const canEditPayments =
-    data?.status === "active" &&
-    !!currentParticipant &&
-    data.payerId === currentParticipant.id;
+    data?.status === "active" && !!currentParticipant && data.payerId === currentParticipant.id;
   const isSettlingActive = isSettling && canEditPayments;
   const updateExpense = useMutation(
     trpc.expense.update.mutationOptions({
@@ -116,6 +104,12 @@ export default function ExpenseDetails() {
   const paidParticipantCount =
     data?.participants.filter((participant) => participant.status === "paid").length ?? 0;
 
+  const startSettling = () => {
+    if (!canEditPayments || updateExpense.isPending) return;
+    setParticipantStatuses({});
+    setIsSettling(true);
+  };
+
   const submitCancellation = async () => {
     if (!data || !data.canCancel || data.status !== "active" || cancelExpense.isPending) return;
 
@@ -167,27 +161,35 @@ export default function ExpenseDetails() {
     (expenseQuery.isPending || participantQuery.isPending)
   ) {
     return (
-      <ScrollView className="flex-1 bg-background" contentInsetAdjustmentBehavior="automatic">
-        <View className="flex-1 pt-safe pb-safe-offset-8 gap-4 px-4">
-          <ExpenseDetailsLoading />
-        </View>
+      <ScrollView
+        className="flex-1 bg-page"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerClassName="px-4 pt-safe pb-safe-offset-8"
+      >
+        <ExpenseDetailsLoading />
       </ScrollView>
     );
   }
 
   if (expenseQuery.isError || participantQuery.isError || !data) {
     return (
-      <ScrollView className="flex-1 bg-background" contentInsetAdjustmentBehavior="automatic">
-        <View className="flex-1 pt-safe pb-safe-offset-8 gap-4 px-4">
-          <View className="flex-row items-center justify-between py-4">
+      <ScrollView
+        className="flex-1 bg-page"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerClassName="gap-4 px-4 pt-safe pb-safe-offset-8"
+      >
+        <View className="gap-4">
+          <View className="flex-row items-center justify-between gap-4 py-4">
             <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={goBack}>
-              <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
+              <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} color="#000000" />
             </Button>
-            <Typography className="text-2xl font-semibold">Expense</Typography>
-            <View className="size-10" />
+            <Typography className="flex-1 text-center text-2xl font-semibold text-ink">
+              Expense
+            </Typography>
+            <View className="size-12" />
           </View>
           <View className="items-center gap-4 py-8">
-            <Typography selectable className="text-sm text-muted text-center">
+            <Typography selectable className="text-center text-sm text-supporting">
               Unable to load expense details.
             </Typography>
             <Button
@@ -206,13 +208,21 @@ export default function ExpenseDetails() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-background" contentInsetAdjustmentBehavior="automatic">
-      <View className="flex-1 pt-safe pb-safe-offset-8 gap-4 px-4">
-        <View className="flex-row justify-between items-center py-4">
+    <View className="flex-1 bg-page">
+      <ScrollView
+        className="flex-1"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerClassName="gap-4 px-4 pt-safe pb-safe-offset-8"
+      >
+        <View className="flex-row items-center justify-between gap-4 py-4">
           <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={goBack}>
-            <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
+            <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} color="#000000" />
           </Button>
-          <Typography className="text-2xl font-semibold flex-1 text-center" numberOfLines={2}>
+          <Typography
+            selectable
+            className="flex-1 text-center text-2xl font-semibold text-ink"
+            numberOfLines={2}
+          >
             {data.title}
           </Typography>
           {isSettlingActive ? (
@@ -224,214 +234,112 @@ export default function ExpenseDetails() {
               accessibilityState={{ busy: updateExpense.isPending }}
               onPress={() => void submit()}
             >
-              <HugeiconsIcon icon={Check} size={24} />
+              <HugeiconsIcon icon={Check} size={24} color="#000000" />
             </Button>
-          ) : data.canCancel ? (
-            <Button
-              isIconOnly
-              variant="ghost"
-              accessibilityLabel="Cancel expense"
-              isDisabled={cancelExpense.isPending}
-              accessibilityState={{ busy: cancelExpense.isPending }}
-              onPress={() => setIsCancelDialogOpen(true)}
-            >
-              <HugeiconsIcon icon={Trash} size={24} />
-            </Button>
+          ) : canEditPayments || data.canCancel ? (
+            <Menu>
+              <Menu.Trigger asChild isDisabled={cancelExpense.isPending || updateExpense.isPending}>
+                <Button
+                  isIconOnly
+                  variant="ghost"
+                  isDisabled={cancelExpense.isPending || updateExpense.isPending}
+                  accessibilityLabel="Expense actions"
+                  accessibilityState={{
+                    disabled: cancelExpense.isPending || updateExpense.isPending,
+                  }}
+                >
+                  <HugeiconsIcon icon={MoreHorizontalIcon} size={24} color="#000000" />
+                </Button>
+              </Menu.Trigger>
+              <Menu.Portal>
+                <Menu.Overlay />
+                <Menu.Content presentation="popover" width={120} className="p-2">
+                  {canEditPayments ? (
+                    <Menu.Item
+                      className="gap-2 rounded-xl px-2 py-1.5"
+                      isDisabled={updateExpense.isPending || cancelExpense.isPending}
+                      onPress={startSettling}
+                    >
+                      <HugeiconsIcon icon={Edit02Icon} size={18} color="#000000" />
+                      <Menu.ItemTitle className="text-sm font-normal">Edit</Menu.ItemTitle>
+                    </Menu.Item>
+                  ) : null}
+                  {data.canCancel ? (
+                    <Menu.Item
+                      className="gap-2 rounded-xl px-2 py-1.5"
+                      isDisabled={cancelExpense.isPending}
+                      variant="danger"
+                      onPress={() => setIsCancelDialogOpen(true)}
+                    >
+                      <HugeiconsIcon icon={Archive02Icon} size={18} color="#FF3B30" />
+                      <Menu.ItemTitle className="text-sm font-normal">Archive</Menu.ItemTitle>
+                    </Menu.Item>
+                  ) : null}
+                </Menu.Content>
+              </Menu.Portal>
+            </Menu>
           ) : (
-            <View className="size-10" />
+            <View className="size-12" />
           )}
         </View>
 
-        <Card className="shadow-lg border border-border">
-          <Card.Body className="gap-4">
-            <View className="items-center justify-between flex-row px-4">
-              <View className="items-center justify-center flex-1 gap-1">
-                <Typography className="text-sm text-muted">Total Amount</Typography>
-                <Typography className="text-2xl font-semibold">
-                  {formatCurrency(data.totalMinor)}
-                </Typography>
-              </View>
-              <View className="items-center justify-center flex-1 gap-1">
-                <Typography className="text-sm text-muted">
-                  {currentParticipant
-                    ? currentParticipant.id === data.payerId
-                      ? "Utang sayo"
-                      : "Utang mo"
-                    : "Amount owed"}
-                </Typography>
-                <Typography className="text-2xl font-semibold">
-                  {formatCurrency(data.amountMinor)}
-                </Typography>
-              </View>
-            </View>
-            <Separator className="border-t-2 border-dashed border-border bg-transparent" />
-            <View className="items-center flex-row">
-              <View className="items-center flex-1 gap-1">
-                <Button variant="secondary" isIconOnly>
-                  <HugeiconsIcon icon={UserCheck01FreeIcons} size={24} />
-                </Button>
-                <Typography className="text-xs text-muted">{data.payerName}</Typography>
-              </View>
-              <View className="items-center flex-1 gap-1">
-                <Button variant="secondary" isIconOnly>
-                  <HugeiconsIcon icon={Split} size={24} />
-                </Button>
-                <Typography className="text-xs text-muted capitalize">
-                  {data.splitMethod}
-                </Typography>
-              </View>
-              <View className="items-center flex-1 gap-1">
-                <Button variant="secondary" isIconOnly>
-                  <HugeiconsIcon icon={UserGroup03Icon} size={24} />
-                </Button>
-                <Typography className="text-xs text-muted">
-                  {data.groupId ? data.groupName : "Standalone"}
-                </Typography>
-              </View>
-              <View className="items-center flex-1 gap-1">
-                {canEditPayments ? (
-                  <Button
-                    variant={isSettlingActive ? "primary" : "secondary"}
-                    isIconOnly
-                    accessibilityLabel={
-                      isSettlingActive ? "Cancel settling" : "Edit payment statuses"
-                    }
-                    isDisabled={updateExpense.isPending}
-                    onPress={() => {
-                      setParticipantStatuses({});
-                      setIsSettling((value) => !value);
-                    }}
-                  >
-                    <HugeiconsIcon
-                      icon={Edit02FreeIcons}
-                      size={24}
-                      color={isSettlingActive ? "#ffffff" : undefined}
-                    />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="secondary"
-                    isIconOnly
-                    isDisabled
-                    accessibilityLabel={
-                      data.status === "settled"
-                        ? "Expense already settled"
-                        : data.status === "cancelled"
-                          ? "Expense cancelled"
-                          : "Only the payer can settle this expense"
-                    }
-                  >
-                    <HugeiconsIcon
-                      icon={
-                        data.status === "settled"
-                          ? Check
-                          : data.status === "cancelled"
-                            ? Cancel01Icon
-                            : Edit02FreeIcons
-                      }
-                      size={24}
-                    />
-                  </Button>
-                )}
-                <Typography className="text-xs text-muted">
-                  {data.status === "settled"
-                    ? "Settled"
-                    : data.status === "cancelled"
-                      ? "Cancelled"
-                      : isSettlingActive
-                        ? "Save"
-                        : "Settle"}
-                </Typography>
-              </View>
-            </View>
-          </Card.Body>
-        </Card>
+        <ExpenseOverview expense={data} />
 
         {data.status === "cancelled" ? (
           <View
-            className="bg-default border border-border rounded-xl px-4 py-3 gap-1"
+            className="gap-1 rounded-2xl border border-border bg-default px-4 py-3"
             accessible
             accessibilityLabel={`Cancelled by ${data.cancelledBy?.name ?? "an unknown user"} on ${
               data.cancelledAt ? formatDate(new Date(data.cancelledAt)) : "an unknown date"
             }. Paid participant records remain visible.`}
           >
-            <Typography className="text-sm font-semibold text-muted">Cancelled</Typography>
-            <Typography className="text-xs text-muted">
+            <Typography className="text-sm font-semibold text-supporting">Cancelled</Typography>
+            <Typography className="text-xs text-supporting">
               Cancelled by {data.cancelledBy?.name ?? "an unknown user"}
               {data.cancelledAt ? ` on ${formatDate(new Date(data.cancelledAt))}` : ""}.
             </Typography>
-            <Typography className="text-xs text-muted">
+            <Typography className="text-xs text-supporting">
               This expense no longer affects balances. Paid participant records remain visible.
             </Typography>
           </View>
         ) : null}
 
-        <SectionHeader title="Participants" />
-
-        <FlatList
-          scrollEnabled={false}
-          data={data.participants}
-          keyExtractor={(item) => item.id}
-          ItemSeparatorComponent={<View className="h-4" />}
-          renderItem={({ item }) => {
-            const isPaid = (participantStatuses[item.id] ?? item.status) === "paid";
-            return (
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-1 flex-1">
-                  <Avatar size="sm">
-                    <Avatar.Fallback>{item.name[0].toUpperCase()}</Avatar.Fallback>
-                  </Avatar>
-                  <Typography className="text-sm shrink" numberOfLines={1}>
-                    {item.name}
-                  </Typography>
-                  {isPaid ? (
-                    <View className="bg-accent rounded-full px-2">
-                      <Typography className="text-xs text-accent-foreground">Paid</Typography>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View className="flex-row items-center gap-1">
-                  <Typography className="text-sm font-semibold">
-                    {formatCurrency(item.owedMinor)}
-                  </Typography>
-                  {isSettlingActive ? (
-                    <Switch
-                      accessibilityLabel={`${item.name} paid`}
-                      isSelected={isPaid}
-                      isDisabled={updateExpense.isPending}
-                      onSelectedChange={(isSelected) => {
-                        setParticipantStatuses((statuses) => ({
-                          ...statuses,
-                          [item.id]: isSelected ? "paid" : "unpaid",
-                        }));
-                      }}
-                    />
-                  ) : null}
-                </View>
-              </View>
-            );
+        <ExpenseSummary
+          expense={data}
+          participantStatuses={participantStatuses}
+          isSettling={isSettlingActive}
+          isDisabled={updateExpense.isPending}
+          onStatusChange={(participantId, status) => {
+            setParticipantStatuses((statuses) => ({ ...statuses, [participantId]: status }));
           }}
         />
-      </View>
-      <Dialog
+      </ScrollView>
+      <BottomSheet
         isOpen={isCancelDialogOpen}
         onOpenChange={(isOpen) => {
           if (!cancelExpense.isPending) setIsCancelDialogOpen(isOpen);
         }}
       >
-        <Dialog.Portal>
-          <Dialog.Overlay />
-          <Dialog.Content>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content
+            detached
+            bottomInset={insets.bottom + 12}
+            className="mx-4 overflow-hidden"
+            backgroundClassName="rounded-3xl"
+            contentContainerClassName="p-5"
+            enableDynamicSizing
+            handleComponent={null}
+          >
             <View className="mb-5 gap-1">
-              <Dialog.Title>Cancel this expense?</Dialog.Title>
-              <Dialog.Description>
+              <BottomSheet.Title>Cancel this expense?</BottomSheet.Title>
+              <BottomSheet.Description>
                 {paidParticipantCount === 0
                   ? "No participant payments have been recorded yet."
                   : `${paidParticipantCount} participant${paidParticipantCount === 1 ? " has" : "s have"} already paid.`}{" "}
                 Cancellation is permanent and removes this expense from balances. Existing payment
                 records remain visible.
-              </Dialog.Description>
+              </BottomSheet.Description>
             </View>
             <View className="gap-1">
               <Button
@@ -452,9 +360,9 @@ export default function ExpenseDetails() {
                 <Button.Label>Keep expense</Button.Label>
               </Button>
             </View>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
-    </ScrollView>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
+    </View>
   );
 }

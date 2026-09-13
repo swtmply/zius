@@ -1,110 +1,120 @@
-import BalanceCard from "@/components/dashboard/balance-card";
+import DashboardHeaderCard, { type HeaderCardAction } from "@/components/dashboard/header-card";
 import DashboardHeader from "@/components/dashboard/header";
 import DashboardLoading from "@/components/dashboard/loading";
-import {
-  ActiveExpenses,
-  ExpensesEmptyState,
-} from "@/components/dashboard/expenses";
-import { SectionHeader } from "@/components/section-header";
-import { formatCurrency, formatDate } from "@/utils";
+import { DashboardExpenses, ExpensesEmptyState } from "@/components/dashboard/expenses";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
-import { Button, cn, PressableFeedback, Typography } from "heroui-native";
+import { Button } from "heroui-native";
 import { useRouter } from "expo-router";
-import { FlatList, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import {
+  Add,
+  MoreHorizontal,
+  Scan,
+  TransactionHistoryIcon,
+  UserGroup03Icon,
+} from "@hugeicons/core-free-icons";
 
 export default function Home() {
-  const { data, isLoading, isRefetching, refetch } = useQuery(
-    trpc.dashboard.get.queryOptions(),
-  );
+  const { data, isLoading, isRefetching, refetch } = useQuery(trpc.dashboard.get.queryOptions());
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const headerActions = [
+    {
+      id: "transaction",
+      label: "Transaction",
+      accessibilityLabel: "Create transaction",
+      icon: Add,
+      onPress: () => router.push("/create-expense"),
+    },
+    {
+      id: "groups",
+      label: "Groups",
+      accessibilityLabel: "View groups",
+      icon: UserGroup03Icon,
+      onPress: () =>
+        router.push({
+          pathname: "/(modals)/groups",
+          params: { sort: "desc", type: "all" },
+        }),
+    },
+    {
+      id: "history",
+      label: "History",
+      accessibilityLabel: "View history",
+      icon: TransactionHistoryIcon,
+      onPress: () =>
+        router.push({
+          pathname: "/(modals)/expenses",
+          params: { sort: "desc", status: "active" },
+        }),
+    },
+    {
+      id: "more",
+      label: "More",
+      accessibilityLabel: "More settings",
+      icon: MoreHorizontal,
+      onPress: () => router.push("/(tabs)/settings"),
+    },
+  ] satisfies readonly HeaderCardAction[];
 
-  if (isLoading) {
-    return <DashboardLoading />;
-  }
+  if (isLoading) return <DashboardLoading />;
 
   return (
-    <View className="bg-background flex-1">
-      <FlatList
-        refreshing={isRefetching}
-        onRefresh={() => {
-          void refetch();
-        }}
-        ListHeaderComponent={
-          <View className="pt-safe gap-4">
-            <DashboardHeader />
-
-            <BalanceCard
-              owedToYouMinor={data?.balance?.owedToYouMinor ?? 0}
-              youOweMinor={data?.balance?.youOweMinor ?? 0}
-            />
-
-            <ActiveExpenses expenses={data?.activeExpenses || []} />
-
-            <SectionHeader
-              title="Recent Expenses"
-              action={
-                (data?.recentExpenses.length ?? 0) > 0 ? (
-                  <Button
-                    variant="ghost"
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(modals)/expenses",
-                        params: {
-                          sort: "desc",
-                          type: "settled",
-                        },
-                      })
-                    }
-                  >
-                    <Typography className="text-sm text-muted">
-                      See All
-                    </Typography>
-                  </Button>
-                ) : null
-              }
-            />
-          </View>
-        }
-        contentContainerClassName="px-4 pb-8"
-        data={data?.recentExpenses}
-        ListEmptyComponent={
-          <ExpensesEmptyState
-            title="No recent expenses"
-            description="Create your first expense to start tracking shared spending."
+    <View
+      className="bg-page flex-1"
+      style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}
+    >
+      <ScrollView
+        contentContainerClassName="p-4 gap-2"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={() => {
+              void refetch();
+            }}
           />
         }
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => (
-          <PressableFeedback
-            onPress={() =>
-              router.push({
-                pathname: "/(modals)/expenses/[expenseId]",
-                params: {
-                  expenseId: item.id,
-                },
-              })
-            }
-          >
-            <View
-              className={cn(
-                "flex-row items-center justify-between gap-2 py-2 border-border",
-                data?.recentExpenses.length === index + 1 ? "" : "border-b",
-              )}
+      >
+        <DashboardHeader />
+        {!data ? (
+          <View className="gap-4">
+            <ExpensesEmptyState
+              title="Could not load dashboard"
+              description="Try again to load your balances and expenses."
+            />
+            <Button
+              onPress={() => {
+                void refetch();
+              }}
             >
-              <View className="flex-1 gap-1">
-                <Typography className="text-sm">{item.title}</Typography>
-                <Typography className="text-xs text-muted">
-                  {formatDate(new Date(item.occurredAt))}
-                </Typography>
-              </View>
-              <Typography className="text-sm font-semibold">
-                {formatCurrency(item.totalMinor)}
-              </Typography>
-            </View>
-          </PressableFeedback>
+              <Button.Label>Try Again</Button.Label>
+            </Button>
+          </View>
+        ) : (
+          <>
+            <DashboardHeaderCard
+              owedToYouMinor={data.balance.owedToYouMinor}
+              youOweMinor={data.balance.youOweMinor}
+              actions={headerActions}
+            />
+            <DashboardExpenses expenses={data.activeExpenses} />
+            <DashboardExpenses expenses={data.settledExpenses} settled />
+          </>
         )}
-      />
+        <View className="h-14" />
+      </ScrollView>
+      <Button
+        className="absolute right-4 size-18 rounded-full bg-dark-gradient"
+        style={{ bottom: insets.bottom + 16 }}
+        isIconOnly
+        accessibilityLabel="Scan receipt"
+        onPress={() => router.push("/(tabs)/scan")}
+      >
+        <HugeiconsIcon icon={Scan} size={28} color="#FFFFFF" />
+      </Button>
     </View>
   );
 }
