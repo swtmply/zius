@@ -7,6 +7,8 @@ import { participantProcedure, router } from "../index";
 const dashboardExpenseColumns = {
   id: expense.id,
   title: expense.title,
+  category: expense.category,
+  iconName: expense.iconName,
   totalMinor: expense.totalMinor,
   currency: expense.currency,
   occurredAt: expense.occurredAt,

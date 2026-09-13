@@ -38,7 +38,7 @@ export function ExpenseDetailsLoading() {
               ["payer", "size-12"],
               ["split", "size-12"],
               ["group", "size-12"],
-              ["status", "size-12"],
+              ["category", "size-12"],
             ].map(([item, size]) => (
               <View key={item} className="flex-1 items-center gap-1">
                 <Skeleton className={`${size} rounded-full`} />
@@ -50,7 +50,10 @@ export function ExpenseDetailsLoading() {
       </View>
 
       <View className="gap-2">
-        <Typography className="text-sm text-ink">Expense Summary</Typography>
+        <View className="flex-row items-center justify-between gap-2">
+          <Typography className="text-sm text-ink">Expense Summary</Typography>
+          <Skeleton className="h-3 w-16 rounded-sm" />
+        </View>
         <View className="gap-2 rounded-2xl bg-panel p-4">
           {["one", "two", "three"].map((item, index) => (
             <View key={item} className="gap-2">

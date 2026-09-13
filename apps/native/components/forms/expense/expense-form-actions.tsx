@@ -1,12 +1,7 @@
+import { categoryOptions } from "@/utils/expense-categories";
 import {
-  Airplane01Icon,
-  Car01Icon,
   Check,
-  GlassWaterIcon,
-  ReceiptTextIcon,
-  Restaurant01Icon,
   SaleTag01Icon,
-  ShoppingBag01Icon,
   Split,
   UserGroup03Icon,
   X,
@@ -267,15 +262,6 @@ const splitMethodOptions: readonly ExpenseSelectionOption[] = splitMethods.map((
   value: method,
   label: splitMethodLabel(method),
 }));
-
-const categoryOptions = [
-  { value: "food", label: "Food", icon: Restaurant01Icon },
-  { value: "transportation", label: "Transportation", icon: Car01Icon },
-  { value: "travel", label: "Travel", icon: Airplane01Icon },
-  { value: "drinks", label: "Drinks & Beverages", icon: GlassWaterIcon },
-  { value: "shopping", label: "Shopping", icon: ShoppingBag01Icon },
-  { value: "others", label: "Others", icon: ReceiptTextIcon },
-] as const satisfies readonly ExpenseSelectionOption[];
 
 export type ExpenseCategory = (typeof categoryOptions)[number]["value"];
 
