@@ -435,10 +435,10 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
 
           return (
             <View className="gap-2">
-              <SectionHeader
-                title="Expense Summary"
-                action={
-                  <View className="flex-row items-center gap-1">
+              <View className="gap-2">
+                <SectionHeader
+                  title="Participants"
+                  action={
                     <GuestDialog
                       title="Add Participant"
                       triggerLabel="Add Participant"
@@ -459,7 +459,24 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
                         ]);
                       }}
                     />
-                    {splitMethod === "items" ? (
+                  }
+                />
+                <ParticipantList
+                  participants={participants}
+                  payer={payer}
+                  splitMethod={splitMethod}
+                  currentParticipantId={currentParticipant.id}
+                  onPayerChange={(email) => form.setFieldValue("payer", email)}
+                  onRemove={removeParticipant}
+                  onSplitValueChange={setParticipantSplitValue}
+                />
+              </View>
+
+              {splitMethod === "items" ? (
+                <>
+                  <SectionHeader
+                    title="Expense Summary"
+                    action={
                       <Button
                         size="sm"
                         className="h-8 min-h-0 gap-2 rounded-full bg-dark-gradient px-3"
@@ -476,13 +493,8 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
                           Add Item
                         </Button.Label>
                       </Button>
-                    ) : null}
-                  </View>
-                }
-              />
-
-              {splitMethod === "items" ? (
-                <>
+                    }
+                  />
                   <ExpenseItemList
                     items={items}
                     participants={participants}
@@ -513,16 +525,6 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
                   ) : null}
                 </>
               ) : null}
-
-              <ParticipantList
-                participants={participants}
-                payer={payer}
-                splitMethod={splitMethod}
-                currentParticipantId={currentParticipant.id}
-                onPayerChange={(email) => form.setFieldValue("payer", email)}
-                onRemove={removeParticipant}
-                onSplitValueChange={setParticipantSplitValue}
-              />
             </View>
           );
         }}
