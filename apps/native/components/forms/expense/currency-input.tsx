@@ -15,12 +15,7 @@ type CurrencyInputProps = {
   errorMessage?: string;
 };
 
-export function CurrencyInput({
-  value,
-  onValueChange,
-  onBlur,
-  errorMessage,
-}: CurrencyInputProps) {
+export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: CurrencyInputProps) {
   const inputRef = useRef<TextInput>(null);
 
   const { maximumFractionDigits } = currencyFormatter.resolvedOptions();
@@ -57,10 +52,9 @@ export function CurrencyInput({
     <View>
       <Button variant="ghost" className="w-full h-24" onPress={focus}>
         <Typography
-          className={cn(
-            "text-2xl font-semibold",
-            errorMessage && "text-danger",
-          )}
+          className={cn("text-2xl font-semibold text-ink", errorMessage && "text-danger")}
+          style={{ fontVariant: ["tabular-nums"] }}
+          selectable
         >
           {symbol}
           {formattedValue}
@@ -84,10 +78,7 @@ export function CurrencyInput({
         />
       </View>
       {errorMessage ? (
-        <Typography
-          className="text-xs text-danger text-center"
-          accessibilityLiveRegion="polite"
-        >
+        <Typography className="text-xs text-danger text-center" accessibilityLiveRegion="polite">
           {errorMessage}
         </Typography>
       ) : null}

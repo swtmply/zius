@@ -24,10 +24,12 @@ export default function CreateExpenseForm() {
 
   if (participantError || groupError) {
     return (
-      <View className="bg-background flex-1 items-center justify-center px-4">
-        <Typography selectable className="text-sm text-danger">
-          {groupError ? "Unable to load this group." : "Unable to load your participant details."}
-        </Typography>
+      <View className="bg-page flex-1 items-center justify-center px-4">
+        <View className="rounded-2xl bg-panel p-4">
+          <Typography selectable className="text-sm text-danger">
+            {groupError ? "Unable to load this group." : "Unable to load your participant details."}
+          </Typography>
+        </View>
       </View>
     );
   }

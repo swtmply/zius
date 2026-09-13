@@ -1,7 +1,9 @@
-import { Button, Dialog, FieldError, Label, TextField } from "heroui-native";
-import { useState } from "react";
-import { TextInput, View } from "react-native";
-import { KeyboardAvoidingView, KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { Add, X } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import { BottomSheet, Button, Typography, useBottomSheetAwareHandlers } from "heroui-native";
+import { useEffect, useRef, useState } from "react";
+import { Keyboard, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 
 const guestSchema = z.object({
@@ -13,9 +15,143 @@ export type Guest = z.infer<typeof guestSchema>;
 
 type GuestDialogProps = {
   onSubmit: (guest: Guest) => void;
+  title?: string;
+  triggerLabel?: string;
+  submitLabel?: string;
+  namePlaceholder?: string;
+  emailPlaceholder?: string;
+  compact?: boolean;
 };
 
-export function GuestDialog({ onSubmit }: GuestDialogProps) {
+type GuestSheetContentProps = {
+  isOpen: boolean;
+  title: string;
+  submitLabel: string;
+  namePlaceholder: string;
+  emailPlaceholder: string;
+  name: string;
+  email: string;
+  errors: Partial<Record<keyof Guest, string>>;
+  onNameChange: (value: string) => void;
+  onEmailChange: (value: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+};
+
+function GuestSheetContent({
+  isOpen,
+  title,
+  submitLabel,
+  namePlaceholder,
+  emailPlaceholder,
+  name,
+  email,
+  errors,
+  onNameChange,
+  onEmailChange,
+  onSubmit,
+  onClose,
+}: GuestSheetContentProps) {
+  const nameInputRef = useRef<TextInput>(null);
+  const emailInputRef = useRef<TextInput>(null);
+  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+
+  useEffect(() => {
+    if (!isOpen) {
+      nameInputRef.current?.blur();
+      emailInputRef.current?.blur();
+    }
+  }, [isOpen]);
+
+  return (
+    <View className="gap-4">
+      <View className="flex-row items-center justify-between gap-4">
+        <BottomSheet.Title className="text-lg font-normal text-ink">{title}</BottomSheet.Title>
+        <Button
+          isIconOnly
+          variant="secondary"
+          className="size-8 rounded-full bg-page"
+          accessibilityLabel={`Close ${title.toLowerCase()} sheet`}
+          onPress={onClose}
+        >
+          <HugeiconsIcon icon={X} size={16} color="#000000" />
+        </Button>
+      </View>
+
+      <View className="gap-4">
+        <View className="gap-1">
+          <View
+            className={`bg-page h-14 flex-row items-center gap-1 rounded-2xl border px-4 ${
+              errors.name ? "border-danger" : "border-transparent"
+            }`}
+          >
+            <Typography className="text-sm text-ink">Name</Typography>
+            <TextInput
+              ref={nameInputRef}
+              autoCapitalize="words"
+              autoComplete="name"
+              value={name}
+              onBlur={onBlur}
+              onChangeText={onNameChange}
+              onFocus={onFocus}
+              onSubmitEditing={() => emailInputRef.current?.focus()}
+              placeholder={namePlaceholder}
+              placeholderTextColor="#8A8A8E"
+              returnKeyType="next"
+              className="flex-1 text-sm text-ink"
+            />
+          </View>
+          {errors.name ? (
+            <Typography className="px-1 text-xs text-danger">{errors.name}</Typography>
+          ) : null}
+        </View>
+
+        <View className="gap-1">
+          <View
+            className={`bg-page h-14 flex-row items-center gap-1 rounded-2xl border px-4 ${
+              errors.email ? "border-danger" : "border-transparent"
+            }`}
+          >
+            <Typography className="text-sm text-ink">Email</Typography>
+            <TextInput
+              ref={emailInputRef}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              value={email}
+              onBlur={onBlur}
+              onChangeText={onEmailChange}
+              onFocus={onFocus}
+              onSubmitEditing={onSubmit}
+              placeholder={emailPlaceholder}
+              placeholderTextColor="#8A8A8E"
+              returnKeyType="done"
+              className="flex-1 text-sm text-ink"
+            />
+          </View>
+          {errors.email ? (
+            <Typography className="px-1 text-xs text-danger">{errors.email}</Typography>
+          ) : null}
+        </View>
+
+        <Button className="w-full bg-dark-gradient" onPress={onSubmit}>
+          <Button.Label>{submitLabel}</Button.Label>
+        </Button>
+      </View>
+    </View>
+  );
+}
+
+export function GuestDialog({
+  onSubmit,
+  title = "Add guest",
+  triggerLabel = "Add Guest",
+  submitLabel = "Add guest",
+  namePlaceholder = "Guest name",
+  emailPlaceholder = "guest@example.com",
+  compact = false,
+}: GuestDialogProps) {
+  const insets = useSafeAreaInsets();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,6 +165,7 @@ export function GuestDialog({ onSubmit }: GuestDialogProps) {
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
+    Keyboard.dismiss();
 
     if (!open) {
       reset();
@@ -52,77 +189,55 @@ export function GuestDialog({ onSubmit }: GuestDialogProps) {
   };
 
   return (
-    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>
-        <Button size="sm">
-          <Button.Label>Add Guest</Button.Label>
+    <BottomSheet isOpen={isOpen} onOpenChange={handleOpenChange}>
+      <BottomSheet.Trigger asChild>
+        <Button
+          size="sm"
+          className={`min-h-0 rounded-full bg-dark-gradient ${
+            compact ? "h-7 gap-1 px-2" : "h-8 gap-2 px-3"
+          }`}
+        >
+          <HugeiconsIcon icon={Add} size={compact ? 14 : 16} color="#FFFFFF" />
+          <Button.Label className={`font-normal text-white ${compact ? "text-[10px]" : "text-xs"}`}>
+            {triggerLabel}
+          </Button.Label>
         </Button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay />
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <KeyboardAwareScrollView
-            bottomOffset={16}
-            contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }}
-            keyboardDismissMode="interactive"
-            keyboardShouldPersistTaps="handled"
-          >
-            <Dialog.Content>
-              <View className="gap-1">
-                <Dialog.Title>Add guest</Dialog.Title>
-              </View>
-
-              <View className="gap-4">
-                <TextField isRequired isInvalid={Boolean(errors.name)}>
-                  <Label>Name</Label>
-                  <TextInput
-                    autoCapitalize="words"
-                    autoComplete="name"
-                    autoFocus
-                    value={name}
-                    onChangeText={(value) => {
-                      setName(value);
-                      setErrors((current) => ({ ...current, name: undefined }));
-                    }}
-                    placeholder="Guest name"
-                    returnKeyType="next"
-                    className="border border-border rounded-xl px-3 text-sm"
-                  />
-                  <FieldError>{errors.name}</FieldError>
-                </TextField>
-
-                <TextField isRequired isInvalid={Boolean(errors.email)}>
-                  <Label>Email</Label>
-                  <TextInput
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    keyboardType="email-address"
-                    value={email}
-                    onChangeText={(value) => {
-                      setEmail(value);
-                      setErrors((current) => ({ ...current, email: undefined }));
-                    }}
-                    onSubmitEditing={handleSubmit}
-                    placeholder="guest@example.com"
-                    returnKeyType="done"
-                    className="border border-border rounded-xl px-3 text-sm"
-                  />
-                  <FieldError>{errors.email}</FieldError>
-                </TextField>
-
-                <View className="flex-row items-center justify-end gap-1 pt-2">
-                  <Button variant="ghost" onPress={() => handleOpenChange(false)}>
-                    <Button.Label>Cancel</Button.Label>
-                  </Button>
-                  <Button onPress={handleSubmit}>
-                    <Button.Label>Add guest</Button.Label>
-                  </Button>
-                </View>
-              </View>
-            </Dialog.Content>
-          </KeyboardAwareScrollView>
-        </KeyboardAvoidingView>
-      </Dialog.Portal>
-    </Dialog>
+      </BottomSheet.Trigger>
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content
+          detached
+          bottomInset={insets.bottom + 12}
+          className="mx-4 overflow-hidden"
+          backgroundClassName="rounded-[32px]"
+          contentContainerClassName="gap-4 p-4"
+          enableDynamicSizing
+          handleComponent={null}
+          keyboardBehavior="interactive"
+          keyboardBlurBehavior="restore"
+        >
+          <GuestSheetContent
+            isOpen={isOpen}
+            title={title}
+            submitLabel={submitLabel}
+            namePlaceholder={namePlaceholder}
+            emailPlaceholder={emailPlaceholder}
+            name={name}
+            email={email}
+            errors={errors}
+            onNameChange={(value) => {
+              setName(value);
+              setErrors((current) => ({ ...current, name: undefined }));
+            }}
+            onEmailChange={(value) => {
+              setEmail(value);
+              setErrors((current) => ({ ...current, email: undefined }));
+            }}
+            onSubmit={handleSubmit}
+            onClose={() => handleOpenChange(false)}
+          />
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
   );
 }

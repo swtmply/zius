@@ -22,28 +22,26 @@ export function ExpenseTitleInput({
     <View className="gap-1">
       <View
         className={cn(
-          "bg-surface px-4 py-2 flex-row items-center gap-1 shadow-lg rounded-xl border",
+          "bg-panel h-14 px-4 flex-row items-center gap-1 rounded-2xl border shadow-none",
           errorMessage ? "border-danger" : "border-transparent",
         )}
       >
-        <Typography className="text-sm">{label}</Typography>
+        <Typography className="text-sm text-ink">{label}</Typography>
         <TextInput
           value={value}
           onBlur={onBlur}
           onChangeText={onChange}
           placeholder={placeholder}
+          placeholderTextColor="#8A8A8E"
           accessibilityLabel={label}
           accessibilityHint={errorMessage}
           aria-invalid={Boolean(errorMessage)}
           returnKeyType="none"
-          className="flex-1 text-sm"
+          className="flex-1 text-sm text-ink"
         />
       </View>
       {errorMessage ? (
-        <Typography
-          className="px-1 text-xs text-danger"
-          accessibilityLiveRegion="polite"
-        >
+        <Typography className="px-1 text-xs text-danger" accessibilityLiveRegion="polite">
           {errorMessage}
         </Typography>
       ) : null}
