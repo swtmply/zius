@@ -5,22 +5,16 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@zius/api/routers/index";
-import {
-  Button,
-  Dialog,
-  PressableFeedback,
-  Typography,
-  useToast,
-} from "heroui-native";
+import { Button, BottomSheet, PressableFeedback, Typography, useToast } from "heroui-native";
 import { useState } from "react";
 import { Keyboard, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CurrencyInput } from "./currency-input";
+import { ExpenseFormActions, type ExpenseCategory } from "./expense-form-actions";
 import { GuestDialog } from "./guest-dialog";
-import { GroupSelector } from "./group-selector";
 import { ParticipantList } from "./participant-list";
-import { SplitMethodSelector } from "./split-method-selector";
 import { ExpenseFormHeader } from "./expense-form-header";
 import { ExpenseItemList } from "./expense-item-list";
 import {
@@ -41,7 +35,7 @@ import { trpc } from "@/utils/trpc";
 import type { ParsedReceipt } from "@/utils/scan";
 import { useRouter } from "expo-router";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { XIcon } from "@hugeicons/core-free-icons";
+import { Add, XIcon } from "@hugeicons/core-free-icons";
 
 type ExpenseFormProps = {
   currentParticipant: inferRouterOutputs<AppRouter>["participant"]["current"];
@@ -52,23 +46,17 @@ type ExpenseFormProps = {
 type SubmitMeta = { groupChoice?: "group" | "standalone" };
 const defaultSubmitMeta: SubmitMeta = {};
 
-export function ExpenseForm({
-  currentParticipant,
-  group,
-  initialReceipt,
-}: ExpenseFormProps) {
+export function ExpenseForm({ currentParticipant, group, initialReceipt }: ExpenseFormProps) {
+  const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [submitError, setSubmitError] = useState<string>();
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [groupChoice, setGroupChoice] =
-    useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
+  const [groupChoice, setGroupChoice] = useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
+  const [category, setCategory] = useState<ExpenseCategory>();
   const groupParticipants = group?.participants ?? [currentParticipant];
   const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
-    (group?.participants ?? []).map((participant) =>
-      participant.email.toLowerCase(),
-    ),
+    (group?.participants ?? []).map((participant) => participant.email.toLowerCase()),
   );
 
   const findOutsideParticipants = (
@@ -81,9 +69,7 @@ export function ExpenseForm({
 
     const memberEmails = new Set(groupMemberEmails);
 
-    return participants.filter(
-      (participant) => !memberEmails.has(participant.email.toLowerCase()),
-    );
+    return participants.filter((participant) => !memberEmails.has(participant.email.toLowerCase()));
   };
 
   const defaultValues: ExpenseFormValues = {
@@ -91,29 +77,26 @@ export function ExpenseForm({
       initialReceipt?.totalMinor ??
       (initialReceipt
         ? (sumExpenseItemPrices(
-            initialReceipt.items.map((item, index) =>
-              createExpenseItem(item, `receipt_${index}`),
-            ),
+            initialReceipt.items.map((item, index) => createExpenseItem(item, `receipt_${index}`)),
           ) ?? 0)
         : 0),
     title: "",
     splitMethod: initialReceipt ? "items" : splitMethods[0],
     payer: currentParticipant.email,
     group_id: group?.id,
-    participants: groupParticipants.map(({ id, name, email, userId }) => ({
-      id,
-      name,
-      email,
-      userId: userId ?? undefined,
+    participants: groupParticipants.map((participant) => ({
+      id: participant.id,
+      name: participant.name,
+      email: participant.email,
+      image: "image" in participant ? participant.image : undefined,
+      userId: participant.userId ?? undefined,
       owedMinor: 0,
       splitValue: 0,
       isSplitValueEdited: false,
       status: "unpaid",
     })),
     items:
-      initialReceipt?.items.map((item, index) =>
-        createExpenseItem(item, `receipt_${index}`),
-      ) ?? [],
+      initialReceipt?.items.map((item, index) => createExpenseItem(item, `receipt_${index}`)) ?? [],
     occurredAt: Date.now(),
     currency: "PHP",
   };
@@ -131,7 +114,6 @@ export function ExpenseForm({
     },
     onSubmitInvalid: () => {
       setHasSubmitted(true);
-      setSubmitError(undefined);
       setIsGroupDialogOpen(false);
       Keyboard.dismiss();
     },
@@ -139,8 +121,7 @@ export function ExpenseForm({
       // A selected group can only take the expense when every participant already
       // belongs to it. Otherwise the choice is a new group or a standalone expense.
       const needsGroupChoice =
-        !value.group_id ||
-        findOutsideParticipants(value.group_id, value.participants).length > 0;
+        !value.group_id || findOutsideParticipants(value.group_id, value.participants).length > 0;
 
       if (needsGroupChoice && !meta.groupChoice) {
         Keyboard.dismiss();
@@ -150,15 +131,13 @@ export function ExpenseForm({
       }
 
       setIsGroupDialogOpen(false);
-      setSubmitError(undefined);
       const items =
         value.splitMethod === "items"
           ? (value.items ?? []).map((item) => ({
               name: item.name.trim(),
               quantity: item.quantity,
               priceMinor: item.priceMinor,
-              participantEmail:
-                item.participantEmail?.trim().toLowerCase() ?? "",
+              participantEmail: item.participantEmail?.trim().toLowerCase() ?? "",
             }))
           : [];
       try {
@@ -175,8 +154,7 @@ export function ExpenseForm({
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       } catch (error) {
-        const code =
-          error instanceof TRPCClientError ? error.data?.code : undefined;
+        const code = error instanceof TRPCClientError ? error.data?.code : undefined;
         const description =
           code === "UNAUTHORIZED"
             ? "Your session has expired. Sign in again before submitting."
@@ -186,16 +164,10 @@ export function ExpenseForm({
                 ? "Check the expense details and participant splits, then submit again."
                 : "We couldn't confirm that your expense was saved. Check your connection and expense history before trying again.";
 
-        setSubmitError(description);
-
         toast.show({
           duration: 6000,
           component: (props) => (
-            <ExpenseCreationToast
-              {...props}
-              variant="danger"
-              description={description}
-            />
+            <ExpenseCreationToast {...props} variant="danger" description={description} />
           ),
         });
         return;
@@ -209,10 +181,9 @@ export function ExpenseForm({
 
       form.reset();
       setHasSubmitted(false);
+      setCategory(undefined);
       setGroupMemberEmails(
-        (group?.participants ?? []).map((participant) =>
-          participant.email.toLowerCase(),
-        ),
+        (group?.participants ?? []).map((participant) => participant.email.toLowerCase()),
       );
       toast.show({
         component: (props) => (
@@ -284,10 +255,7 @@ export function ExpenseForm({
   };
 
   const setItems = (items: ExpenseItem[]) => {
-    const validItems = clearInvalidItemAssignments(
-      items,
-      form.state.values.participants,
-    );
+    const validItems = clearInvalidItemAssignments(items, form.state.values.participants);
 
     form.setFieldValue("items", validItems);
     form.setFieldValue(
@@ -307,15 +275,14 @@ export function ExpenseForm({
     onSuccess: (selectedGroup) => {
       form.setFieldValue("group_id", selectedGroup.id);
       setGroupMemberEmails(
-        selectedGroup.participants.map((participant) =>
-          participant.email.toLowerCase(),
-        ),
+        selectedGroup.participants.map((participant) => participant.email.toLowerCase()),
       );
       const participants = selectedGroup.participants.map(
-        ({ id, name, email, userId }): FormParticipant => ({
+        ({ id, name, email, image, userId }): FormParticipant => ({
           id,
           name,
           email,
+          image,
           userId: userId ?? undefined,
           owedMinor: 0,
           splitValue: 0,
@@ -323,11 +290,7 @@ export function ExpenseForm({
           status: "unpaid",
         }),
       );
-      if (
-        !participants.some(
-          (participant) => participant.email === form.state.values.payer,
-        )
-      ) {
+      if (!participants.some((participant) => participant.email === form.state.values.payer)) {
         form.setFieldValue("payer", currentParticipant.email);
       }
       setParticipants(participants);
@@ -349,25 +312,19 @@ export function ExpenseForm({
   };
 
   const removeParticipant = (participantId: string) => {
-    const participant = form.state.values.participants.find(
-      (item) => item.id === participantId,
-    );
+    const participant = form.state.values.participants.find((item) => item.id === participantId);
 
     if (participant?.email === form.state.values.payer) {
       form.setFieldValue("payer", currentParticipant.email);
     }
 
-    setParticipants(
-      form.state.values.participants.filter(
-        (item) => item.id !== participantId,
-      ),
-    );
+    setParticipants(form.state.values.participants.filter((item) => item.id !== participantId));
   };
 
   return (
     <KeyboardAwareScrollView
       bottomOffset={16}
-      className="bg-background flex-1"
+      className="bg-page flex-1"
       contentContainerClassName="pt-safe pb-safe gap-4 px-4"
       contentInsetAdjustmentBehavior="automatic"
       keyboardDismissMode="interactive"
@@ -389,13 +346,11 @@ export function ExpenseForm({
             onBlur={field.handleBlur}
             errorMessage={
               hasSubmitted || field.state.meta.isBlurred
-                ? createExpenseSchema.shape.totalMinor.safeParse(field.state.value)
-                    .error?.issues[0]?.message
+                ? createExpenseSchema.shape.totalMinor.safeParse(field.state.value).error?.issues[0]
+                    ?.message
                 : undefined
             }
-            onValueChange={(value) =>
-              setTotalMinor(value === "" ? 0 : Number(value))
-            }
+            onValueChange={(value) => setTotalMinor(value === "" ? 0 : Number(value))}
           />
         )}
       </form.Field>
@@ -408,179 +363,188 @@ export function ExpenseForm({
             onChange={field.handleChange}
             errorMessage={
               hasSubmitted || field.state.meta.isBlurred
-                ? createExpenseSchema.shape.title.safeParse(field.state.value)
-                    .error?.issues[0]?.message
+                ? createExpenseSchema.shape.title.safeParse(field.state.value).error?.issues[0]
+                    ?.message
                 : undefined
             }
           />
         )}
       </form.Field>
 
-      <SectionHeader title="Split Method" />
-
-      <form.Field name="splitMethod">
-        {(field) => (
-          <SplitMethodSelector
-            value={field.state.value}
-            onChange={setSplitMethod}
-          />
+      <form.Subscribe
+        selector={(state) => ({
+          participants: state.values.participants,
+          payer: state.values.payer,
+          groupId: state.values.group_id,
+          splitMethod: state.values.splitMethod,
+          isSubmitting: state.isSubmitting,
+        })}
+      >
+        {({ participants, payer, groupId, splitMethod, isSubmitting }) => (
+          <>
+            <ExpenseFormActions
+              participants={participants}
+              payer={payer}
+              splitMethod={splitMethod}
+              groupId={groupId}
+              groupName={group?.name}
+              category={category}
+              isDisabled={isSubmitting || selectGroup.isPending}
+              onPayerChange={(email) => form.setFieldValue("payer", email)}
+              onSplitMethodChange={setSplitMethod}
+              onGroupChange={(nextGroupId) => {
+                if (nextGroupId === groupId || isSubmitting || selectGroup.isPending) return;
+                selectGroup.reset();
+                if (nextGroupId) {
+                  selectGroup.mutate(nextGroupId);
+                } else {
+                  form.setFieldValue("group_id", undefined);
+                  setGroupMemberEmails([]);
+                }
+              }}
+              onCategoryChange={setCategory}
+            />
+            {selectGroup.isPending ? (
+              <Typography className="px-1 text-xs text-supporting">
+                Loading group participants...
+              </Typography>
+            ) : null}
+            {selectGroup.isError ? (
+              <Typography className="px-1 text-xs text-danger">
+                Unable to load this group. Open Groups to try again.
+              </Typography>
+            ) : null}
+          </>
         )}
-      </form.Field>
+      </form.Subscribe>
 
       <form.Subscribe
         selector={(state) => ({
           items: state.values.items ?? [],
           participants: state.values.participants,
+          payer: state.values.payer,
           splitMethod: state.values.splitMethod,
           totalMinor: state.values.totalMinor,
           isSubmitting: state.isSubmitting,
         })}
       >
-        {({ items, participants, splitMethod, totalMinor, isSubmitting }) => {
-          if (splitMethod !== "items") {
-            return null;
-          }
-
+        {({ items, participants, payer, splitMethod, totalMinor, isSubmitting }) => {
           const itemTotal = sumExpenseItemPrices(items);
-          const hasMismatch =
-            itemTotal !== undefined && itemTotal !== totalMinor;
+          const hasMismatch = itemTotal !== undefined && itemTotal !== totalMinor;
 
           return (
             <View className="gap-2">
-              <SectionHeader title="Items" />
-              <ExpenseItemList
-                items={items}
-                participants={participants}
-                isDisabled={isSubmitting}
-                showErrors={hasSubmitted}
-                onAdd={() =>
-                  setItems([
-                    ...items,
-                    createExpenseItem({ name: "", quantity: 1, priceMinor: 0 }),
-                  ])
+              <SectionHeader
+                title="Expense Summary"
+                action={
+                  <View className="flex-row items-center gap-1">
+                    <GuestDialog
+                      title="Add Participant"
+                      triggerLabel="Add Participant"
+                      submitLabel="Submit"
+                      namePlaceholder="Participant Name"
+                      emailPlaceholder="Participant Email"
+                      onSubmit={(guest) => {
+                        setParticipants([
+                          ...participants,
+                          {
+                            ...guest,
+                            id: `guest_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                            owedMinor: 0,
+                            splitValue: 0,
+                            isSplitValueEdited: false,
+                            status: "unpaid",
+                          },
+                        ]);
+                      }}
+                    />
+                    {splitMethod === "items" ? (
+                      <Button
+                        size="sm"
+                        className="h-8 min-h-0 gap-2 rounded-full bg-dark-gradient px-3"
+                        isDisabled={isSubmitting}
+                        onPress={() =>
+                          setItems([
+                            ...items,
+                            createExpenseItem({ name: "", quantity: 1, priceMinor: 0 }),
+                          ])
+                        }
+                      >
+                        <HugeiconsIcon icon={Add} size={16} color="#FFFFFF" />
+                        <Button.Label className="text-xs font-normal text-white">
+                          Add Item
+                        </Button.Label>
+                      </Button>
+                    ) : null}
+                  </View>
                 }
-                onChange={(index, item) => {
-                  setItems(
-                    items.map((current, itemIndex) =>
-                      itemIndex === index ? item : current,
-                    ),
-                  );
-                }}
-                onRemove={(index) => {
-                  setItems(items.filter((_, itemIndex) => itemIndex !== index));
-                }}
               />
-              {hasSubmitted && items.length === 0 ? (
-                <Typography className="px-1 text-xs text-danger" selectable>
-                  Add at least one item before submitting.
-                </Typography>
-              ) : hasMismatch ? (
-                <Typography className="px-1 text-xs text-danger" selectable>
-                  Items total {formatCurrency(itemTotal)} must match the expense
-                  amount {formatCurrency(totalMinor)}.
-                </Typography>
-              ) : itemTotal === undefined && hasSubmitted ? (
-                <Typography className="px-1 text-xs text-danger" selectable>
-                  Enter valid line totals before submitting.
-                </Typography>
+
+              {splitMethod === "items" ? (
+                <>
+                  <ExpenseItemList
+                    items={items}
+                    participants={participants}
+                    isDisabled={isSubmitting}
+                    showErrors={hasSubmitted}
+                    onChange={(index, item) => {
+                      setItems(
+                        items.map((current, itemIndex) => (itemIndex === index ? item : current)),
+                      );
+                    }}
+                    onRemove={(index) => {
+                      setItems(items.filter((_, itemIndex) => itemIndex !== index));
+                    }}
+                  />
+                  {hasSubmitted && items.length === 0 ? (
+                    <Typography className="px-1 text-xs text-danger" selectable>
+                      Add at least one item before submitting.
+                    </Typography>
+                  ) : hasMismatch ? (
+                    <Typography className="px-1 text-xs text-danger" selectable>
+                      Items total {formatCurrency(itemTotal)} must match the expense amount{" "}
+                      {formatCurrency(totalMinor)}.
+                    </Typography>
+                  ) : itemTotal === undefined && hasSubmitted ? (
+                    <Typography className="px-1 text-xs text-danger" selectable>
+                      Enter valid line totals before submitting.
+                    </Typography>
+                  ) : null}
+                </>
               ) : null}
+
+              <ParticipantList
+                participants={participants}
+                payer={payer}
+                splitMethod={splitMethod}
+                currentParticipantId={currentParticipant.id}
+                onPayerChange={(email) => form.setFieldValue("payer", email)}
+                onRemove={removeParticipant}
+                onSplitValueChange={setParticipantSplitValue}
+              />
             </View>
           );
         }}
       </form.Subscribe>
 
-      <SectionHeader title="Groups" />
-
-      <form.Subscribe
-        selector={(state) => ({
-          groupId: state.values.group_id,
-          isSubmitting: state.isSubmitting,
-        })}
-      >
-        {({ groupId, isSubmitting }) => (
-          <GroupSelector
-            value={groupId}
-            isDisabled={isSubmitting || selectGroup.isPending}
-            onChange={(nextGroupId) => {
-              if (
-                nextGroupId === groupId ||
-                isSubmitting ||
-                selectGroup.isPending
-              )
-                return;
-              selectGroup.reset();
-              if (nextGroupId) {
-                selectGroup.mutate(nextGroupId);
-              } else {
-                form.setFieldValue("group_id", undefined);
-                setGroupMemberEmails([]);
-              }
-            }}
-          />
-        )}
-      </form.Subscribe>
-      {selectGroup.isPending && (
-        <Typography className="text-xs text-muted">
-          Loading group participants...
-        </Typography>
-      )}
-      {selectGroup.isError && (
-        <Typography className="text-xs text-danger">
-          Unable to load this group. Tap the group to try again.
-        </Typography>
-      )}
-
-      <SectionHeader
-        title="Participants"
-        action={
-          <GuestDialog
-            onSubmit={(guest) => {
-              setParticipants([
-                ...form.state.values.participants,
-                {
-                  ...guest,
-                  id: `guest_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
-                  owedMinor: 0,
-                  splitValue: 0,
-                  isSplitValueEdited: false,
-                  status: "unpaid",
-                },
-              ]);
-            }}
-          />
-        }
-      />
-
-      <form.Subscribe
-        selector={(state) => ({
-          participants: state.values.participants,
-          payer: state.values.payer,
-          splitMethod: state.values.splitMethod,
-        })}
-      >
-        {({ participants, payer, splitMethod }) => (
-          <ParticipantList
-            participants={participants}
-            payer={payer}
-            splitMethod={splitMethod}
-            currentParticipantId={currentParticipant.id}
-            onPayerChange={(email) => form.setFieldValue("payer", email)}
-            onRemove={removeParticipant}
-            onSplitValueChange={setParticipantSplitValue}
-          />
-        )}
-      </form.Subscribe>
-
-      <Dialog isOpen={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay />
-          <Dialog.Content className="gap-5 rounded-3xl p-5">
+      <BottomSheet isOpen={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+        <BottomSheet.Portal>
+          <BottomSheet.Overlay />
+          <BottomSheet.Content
+            detached
+            bottomInset={insets.bottom + 12}
+            className="mx-4 overflow-hidden"
+            backgroundClassName="rounded-3xl"
+            contentContainerClassName="gap-5 p-5"
+            enableDynamicSizing
+            handleComponent={null}
+          >
             <View className="flex-row items-start gap-3">
               <View className="flex-1 gap-1">
-                <Dialog.Title>Confirm Expense</Dialog.Title>
-                <Dialog.Description>
+                <BottomSheet.Title>Confirm Expense</BottomSheet.Title>
+                <BottomSheet.Description>
                   Select what to do with this expense.
-                </Dialog.Description>
+                </BottomSheet.Description>
               </View>
               <Button
                 isIconOnly
@@ -602,18 +566,13 @@ export function ExpenseForm({
                       isDisabled={isSubmitting}
                       onPress={() => setGroupChoice("group")}
                       className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
-                        groupChoice === "group"
-                          ? "border-foreground"
-                          : "border-transparent"
+                        groupChoice === "group" ? "border-foreground" : "border-transparent"
                       }`}
                     >
-                      <Typography className="font-medium">
-                        Create new group
-                      </Typography>
+                      <Typography className="font-medium">Create new group</Typography>
                       <Typography className="text-muted leading-6">
-                        Creates a new group with the selected participants and
-                        adds this expense to it. The expense title will be the
-                        group name.
+                        Creates a new group with the selected participants and adds this expense to
+                        it. The expense title will be the group name.
                       </Typography>
                     </PressableFeedback>
                     <PressableFeedback
@@ -624,17 +583,13 @@ export function ExpenseForm({
                       isDisabled={isSubmitting}
                       onPress={() => setGroupChoice("standalone")}
                       className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
-                        groupChoice === "standalone"
-                          ? "border-foreground"
-                          : "border-transparent"
+                        groupChoice === "standalone" ? "border-foreground" : "border-transparent"
                       }`}
                     >
-                      <Typography className="font-medium">
-                        Create standalone expense
-                      </Typography>
+                      <Typography className="font-medium">Create standalone expense</Typography>
                       <Typography className="text-muted leading-6">
-                        Creates a one-off expense. This will only be available
-                        on dashboard and history.
+                        Creates a one-off expense. This will only be available on dashboard and
+                        history.
                       </Typography>
                     </PressableFeedback>
                   </View>
@@ -650,9 +605,9 @@ export function ExpenseForm({
                 </>
               )}
             </form.Subscribe>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog>
+          </BottomSheet.Content>
+        </BottomSheet.Portal>
+      </BottomSheet>
     </KeyboardAwareScrollView>
   );
 }

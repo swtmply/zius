@@ -2,6 +2,8 @@ import { Typography } from "heroui-native";
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 
+import { formatCurrency } from "@/utils";
+
 import type { SplitMethod } from "./expense-form-model";
 
 type ParticipantSplitInputProps = {
@@ -15,6 +17,23 @@ function formatSplitValue(splitMethod: SplitMethod, value: number) {
   return splitMethod === "percentage" ? String(Number(value.toFixed(2))) : (value / 100).toFixed(2);
 }
 
+function SplitValue({
+  splitMethod,
+  value,
+}: Pick<ParticipantSplitInputProps, "splitMethod" | "value">) {
+  return (
+    <Typography
+      selectable
+      className="text-right text-xs font-semibold text-ink"
+      style={{ fontVariant: ["tabular-nums"] }}
+    >
+      {splitMethod === "percentage"
+        ? String(Number(value.toFixed(2)))
+        : formatCurrency(value).replace("₱", "")}
+    </Typography>
+  );
+}
+
 export function ParticipantSplitInput({
   participantName,
   splitMethod,
@@ -23,12 +42,22 @@ export function ParticipantSplitInput({
 }: ParticipantSplitInputProps) {
   const [draft, setDraft] = useState(() => formatSplitValue(splitMethod, value));
   const [isFocused, setIsFocused] = useState(false);
+  const isEditable = splitMethod !== "equal" && splitMethod !== "items";
 
   useEffect(() => {
     if (!isFocused) {
       setDraft(formatSplitValue(splitMethod, value));
     }
   }, [isFocused, splitMethod, value]);
+
+  if (!isEditable) {
+    return (
+      <View className="w-14 flex-row items-center justify-end gap-1">
+        <SplitValue splitMethod={splitMethod} value={value} />
+        <Typography className="text-[10px] font-semibold text-supporting">PHP</Typography>
+      </View>
+    );
+  }
 
   const handleChangeText = (text: string) => {
     const sanitizedValue = text.replace(",", ".").replace(/[^\d.]/g, "");
@@ -51,8 +80,7 @@ export function ParticipantSplitInput({
     <View className="flex-row items-center gap-1">
       <TextInput
         accessibilityLabel={`${splitMethod} split for ${participantName}`}
-        className={`border border-border rounded-lg px-2 py-1 text-right w-24 ${splitMethod !== "percentage" ? "font-semibold" : ""}`}
-        editable={splitMethod !== "equal" && splitMethod !== "items"}
+        className="h-7 w-14 rounded-md border border-border bg-page px-2 py-0 text-right text-xs font-semibold text-ink"
         inputMode="decimal"
         keyboardType="decimal-pad"
         onBlur={() => {
@@ -64,9 +92,7 @@ export function ParticipantSplitInput({
         selectTextOnFocus
         value={draft}
       />
-      <Typography
-        className={`text-xs text-muted ${splitMethod !== "percentage" ? "font-semibold" : ""}`}
-      >
+      <Typography className="text-[10px] font-semibold text-supporting">
         {splitMethod === "percentage" ? "%" : "PHP"}
       </Typography>
     </View>

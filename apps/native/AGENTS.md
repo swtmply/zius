@@ -6,24 +6,24 @@ Before changing UI, read `app/(tabs)/home.tsx` and the relevant components in `c
 
 Use HeroUI `Typography` for display text and the existing theme colors.
 
-| Element | Standard |
-| --- | --- |
-| Page title | `text-2xl font-semibold` |
-| Primary text and section labels | `text-sm` |
-| Subtext, dates, and supporting copy | `text-xs text-muted` |
-| Prominent balance or amount | `text-2xl font-semibold` |
-| Currency in rows and inputs | `font-semibold`, preserving the surrounding text size |
-| Participant avatar | `Avatar size="sm"` |
-| Dashboard profile avatar | `Avatar size="md"` |
-| Navigation and action icons | 24px |
-| Small inline or dismiss icons | 16px |
+| Element                             | Standard                                              |
+| ----------------------------------- | ----------------------------------------------------- |
+| Page title                          | `text-2xl font-semibold`                              |
+| Primary text and section labels     | `text-sm`                                             |
+| Subtext, dates, and supporting copy | `text-xs text-muted`                                  |
+| Prominent balance or amount         | `text-2xl font-semibold`                              |
+| Currency in rows and inputs         | `font-semibold`, preserving the surrounding text size |
+| Participant avatar                  | `Avatar size="sm"`                                    |
+| Dashboard profile avatar            | `Avatar size="md"`                                    |
+| Navigation and action icons         | 24px                                                  |
+| Small inline or dismiss icons       | 16px                                                  |
 
 Every currency amount, including its symbol and editable amount fields, must be semibold. Keep descriptive labels separate from the amount's styling.
 
 ## Spacing and alignment
 
 - Use `gap-1` for related text, `gap-2` between section headers and content and inside expense cards, and `gap-4` between major sections. Inline style equivalents are 4, 8, and 16.
-- Keep overlapping participant avatars on expense and group cards: center the row, leave the first avatar in place, and apply `-ml-4` to subsequent avatars. Match this overlap in loading placeholders.
+- Use `gap-1` on the parent row for participant avatars in expense and group cards. Match this spacing in loading placeholders.
 - Match list separator and loading spacing to the corresponding loaded content.
 - Center horizontal items with `flex-row items-center`. Keep text and controls vertically centered within the row.
 - Match dashboard card padding, borders, and rounding. Keep safe-area insets and touch-target dimensions independent of content gaps.

@@ -1,18 +1,11 @@
-import { Add, X } from "@hugeicons/core-free-icons";
+import { X } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { Button, Select, Typography } from "heroui-native";
+import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 
-import { formatCurrency } from "@/utils";
-
-import {
-  getExpenseItemErrors,
-  sumExpenseItemPrices,
-  type ExpenseItem,
-  type FormParticipant,
-} from "./expense-form-model";
+import { ExpenseSelectionSheet } from "./expense-form-actions";
+import { getExpenseItemErrors, type ExpenseItem, type FormParticipant } from "./expense-form-model";
 
 type ExpenseItemListProps = {
   items: ExpenseItem[];
@@ -21,7 +14,6 @@ type ExpenseItemListProps = {
   showErrors?: boolean;
   onChange: (index: number, item: ExpenseItem) => void;
   onRemove: (index: number) => void;
-  onAdd: () => void;
 };
 
 type ExpenseItemRowProps = {
@@ -29,6 +21,7 @@ type ExpenseItemRowProps = {
   participants: FormParticipant[];
   isDisabled: boolean;
   showErrors: boolean;
+  isLast: boolean;
   onChange: (item: ExpenseItem) => void;
   onRemove: () => void;
 };
@@ -46,9 +39,7 @@ function parseQuantity(text: string) {
   }
 
   const value = BigInt(text.trim());
-  return value <= BigInt(Number.MAX_SAFE_INTEGER)
-    ? Number(value)
-    : UNSAFE_NUMBER;
+  return value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : UNSAFE_NUMBER;
 }
 
 function parsePriceMinor(text: string) {
@@ -58,19 +49,14 @@ function parsePriceMinor(text: string) {
 
   const normalized = text.trim().replace(",", ".");
 
-  if (
-    !/^\d+(?:\.\d{0,2})?$/.test(normalized) &&
-    !/^\.\d{1,2}$/.test(normalized)
-  ) {
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalized) && !/^\.\d{1,2}$/.test(normalized)) {
     return UNSAFE_NUMBER;
   }
 
   const [whole = "0", fraction = ""] = normalized.split(".");
   const minor = BigInt(`${whole || "0"}${fraction.padEnd(2, "0")}`);
 
-  return minor <= BigInt(Number.MAX_SAFE_INTEGER)
-    ? Number(minor)
-    : UNSAFE_NUMBER;
+  return minor <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(minor) : UNSAFE_NUMBER;
 }
 
 function formatPriceDraft(priceMinor: number) {
@@ -81,59 +67,62 @@ function formatPriceDraft(priceMinor: number) {
   return String(priceMinor / 100);
 }
 
+function formatPriceDisplay(priceMinor: number) {
+  return Number.isSafeInteger(priceMinor) && priceMinor >= 0 ? (priceMinor / 100).toFixed(2) : "";
+}
+
+function ParticipantAvatar({ participant }: { participant: FormParticipant }) {
+  return (
+    <Avatar className="size-7 bg-page" size="sm" alt={participant.name}>
+      {participant.image ? <Avatar.Image source={{ uri: participant.image }} /> : null}
+      <Avatar.Fallback>
+        <Typography className="text-[10px] text-ink">
+          {participant.name.slice(0, 1).toUpperCase()}
+        </Typography>
+      </Avatar.Fallback>
+    </Avatar>
+  );
+}
+
 function ExpenseItemRow({
   item,
   participants,
   isDisabled,
   showErrors,
+  isLast,
   onChange,
   onRemove,
 }: ExpenseItemRowProps) {
   const [quantityDraft, setQuantityDraft] = useState(String(item.quantity));
-  const [priceDraft, setPriceDraft] = useState(
-    formatPriceDraft(item.priceMinor),
-  );
+  const [priceDraft, setPriceDraft] = useState(formatPriceDraft(item.priceMinor));
   const [isQuantityFocused, setIsQuantityFocused] = useState(false);
   const [isPriceFocused, setIsPriceFocused] = useState(false);
 
   useEffect(() => {
-    if (
-      !isQuantityFocused &&
-      Number.isSafeInteger(item.quantity) &&
-      item.quantity >= 0
-    ) {
+    if (!isQuantityFocused && Number.isSafeInteger(item.quantity) && item.quantity >= 0) {
       setQuantityDraft(String(item.quantity));
     }
   }, [isQuantityFocused, item.quantity]);
 
   useEffect(() => {
-    if (
-      !isPriceFocused &&
-      Number.isSafeInteger(item.priceMinor) &&
-      item.priceMinor >= 0
-    ) {
+    if (!isPriceFocused && Number.isSafeInteger(item.priceMinor) && item.priceMinor >= 0) {
       setPriceDraft(formatPriceDraft(item.priceMinor));
     }
   }, [isPriceFocused, item.priceMinor]);
 
   const errors = getExpenseItemErrors(item);
-  const errorMessages = Object.values(errors).filter((error): error is string =>
-    Boolean(error),
-  );
+  const errorMessages = Object.values(errors).filter((error): error is string => Boolean(error));
   const assignedParticipant = participants.find(
-    (participant) =>
-      participant.email.toLowerCase() === item.participantEmail?.toLowerCase(),
+    (participant) => participant.email.toLowerCase() === item.participantEmail?.toLowerCase(),
   );
-  const selectedOption = assignedParticipant
-    ? { value: assignedParticipant.id, label: assignedParticipant.name }
-    : undefined;
-
   return (
-    <View className="gap-1 border-b border-dashed border-border py-2">
+    <View className={`gap-2 py-2${isLast ? "" : " border-b border-dashed border-border"}`}>
       <View className="flex-row items-center gap-1">
         <TextInput
           accessibilityLabel={`Quantity for ${item.name || "item"}`}
-          className={`w-8 border rounded-lg p-1 text-center ${showErrors && errors.quantity ? "border-danger" : "border-border"}`}
+          className={`h-8 w-7 rounded-lg border bg-page px-1 py-0 text-center text-xs text-ink ${
+            showErrors && errors.quantity ? "border-danger" : "border-border"
+          }`}
           editable={!isDisabled}
           inputMode="numeric"
           keyboardType="number-pad"
@@ -152,74 +141,22 @@ function ExpenseItemRow({
           value={quantityDraft}
         />
         <TextInput
-          accessibilityLabel="Item name"
-          className={`min-w-0 flex-1 rounded-lg border px-2 py-1 ${showErrors && errors.name ? "border-danger" : "border-border"}`}
+          accessibilityLabel={`Name for ${item.name || "item"}`}
+          className={`h-8 min-w-0 flex-1 rounded-lg border bg-page px-2 py-0 text-xs text-ink ${
+            showErrors && errors.name ? "border-danger" : "border-border"
+          }`}
           editable={!isDisabled}
           onChangeText={(name) => onChange({ ...item, name })}
           placeholder="Item name"
+          placeholderTextColor="#8A8A8E"
           returnKeyType="next"
           value={item.name}
         />
-        <Select
-          isDisabled={isDisabled}
-          presentation="bottom-sheet"
-          value={selectedOption}
-          onValueChange={(option) => {
-            const participant =
-              option && option.value !== NONE_OPTION
-                ? participants.find(
-                    (candidate) => candidate.id === option.value,
-                  )
-                : undefined;
-
-            onChange({
-              ...item,
-              participantEmail: participant?.email.toLowerCase(),
-            });
-          }}
-        >
-          <Select.Trigger variant="unstyled" asChild>
-            <Button
-              className="h-8 w-24 min-w-0 rounded-full px-2"
-              isDisabled={isDisabled}
-              variant="secondary"
-            >
-              <Select.Value className="text-sm" placeholder="None" />
-            </Button>
-          </Select.Trigger>
-          <Select.Portal>
-            <Select.Overlay className="bg-black/20" />
-            <Select.Content
-              detached={true}
-              contentContainerClassName="px-4 pb-4"
-              className="mx-4 rounded-4xl overflow-hidden"
-              presentation="bottom-sheet"
-              enableDynamicSizing
-              bottomInset={32}
-            >
-              <BottomSheetScrollView
-                contentContainerStyle={{
-                  gap: 8,
-                  paddingBottom: 32,
-                  paddingTop: 8,
-                }}
-                keyboardShouldPersistTaps="handled"
-              >
-                <Select.Item value={NONE_OPTION} label="None" />
-                {participants.map((participant) => (
-                  <Select.Item
-                    key={participant.id}
-                    value={participant.id}
-                    label={participant.name}
-                  />
-                ))}
-              </BottomSheetScrollView>
-            </Select.Content>
-          </Select.Portal>
-        </Select>
         <TextInput
           accessibilityLabel={`Price for ${item.name || "item"}`}
-          className={`w-20 rounded-lg border bg-surface px-2 py-1 text-right font-semibold ${showErrors && errors.priceMinor ? "border-danger" : "border-border"}`}
+          className={`h-8 w-16 rounded-lg border bg-page px-2 py-0 text-right text-xs font-semibold text-ink ${
+            showErrors && errors.priceMinor ? "border-danger" : "border-border"
+          }`}
           editable={!isDisabled}
           inputMode="decimal"
           keyboardType="decimal-pad"
@@ -235,25 +172,61 @@ function ExpenseItemRow({
           }}
           onFocus={() => setIsPriceFocused(true)}
           selectTextOnFocus
-          value={
-            isPriceFocused ||
-            !Number.isSafeInteger(item.priceMinor) ||
-            item.priceMinor < 0
-              ? priceDraft
-              : formatCurrency(item.priceMinor)
-          }
+          value={isPriceFocused ? priceDraft : formatPriceDisplay(item.priceMinor)}
         />
+        <Typography className="text-[10px] font-semibold text-supporting">PHP</Typography>
         <Button
           accessibilityLabel={`Remove ${item.name || "item"}`}
           isDisabled={isDisabled}
           isIconOnly
           className="size-7 rounded-full"
-          variant="danger"
+          variant="ghost"
           onPress={onRemove}
         >
-          <HugeiconsIcon icon={X} color="#ffffff" size={16} />
+          <HugeiconsIcon icon={X} color="#8A8A8E" size={16} />
         </Button>
       </View>
+
+      <ExpenseSelectionSheet
+        title="Assign Participant"
+        value={assignedParticipant?.id ?? NONE_OPTION}
+        options={[
+          { value: NONE_OPTION, label: "Unassigned" },
+          ...participants.map((participant) => ({
+            value: participant.id,
+            label: participant.name,
+            participant: { name: participant.name, image: participant.image },
+          })),
+        ]}
+        triggerLabel={assignedParticipant?.name ?? "Unassigned"}
+        accessibilityLabel={`Assign ${item.name || "item"} to a participant`}
+        isDisabled={isDisabled}
+        renderTrigger={(label) => (
+          <PressableFeedback
+            accessibilityLabel={`Assign ${item.name || "item"} to a participant`}
+            accessibilityRole="button"
+            className={`self-start flex-row items-center gap-2 rounded-full bg-page px-2 py-1${
+              isDisabled ? " opacity-50" : ""
+            }`}
+            isDisabled={isDisabled}
+          >
+            {assignedParticipant ? <ParticipantAvatar participant={assignedParticipant} /> : null}
+            <Typography className="text-xs text-ink">{label}</Typography>
+          </PressableFeedback>
+        )}
+        onSubmit={(participantId) => {
+          const participant =
+            participantId !== NONE_OPTION
+              ? participants.find((candidate) => candidate.id === participantId)
+              : undefined;
+
+          onChange({
+            ...item,
+            participantEmail: participant?.email.toLowerCase(),
+          });
+        }}
+      />
+
       {showErrors && errorMessages.length > 0 ? (
         <Typography className="px-1 text-xs text-danger" selectable>
           {errorMessages.join(" · ")}
@@ -270,40 +243,27 @@ export function ExpenseItemList({
   showErrors = false,
   onChange,
   onRemove,
-  onAdd,
 }: ExpenseItemListProps) {
-  const total = sumExpenseItemPrices(items);
-
   return (
-    <View className="gap-2">
-      <View className="flex-row items-center gap-1 border-b border-dashed border-border pb-2">
-        <Typography className="w-8 px-1 text-xs text-muted">Qty.</Typography>
-        <Typography className="min-w-0 flex-1 text-xs text-muted">
-          Name
+    <View className="rounded-2xl bg-panel px-4">
+      {items.length === 0 ? (
+        <Typography className="py-4 text-center text-xs text-supporting">
+          No items yet. Add an item to split this expense by item.
         </Typography>
-        <Typography className="w-24 text-xs text-muted">Assigned To</Typography>
-        <Typography className="w-20 text-right text-xs text-muted">
-          Price
-        </Typography>
-        <View className="size-7" />
-      </View>
-
-      {items.map((item, index) => (
-        <ExpenseItemRow
-          key={item.id}
-          item={item}
-          participants={participants}
-          isDisabled={isDisabled}
-          showErrors={showErrors}
-          onChange={(nextItem) => onChange(index, nextItem)}
-          onRemove={() => onRemove(index)}
-        />
-      ))}
-
-      <Button isDisabled={isDisabled} variant="secondary" onPress={onAdd}>
-        <HugeiconsIcon icon={Add} size={16} />
-        <Button.Label>Add item</Button.Label>
-      </Button>
+      ) : (
+        items.map((item, index) => (
+          <ExpenseItemRow
+            key={item.id}
+            item={item}
+            participants={participants}
+            isDisabled={isDisabled}
+            showErrors={showErrors}
+            isLast={index === items.length - 1}
+            onChange={(nextItem) => onChange(index, nextItem)}
+            onRemove={() => onRemove(index)}
+          />
+        ))
+      )}
     </View>
   );
 }

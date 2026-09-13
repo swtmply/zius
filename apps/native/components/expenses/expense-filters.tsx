@@ -1,48 +1,34 @@
-import { View } from "react-native";
-import { useState } from "react";
+import { SlidersVertical } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet, Button, Typography } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import { SlidersVertical } from "@hugeicons/core-free-icons";
+import { View } from "react-native";
 
 const statusOptions = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
-  { value: "archived", label: "Archived" },
-] as const;
-const typeOptions = [
-  { value: "all", label: "All" },
-  { value: "owner", label: "Owner" },
-  { value: "member", label: "Member" },
+  { value: "settled", label: "Settled" },
+  { value: "cancelled", label: "Cancelled" },
 ] as const;
 const sortOptions = [
   { value: "newest", label: "Newest First" },
   { value: "oldest", label: "Oldest First" },
 ] as const;
-export type GroupType = (typeof typeOptions)[number]["value"];
-export type GroupSort = (typeof sortOptions)[number]["value"];
-export type GroupStatus = (typeof statusOptions)[number]["value"];
 
-export function GroupFilters({
-  status,
-  type,
-  sort,
-}: {
-  status: GroupStatus;
-  type: GroupType;
-  sort: GroupSort;
-}) {
+export type ExpenseStatus = (typeof statusOptions)[number]["value"];
+export type ExpenseSort = (typeof sortOptions)[number]["value"];
+
+export function ExpenseFilters({ status, sort }: { status: ExpenseStatus; sort: ExpenseSort }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [draftStatus, setDraftStatus] = useState<GroupStatus>(status);
-  const [draftType, setDraftType] = useState<GroupType>(type);
-  const [draftSort, setDraftSort] = useState<GroupSort>(sort);
+  const [draftStatus, setDraftStatus] = useState<ExpenseStatus>(status);
+  const [draftSort, setDraftSort] = useState<ExpenseSort>(sort);
 
   function openFilters() {
     setDraftStatus(status);
-    setDraftType(type);
     setDraftSort(sort);
     setIsFiltersOpen(true);
   }
@@ -52,7 +38,7 @@ export function GroupFilters({
       <Button
         isIconOnly
         className="size-12 rounded-full bg-dark-gradient"
-        accessibilityLabel="Open group filters"
+        accessibilityLabel="Open expense filters"
         onPress={openFilters}
       >
         <HugeiconsIcon icon={SlidersVertical} size={22} color="#FFFFFF" />
@@ -71,6 +57,7 @@ export function GroupFilters({
             <BottomSheet.Title className="text-2xl font-semibold">Filters</BottomSheet.Title>
             <BottomSheet.Close accessibilityLabel="Close filters" />
           </View>
+
           <Typography className="text-sm">Status</Typography>
           <View className="flex-row flex-wrap items-center gap-4">
             {statusOptions.map((option) => (
@@ -87,22 +74,7 @@ export function GroupFilters({
               </Button>
             ))}
           </View>
-          <Typography className="text-sm">Type</Typography>
-          <View className="flex-row flex-wrap items-center gap-4">
-            {typeOptions.map((option) => (
-              <Button
-                key={option.value}
-                size="sm"
-                className="rounded-full"
-                variant={draftType === option.value ? "primary" : "secondary"}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: draftType === option.value }}
-                onPress={() => setDraftType(option.value)}
-              >
-                <Button.Label>{option.label}</Button.Label>
-              </Button>
-            ))}
-          </View>
+
           <Typography className="text-sm">Sort</Typography>
           <View className="flex-row flex-wrap items-center gap-4">
             {sortOptions.map((option) => (
@@ -119,10 +91,11 @@ export function GroupFilters({
               </Button>
             ))}
           </View>
+
           <Button
             className="w-full bg-dark-gradient"
             onPress={() => {
-              router.setParams({ status: draftStatus, type: draftType, sort: draftSort });
+              router.setParams({ status: draftStatus, sort: draftSort });
               setIsFiltersOpen(false);
             }}
           >

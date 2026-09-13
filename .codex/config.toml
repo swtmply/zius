@@ -11,8 +11,13 @@ default_subagent_reasoning_effort = "max"
 interrupt_message = true
 
 [mcp_servers.argent]
-command = "node"
-args = [ "node_modules/@swmansion/argent/dist/cli.js", "mcp" ]
+# Wait for Argent before building the session tool catalog.
+enabled = true
+required = true
+startup_timeout_sec = 120
+command = "/home/zius/.bun/bin/bun"
+args = ["/home/zius/.bun/install/global/node_modules/@swmansion/argent/dist/cli.js", "mcp"]
+env = { PATH = "/home/zius/Android/Sdk/platform-tools:/home/zius/.nvm/versions/node/v24.20.0/bin:/home/zius/.bun/bin:/home/zius/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" }
 
 [mcp_servers.argent.tools.list-devices]
 approval_mode = "approve"

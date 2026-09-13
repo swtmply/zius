@@ -1,22 +1,14 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
-import { Avatar, Typography } from "heroui-native";
-import { Pressable, View } from "react-native";
+import { Add, ShoppingBasket01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import { Button, PressableFeedback, Separator, Typography } from "heroui-native";
+import { View } from "react-native";
 import { useRouter } from "expo-router";
 
-type Group = inferRouterOutputs<AppRouter>["group"]["get"];
-type Person = Pick<Group["participants"][number], "id" | "name" | "image">;
+import { GroupAvatar } from "@/components/groups/group-avatar";
 
-export function GroupAvatar({ person, className }: { person: Person; className?: string }) {
-  return (
-    <Avatar className={className} size="sm" alt={person.name}>
-      {person.image && <Avatar.Image source={{ uri: person.image }} />}
-      <Avatar.Fallback>
-        <Typography className="text-sm">{person.name.slice(0, 1).toUpperCase()}</Typography>
-      </Avatar.Fallback>
-    </Avatar>
-  );
-}
+type Group = inferRouterOutputs<AppRouter>["group"]["get"];
 
 export function GroupParticipants({
   participants,
@@ -26,28 +18,26 @@ export function GroupParticipants({
   folded: boolean;
 }) {
   return (
-    <View className={folded ? "flex-row flex-wrap items-center justify-start" : "gap-4"}>
-      {participants.map((person, index) =>
-        folded ? (
-          <GroupAvatar
-            key={person.id}
-            person={person}
-            className={index === 0 ? undefined : "-ml-4"}
-          />
-        ) : (
-          <View key={person.id} className="flex-row items-center gap-4">
-            <GroupAvatar person={person} />
-            <Typography className="text-sm shrink" selectable>
-              {person.name}
-            </Typography>
-            {!person.userId && (
-              <View className="bg-default rounded-full px-2 py-0.5">
-                <Typography className="text-xs">Guest</Typography>
-              </View>
-            )}
-          </View>
-        ),
-      )}
+    <View className="rounded-2xl bg-panel p-4">
+      <View className={folded ? "flex-row flex-wrap items-center justify-start gap-1" : "gap-2"}>
+        {participants.map((person) =>
+          folded ? (
+            <GroupAvatar key={person.id} person={person} className="size-8 bg-page" />
+          ) : (
+            <View key={person.id} className="flex-row items-center gap-2">
+              <GroupAvatar person={person} className="size-8 bg-page" />
+              <Typography className="text-sm text-ink shrink" selectable numberOfLines={1}>
+                {person.name}
+              </Typography>
+              {!person.userId && (
+                <View className="rounded-full bg-page px-2 py-1">
+                  <Typography className="text-[10px] text-supporting">Guest</Typography>
+                </View>
+              )}
+            </View>
+          ),
+        )}
+      </View>
     </View>
   );
 }
@@ -67,10 +57,67 @@ export function GroupExpenseCard({ expense }: { expense: Group["expenses"][numbe
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(expense.totalMinor / 100);
-  const remaining = expense.participants.length - 4;
+  const visibleParticipants = expense.participants.slice(0, 3);
+  const remaining = expense.participants.length - visibleParticipants.length;
+
+  const content = (
+    <View className={`gap-3 rounded-2xl bg-panel p-4${isCancelled ? " opacity-70" : ""}`}>
+      <View className="flex-row items-center justify-between gap-2">
+        <View className="size-10 items-center justify-center rounded-full bg-page">
+          <HugeiconsIcon icon={ShoppingBasket01Icon} size={18} color="#000000" />
+        </View>
+        <View className="flex-1 gap-1">
+          <Typography
+            selectable
+            className={`text-sm text-ink${isCancelled ? " text-supporting" : ""}`}
+            numberOfLines={1}
+          >
+            {expense.title}
+          </Typography>
+          <View className="flex-row items-center gap-2">
+            <Typography className="text-xs text-supporting">
+              {dateFormatter.format(new Date(expense.occurredAt))}
+            </Typography>
+            {isCancelled ? (
+              <View className="rounded-full bg-page px-2 py-1">
+                <Typography className="text-[10px] text-supporting">Cancelled</Typography>
+              </View>
+            ) : null}
+          </View>
+        </View>
+        <Typography
+          selectable
+          className={`text-sm font-semibold text-ink${isCancelled ? " text-supporting line-through" : ""}`}
+          adjustsFontSizeToFit
+          numberOfLines={1}
+          style={{ fontVariant: ["tabular-nums"] }}
+        >
+          {amount}
+        </Typography>
+      </View>
+
+      <Separator className="border-t border-dashed border-border bg-transparent" />
+
+      <View className="flex-row items-center gap-1">
+        {visibleParticipants.map((person) => (
+          <View key={person.id} className="rounded-full border-2 border-panel">
+            <GroupAvatar person={person} className="size-8 bg-page" />
+          </View>
+        ))}
+        {remaining > 0 ? (
+          <View
+            className="size-8 items-center justify-center rounded-full border-2 border-panel bg-page"
+            accessibilityLabel={`${remaining} more participants`}
+          >
+            <Typography className="text-xs text-ink">{remaining}+</Typography>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
 
   return (
-    <Pressable
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`${expense.title}, ${amount}${isCancelled ? ", Cancelled" : ""}`}
       onPress={() =>
@@ -79,57 +126,50 @@ export function GroupExpenseCard({ expense }: { expense: Group["expenses"][numbe
           params: { expenseId: expense.id },
         })
       }
-      className={`bg-surface border border-border rounded-xl p-4 gap-2 active:opacity-70${
-        isCancelled ? " opacity-70" : ""
-      }`}
     >
-      <View className="gap-1">
-        <View className="flex-row items-center justify-between gap-2">
-          <Typography className={`text-sm flex-1${isCancelled ? " text-muted" : ""}`}>
-            {expense.title}
-          </Typography>
-          <Typography
-            className={`text-sm font-semibold${isCancelled ? " text-muted line-through" : ""}`}
-            style={{ fontVariant: ["tabular-nums"] }}
+      {content}
+    </PressableFeedback>
+  );
+}
+
+export function GroupExpensesSection({
+  title,
+  emptyMessage,
+  expenses,
+  onAddExpense,
+}: {
+  title: string;
+  emptyMessage: string;
+  expenses: Group["expenses"];
+  onAddExpense?: () => void;
+}) {
+  return (
+    <View className="gap-2">
+      <View className="flex-row items-center justify-between gap-4">
+        <Typography className="text-sm text-ink">{title}</Typography>
+        {onAddExpense ? (
+          <Button
+            size="sm"
+            className="h-8 gap-2 rounded-full px-3"
+            accessibilityLabel="Add expense"
+            onPress={onAddExpense}
           >
-            {amount}
-          </Typography>
-        </View>
-        <View className="flex-row items-center gap-2">
-          <Typography className="text-xs text-muted">
-            {dateFormatter.format(new Date(expense.occurredAt))}
-          </Typography>
-          {isCancelled ? (
-            <View className="bg-default rounded-full px-2 py-0.5">
-              <Typography className="text-xs text-muted">Cancelled</Typography>
-            </View>
-          ) : null}
-        </View>
+            <HugeiconsIcon icon={Add} size={16} color="#FFFFFF" />
+            <Button.Label className="text-xs">Add Expense</Button.Label>
+          </Button>
+        ) : null}
       </View>
-      <View className="border-t border-dashed border-border pt-2">
-        <View className="flex-row flex-wrap items-center justify-start">
-          {expense.participants.slice(0, 4).map((person, index) => (
-            <View
-              key={person.id}
-              className={
-                index === 0
-                  ? "rounded-full border border-surface"
-                  : "rounded-full border border-surface -ml-4"
-              }
-            >
-              <GroupAvatar person={person} />
-            </View>
+      {expenses.length > 0 ? (
+        <View className="gap-2">
+          {expenses.map((expense) => (
+            <GroupExpenseCard key={expense.id} expense={expense} />
           ))}
-          {remaining > 0 && (
-            <View
-              className="size-6 rounded-full border border-surface bg-default items-center justify-center -ml-4"
-              accessibilityLabel={`${remaining} more participants`}
-            >
-              <Typography className="text-[10px]">{remaining}+</Typography>
-            </View>
-          )}
         </View>
-      </View>
-    </Pressable>
+      ) : (
+        <View className="items-center rounded-2xl bg-panel p-4">
+          <Typography className="text-xs text-supporting">{emptyMessage}</Typography>
+        </View>
+      )}
+    </View>
   );
 }

@@ -4,6 +4,7 @@ const groupParticipantSchema = z.object({
   id: z.string(),
   name: z.string().trim().min(1),
   email: z.email(),
+  image: z.string().nullable().optional(),
   userId: z.string().optional(),
 });
 
