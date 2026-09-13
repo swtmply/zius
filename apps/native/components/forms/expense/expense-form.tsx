@@ -144,6 +144,7 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
         await createExpense.mutateAsync({
           ...value,
           title: value.title.trim(),
+          category: category ?? "others",
           items,
           groupId: needsGroupChoice ? undefined : value.group_id,
           createGroup: needsGroupChoice && meta.groupChoice === "group",
