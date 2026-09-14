@@ -1,11 +1,5 @@
 import { categoryOptions } from "@/utils/expense-categories";
-import {
-  Check,
-  SaleTag01Icon,
-  Split,
-  UserGroup03Icon,
-  X,
-} from "@hugeicons/core-free-icons";
+import { Check, SaleTag01Icon, Split, UserGroup03Icon, X } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -271,7 +265,7 @@ type ExpenseFormActionsProps = {
   splitMethod: SplitMethod;
   groupId?: string;
   groupName?: string;
-  category?: ExpenseCategory;
+  categoryResetKey: number;
   isDisabled?: boolean;
   onPayerChange: (email: string) => void;
   onSplitMethodChange: (method: SplitMethod) => void;
@@ -279,13 +273,39 @@ type ExpenseFormActionsProps = {
   onCategoryChange: (category: ExpenseCategory | undefined) => void;
 };
 
+function CategorySelection({
+  isDisabled,
+  onCategoryChange,
+}: Pick<ExpenseFormActionsProps, "isDisabled" | "onCategoryChange">) {
+  const [category, setCategory] = useState<ExpenseCategory>();
+  const selectedCategory = categoryOptions.find((option) => option.value === category);
+
+  return (
+    <ExpenseSelectionSheet
+      title="Categories"
+      value={category ?? "__none__"}
+      options={categoryOptions}
+      triggerLabel={selectedCategory?.label ?? "Category"}
+      triggerIcon={SaleTag01Icon}
+      accessibilityLabel="Choose category"
+      isDisabled={isDisabled}
+      onSubmit={(value) => {
+        const selected = categoryOptions.find((option) => option.value === value);
+        const nextCategory = selected?.value;
+        setCategory(nextCategory);
+        onCategoryChange(nextCategory);
+      }}
+    />
+  );
+}
+
 export function ExpenseFormActions({
   participants,
   payer,
   splitMethod,
   groupId,
   groupName,
-  category,
+  categoryResetKey,
   isDisabled = false,
   onPayerChange,
   onSplitMethodChange,
@@ -295,8 +315,6 @@ export function ExpenseFormActions({
   const payerParticipant = participants.find(
     (participant) => participant.email.toLowerCase() === payer.toLowerCase(),
   );
-  const selectedCategory = categoryOptions.find((option) => option.value === category);
-
   const participantOptions: readonly ExpenseSelectionOption[] = participants.map((participant) => ({
     value: participant.email,
     label: participant.name,
@@ -353,18 +371,10 @@ export function ExpenseFormActions({
             )}
           />
         </View>
-        <ExpenseSelectionSheet
-          title="Categories"
-          value={category ?? "__none__"}
-          options={categoryOptions}
-          triggerLabel={selectedCategory?.label ?? "Category"}
-          triggerIcon={SaleTag01Icon}
-          accessibilityLabel="Choose category"
+        <CategorySelection
+          key={categoryResetKey}
           isDisabled={isDisabled}
-          onSubmit={(value) => {
-            const selected = categoryOptions.find((option) => option.value === value);
-            onCategoryChange(selected?.value);
-          }}
+          onCategoryChange={onCategoryChange}
         />
       </View>
     </View>

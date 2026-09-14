@@ -1,12 +1,12 @@
 import { ExpenseCreationToast } from "@/components/expense-creation-toast";
 import { SectionHeader } from "@/components/section-header";
-import { useForm } from "@tanstack/react-form";
+import { useForm, useSelector, type AnyFormApi } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@zius/api/routers/index";
 import { Button, BottomSheet, PressableFeedback, Typography, useToast } from "heroui-native";
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Keyboard, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -46,6 +46,24 @@ type ExpenseFormProps = {
 type SubmitMeta = { groupChoice?: "group" | "standalone" };
 const defaultSubmitMeta: SubmitMeta = {};
 
+// TanStack Subscribe compares with ===; object selectors notify on every validation update.
+function ExpenseFormSubscribe<T extends readonly unknown[]>({
+  form,
+  selector,
+  children,
+}: {
+  form: Pick<AnyFormApi, "store">;
+  selector: (state: { values: ExpenseFormValues; isSubmitting: boolean }) => T;
+  children: (value: T) => ReactNode;
+}) {
+  const value = useSelector(form.store, selector, {
+    compare: (previous, next) =>
+      previous.length === next.length &&
+      previous.every((item, index) => Object.is(item, next[index])),
+  });
+  return children(value);
+}
+
 export function ExpenseForm({ currentParticipant, group, initialReceipt }: ExpenseFormProps) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
@@ -53,7 +71,8 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [groupChoice, setGroupChoice] = useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
-  const [category, setCategory] = useState<ExpenseCategory>();
+  const categoryRef = useRef<ExpenseCategory | undefined>(undefined);
+  const [categoryResetKey, setCategoryResetKey] = useState(0);
   const groupParticipants = group?.participants ?? [currentParticipant];
   const [groupMemberEmails, setGroupMemberEmails] = useState<string[]>(() =>
     (group?.participants ?? []).map((participant) => participant.email.toLowerCase()),
@@ -144,7 +163,7 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
         await createExpense.mutateAsync({
           ...value,
           title: value.title.trim(),
-          category: category ?? "others",
+          category: categoryRef.current ?? "others",
           items,
           groupId: needsGroupChoice ? undefined : value.group_id,
           createGroup: needsGroupChoice && meta.groupChoice === "group",
@@ -182,7 +201,8 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
 
       form.reset();
       setHasSubmitted(false);
-      setCategory(undefined);
+      categoryRef.current = undefined;
+      setCategoryResetKey((key) => key + 1);
       setGroupMemberEmails(
         (group?.participants ?? []).map((participant) => participant.email.toLowerCase()),
       );
@@ -372,24 +392,32 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
         )}
       </form.Field>
 
-      <form.Subscribe
-        selector={(state) => ({
-          participants: state.values.participants,
-          payer: state.values.payer,
-          groupId: state.values.group_id,
-          splitMethod: state.values.splitMethod,
-          isSubmitting: state.isSubmitting,
-        })}
+      <ExpenseFormSubscribe
+        form={form}
+        selector={(state) =>
+          [
+            state.values.payer,
+            state.values.group_id,
+            state.values.splitMethod,
+            state.isSubmitting,
+            ...state.values.participants.flatMap(({ id, name, email, image }) => [
+              id,
+              name,
+              email,
+              image,
+            ]),
+          ] as const
+        }
       >
-        {({ participants, payer, groupId, splitMethod, isSubmitting }) => (
+        {([payer, groupId, splitMethod, isSubmitting]) => (
           <>
             <ExpenseFormActions
-              participants={participants}
+              participants={form.state.values.participants}
               payer={payer}
               splitMethod={splitMethod}
               groupId={groupId}
               groupName={group?.name}
-              category={category}
+              categoryResetKey={categoryResetKey}
               isDisabled={isSubmitting || selectGroup.isPending}
               onPayerChange={(email) => form.setFieldValue("payer", email)}
               onSplitMethodChange={setSplitMethod}
@@ -403,7 +431,9 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
                   setGroupMemberEmails([]);
                 }
               }}
-              onCategoryChange={setCategory}
+              onCategoryChange={(nextCategory) => {
+                categoryRef.current = nextCategory;
+              }}
             />
             {selectGroup.isPending ? (
               <Typography className="px-1 text-xs text-supporting">
@@ -417,19 +447,22 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
             ) : null}
           </>
         )}
-      </form.Subscribe>
+      </ExpenseFormSubscribe>
 
-      <form.Subscribe
-        selector={(state) => ({
-          items: state.values.items ?? [],
-          participants: state.values.participants,
-          payer: state.values.payer,
-          splitMethod: state.values.splitMethod,
-          totalMinor: state.values.totalMinor,
-          isSubmitting: state.isSubmitting,
-        })}
+      <ExpenseFormSubscribe
+        form={form}
+        selector={(state) =>
+          [
+            state.values.items ?? [],
+            state.values.participants,
+            state.values.payer,
+            state.values.splitMethod,
+            state.values.totalMinor,
+            state.isSubmitting,
+          ] as const
+        }
       >
-        {({ items, participants, payer, splitMethod, totalMinor, isSubmitting }) => {
+        {([items, participants, payer, splitMethod, totalMinor, isSubmitting]) => {
           const itemTotal = sumExpenseItemPrices(items);
           const hasMismatch = itemTotal !== undefined && itemTotal !== totalMinor;
 
@@ -528,7 +561,7 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
             </View>
           );
         }}
-      </form.Subscribe>
+      </ExpenseFormSubscribe>
 
       <BottomSheet isOpen={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <BottomSheet.Portal>
