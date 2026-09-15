@@ -24,6 +24,7 @@ import {
   UserGroup03Icon,
 } from "@hugeicons/core-free-icons";
 import MockHome from "@/components/onboarding/mock-screens/home";
+import { getAlwaysShowSpotlights } from "@/utils/spotlights";
 
 const HOME_ONBOARDING_STORAGE_KEY = "home-onboarding-completed";
 const HOME_ONBOARDING_COMPLETED_VALUE = "true";
@@ -41,10 +42,16 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
 
-    void SecureStore.getItemAsync(HOME_ONBOARDING_STORAGE_KEY)
-      .then((value) => {
+    void Promise.all([
+      SecureStore.getItemAsync(HOME_ONBOARDING_STORAGE_KEY),
+      getAlwaysShowSpotlights(),
+    ])
+      .then(([value, alwaysShowSpotlights]) => {
         if (isMounted) {
-          setShowHomeOnboarding(value !== HOME_ONBOARDING_COMPLETED_VALUE);
+          setShowHomeOnboarding(
+            value !== HOME_ONBOARDING_COMPLETED_VALUE ||
+              (__DEV__ && alwaysShowSpotlights),
+          );
         }
       })
       .catch(() => {
@@ -69,9 +76,7 @@ export default function Home() {
       // The route can still be used; onboarding will be shown again next time.
       console.warn("Could not persist home onboarding completion");
     }
-
-    router.replace("/home");
-  }, [router]);
+  }, []);
 
   const headerActions = [
     {

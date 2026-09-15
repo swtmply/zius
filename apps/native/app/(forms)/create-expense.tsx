@@ -2,6 +2,7 @@ import { ExpenseForm } from "@/components/forms/expense/expense-form";
 import { FormLoading } from "@/components/forms/form-loading";
 import MockCreateExpense from "@/components/onboarding/mock-screens/create-expense";
 import { parseReceiptParam } from "@/utils/scan";
+import { getAlwaysShowSpotlights } from "@/utils/spotlights";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
@@ -40,10 +41,16 @@ export default function CreateExpenseForm() {
 
     let isMounted = true;
 
-    void SecureStore.getItemAsync(CREATE_EXPENSE_ONBOARDING_STORAGE_KEY)
-      .then((value) => {
+    void Promise.all([
+      SecureStore.getItemAsync(CREATE_EXPENSE_ONBOARDING_STORAGE_KEY),
+      getAlwaysShowSpotlights(),
+    ])
+      .then(([value, alwaysShowSpotlights]) => {
         if (isMounted) {
-          setIsOnboardingVisible(value !== CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE);
+          setIsOnboardingVisible(
+            value !== CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE ||
+              (__DEV__ && alwaysShowSpotlights),
+          );
         }
       })
       .catch(() => {

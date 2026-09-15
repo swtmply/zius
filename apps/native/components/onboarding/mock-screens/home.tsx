@@ -9,7 +9,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Avatar, Button, Typography } from "heroui-native";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
@@ -18,13 +18,17 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import DashboardHeaderCard, { type HeaderCardAction } from "@/components/dashboard/header-card";
-import { ExpenseCard, type DashboardExpense } from "@/components/dashboard/expense-card";
+import DashboardHeaderCard, {
+  type HeaderCardAction,
+} from "@/components/dashboard/header-card";
+import {
+  ExpenseCard,
+  type DashboardExpense,
+} from "@/components/dashboard/expense-card";
 import { SpotlightOverlay } from "../spotlight-overlay";
 import { SpotlightProvider, useSpotlight } from "../spotlight-provider";
 import { SpotlightContainer } from "../spotlight-container";
@@ -111,10 +115,17 @@ const mockHeaderActions = [
 function MockDashboardHeader() {
   return (
     <View className="pt-4 flex-row items-center justify-between">
-      <Typography className="text-2xl font-semibold text-ink">Dashboard</Typography>
+      <Typography className="text-2xl font-semibold text-ink">
+        Dashboard
+      </Typography>
 
       <View className="flex-row items-center gap-2">
-        <Button variant="ghost" isIconOnly accessibilityLabel="Notifications" onPress={noop}>
+        <Button
+          variant="ghost"
+          isIconOnly
+          accessibilityLabel="Notifications"
+          onPress={noop}
+        >
           <HugeiconsIcon icon={Notification} size={24} color="#000000" />
         </Button>
         <Avatar size="md">
@@ -125,7 +136,13 @@ function MockDashboardHeader() {
   );
 }
 
-function MockExpenseSection({ title, expense }: { title: string; expense: DashboardExpense }) {
+function MockExpenseSection({
+  title,
+  expense,
+}: {
+  title: string;
+  expense: DashboardExpense;
+}) {
   return (
     <>
       <View className="flex-row items-center justify-between gap-4">
@@ -163,7 +180,8 @@ type Step = (typeof STEPS)[number];
 const STEP_HINTS = {
   header: {
     title: "Your balance at a glance",
-    description: "See what you owe and what others owe you. And control links to find out more.",
+    description:
+      "See what you owe and what others owe you. And control links to find out more.",
   },
   unsettled: {
     title: "Keep track of open expenses",
@@ -184,56 +202,9 @@ const HINT_TRANSITION = {
   duration: 220,
   easing: Easing.bezier(0.23, 1, 0.32, 1),
 };
-const INDICATOR_DOT_SIZE = 8;
-const INDICATOR_GAP = 8;
-const INDICATOR_STEP = INDICATOR_DOT_SIZE + INDICATOR_GAP;
 
 function isStep(value: string | null): value is Step {
   return value !== null && STEPS.includes(value as Step);
-}
-
-function StepIndicator({ activeIndex }: { activeIndex: number }) {
-  const reducedMotion = useReducedMotion();
-  const indicatorX = useSharedValue(0);
-
-  useEffect(() => {
-    const nextX = activeIndex * INDICATOR_STEP;
-
-    indicatorX.set(
-      reducedMotion
-        ? nextX
-        : withSpring(nextX, {
-            duration: 320,
-            dampingRatio: 0.8,
-            overshootClamping: true,
-          }),
-    );
-  }, [activeIndex, indicatorX, reducedMotion]);
-
-  const selectedIndicatorStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: indicatorX.get() }],
-  }));
-
-  return (
-    <View
-      accessible
-      accessibilityLabel={`Onboarding progress, step ${activeIndex + 1} of ${STEPS.length}`}
-      accessibilityRole="progressbar"
-      accessibilityValue={{ min: 1, max: STEPS.length, now: activeIndex + 1 }}
-      style={styles.indicatorTrack}
-    >
-      {STEPS.map((step, index) => (
-        <View
-          key={step}
-          style={[styles.indicatorDot, { left: INDICATOR_DOT_SIZE + index * INDICATOR_STEP }]}
-        />
-      ))}
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.selectedIndicator, selectedIndicatorStyle]}
-      />
-    </View>
-  );
 }
 
 function OnboardingHint({
@@ -258,7 +229,9 @@ function OnboardingHint({
     previousStepIndex.current = stepIndex;
     contentDirection.set(stepIndex > previousIndex ? 1 : -1);
     contentProgress.set(reducedMotion ? 1 : 0);
-    contentProgress.set(withTiming(1, reducedMotion ? { duration: 0 } : HINT_TRANSITION));
+    contentProgress.set(
+      withTiming(1, reducedMotion ? { duration: 0 } : HINT_TRANSITION),
+    );
   }, [reducedMotion, stepIndex, contentDirection, contentProgress]);
 
   const contentStyle = useAnimatedStyle(() => {
@@ -278,20 +251,12 @@ function OnboardingHint({
 
   return (
     <Animated.View style={contentStyle}>
-      <Typography className="text-sm font-semibold text-ink">{STEP_HINTS[step].title}</Typography>
-      <Typography className="text-xs text-supporting">{STEP_HINTS[step].description}</Typography>
-
-      <View className="mt-3 flex-row items-center justify-between gap-3">
-        <StepIndicator activeIndex={stepIndex} />
-        <Button
-          className="h-9 rounded-full bg-dark-gradient px-4"
-          size="sm"
-          onPress={onContinue}
-          accessibilityLabel="Continue onboarding"
-        >
-          <Button.Label className="text-xs font-semibold text-white">Continue</Button.Label>
-        </Button>
-      </View>
+      <Typography className="text-sm font-semibold text-ink">
+        {STEP_HINTS[step].title}
+      </Typography>
+      <Typography className="text-xs text-supporting">
+        {STEP_HINTS[step].description}
+      </Typography>
     </Animated.View>
   );
 }
@@ -365,7 +330,10 @@ function MockContent({ onComplete }: MockHomeProps) {
         className="bg-page flex-1"
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}
       >
-        <ScrollView contentContainerClassName="p-4 gap-2" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerClassName="p-4 gap-2"
+          showsVerticalScrollIndicator={false}
+        >
           <MockDashboardHeader />
 
           <SpotlightTarget id="header">
@@ -376,10 +344,16 @@ function MockContent({ onComplete }: MockHomeProps) {
             />
           </SpotlightTarget>
           <SpotlightTarget id="unsettled">
-            <MockExpenseSection title="Unsettled Expenses" expense={mockUnsettledExpense} />
+            <MockExpenseSection
+              title="Unsettled Expenses"
+              expense={mockUnsettledExpense}
+            />
           </SpotlightTarget>
           <SpotlightTarget id="settled">
-            <MockExpenseSection title="Settled Expenses" expense={mockSettledExpense} />
+            <MockExpenseSection
+              title="Settled Expenses"
+              expense={mockSettledExpense}
+            />
           </SpotlightTarget>
           <View className="h-14" />
         </ScrollView>
@@ -413,38 +387,15 @@ function MockContent({ onComplete }: MockHomeProps) {
           style={{ minHeight: 80 }}
           accessibilityRole="summary"
         >
-          <OnboardingHint step={step} stepIndex={stepIndex} onContinue={nextTarget} />
+          <OnboardingHint
+            step={step}
+            stepIndex={stepIndex}
+            onContinue={nextTarget}
+          />
         </SpotlightContainer>
       </View>
     </GestureDetector>
   );
 }
-
-const styles = StyleSheet.create({
-  indicatorTrack: {
-    height: INDICATOR_DOT_SIZE,
-    width:
-      INDICATOR_DOT_SIZE * 2 +
-      STEPS.length * INDICATOR_DOT_SIZE +
-      (STEPS.length - 1) * INDICATOR_GAP,
-    justifyContent: "center",
-  },
-  indicatorDot: {
-    backgroundColor: "#000000",
-    borderRadius: INDICATOR_DOT_SIZE / 2,
-    height: INDICATOR_DOT_SIZE,
-    opacity: 0.2,
-    position: "absolute",
-    width: INDICATOR_DOT_SIZE,
-  },
-  selectedIndicator: {
-    backgroundColor: "#000000",
-    borderRadius: INDICATOR_DOT_SIZE / 2,
-    height: INDICATOR_DOT_SIZE,
-    left: 0,
-    position: "absolute",
-    width: INDICATOR_DOT_SIZE + INDICATOR_GAP * 2,
-  },
-});
 
 export default MockHome;
