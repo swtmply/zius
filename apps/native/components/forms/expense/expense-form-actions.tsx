@@ -21,6 +21,8 @@ type ExpenseActionTileContentProps = {
   icon?: HugeiconsProps["icon"];
   label: string;
   participant?: ActionParticipant;
+  labelClassName?: string;
+  adjustsFontSizeToFit?: boolean;
 };
 
 function ParticipantAvatar({ participant }: { participant: ActionParticipant }) {
@@ -40,6 +42,8 @@ export function ExpenseActionTileContent({
   icon,
   label,
   participant,
+  labelClassName = "max-w-full text-center text-xs text-ink",
+  adjustsFontSizeToFit = true,
 }: ExpenseActionTileContentProps) {
   return (
     <>
@@ -51,9 +55,10 @@ export function ExpenseActionTileContent({
         </View>
       )}
       <Typography
-        adjustsFontSizeToFit
-        className="max-w-full text-center text-xs text-ink"
-        minimumFontScale={0.85}
+        adjustsFontSizeToFit={adjustsFontSizeToFit}
+        className={labelClassName}
+        ellipsizeMode="tail"
+        minimumFontScale={adjustsFontSizeToFit ? 0.85 : undefined}
         numberOfLines={1}
       >
         {label}
@@ -76,6 +81,8 @@ type ExpenseSelectionSheetProps = {
   triggerLabel: string;
   triggerIcon?: HugeiconsProps["icon"];
   triggerParticipant?: ActionParticipant;
+  triggerLabelClassName?: string;
+  adjustTriggerLabelSize?: boolean;
   accessibilityLabel: string;
   isDisabled?: boolean;
   renderTrigger?: (label: string) => ReactNode;
@@ -91,6 +98,8 @@ export function ExpenseSelectionSheet({
   triggerLabel,
   triggerIcon,
   triggerParticipant,
+  triggerLabelClassName,
+  adjustTriggerLabelSize = true,
   accessibilityLabel,
   isDisabled = false,
   renderTrigger,
@@ -140,6 +149,8 @@ export function ExpenseSelectionSheet({
               isDisabled={isDisabled}
             >
               <ExpenseActionTileContent
+                adjustsFontSizeToFit={adjustTriggerLabelSize}
+                labelClassName={triggerLabelClassName}
                 icon={triggerIcon}
                 label={triggerLabel}
                 participant={triggerParticipant}
@@ -287,6 +298,8 @@ function CategorySelection({
       options={categoryOptions}
       triggerLabel={selectedCategory?.label ?? "Category"}
       triggerIcon={SaleTag01Icon}
+      triggerLabelClassName="max-w-[80px] text-center text-xs text-ink"
+      adjustTriggerLabelSize={false}
       accessibilityLabel="Choose category"
       isDisabled={isDisabled}
       onSubmit={(value) => {

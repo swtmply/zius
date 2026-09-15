@@ -231,13 +231,13 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
 
   const setTotalMinor = (totalMinor: number) => {
     form.setFieldValue("totalMinor", totalMinor);
+  };
+
+  const recalculateParticipantAmounts = () => {
+    const { totalMinor, splitMethod, items } = form.state.values;
+
     form.setFieldValue("participants", (participants) =>
-      recalculateParticipants(
-        participants,
-        totalMinor,
-        form.state.values.splitMethod,
-        form.state.values.items ?? [],
-      ),
+      recalculateParticipants(participants, totalMinor, splitMethod, items ?? []),
     );
   };
 
@@ -364,7 +364,10 @@ export function ExpenseForm({ currentParticipant, group, initialReceipt }: Expen
         {(field) => (
           <CurrencyInput
             value={field.state.value === 0 ? "" : String(field.state.value)}
-            onBlur={field.handleBlur}
+            onBlur={() => {
+              field.handleBlur();
+              recalculateParticipantAmounts();
+            }}
             errorMessage={
               hasSubmitted || field.state.meta.isBlurred
                 ? createExpenseSchema.shape.totalMinor.safeParse(field.state.value).error?.issues[0]
