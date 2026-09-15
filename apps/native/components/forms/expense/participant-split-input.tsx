@@ -24,7 +24,7 @@ function SplitValue({
   return (
     <Typography
       selectable
-      className="text-right text-xs font-semibold text-ink"
+      className="shrink-0 text-right text-xs font-semibold text-ink"
       style={{ fontVariant: ["tabular-nums"] }}
     >
       {splitMethod === "percentage"
@@ -52,7 +52,7 @@ export function ParticipantSplitInput({
 
   if (!isEditable) {
     return (
-      <View className="w-14 flex-row items-center justify-end gap-1">
+      <View className="shrink-0 flex-row items-center justify-end gap-1">
         <SplitValue splitMethod={splitMethod} value={value} />
         <Typography className="text-[10px] font-semibold text-supporting">PHP</Typography>
       </View>
@@ -80,7 +80,7 @@ export function ParticipantSplitInput({
     <View className="flex-row items-center gap-1">
       <TextInput
         accessibilityLabel={`${splitMethod} split for ${participantName}`}
-        className="h-7 w-14 rounded-md border border-border bg-page px-2 py-0 text-right text-xs font-semibold text-ink"
+        className="h-7 rounded-md border border-border bg-page px-2 py-0 text-right text-xs font-semibold text-ink"
         inputMode="decimal"
         keyboardType="decimal-pad"
         onBlur={() => {

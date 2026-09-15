@@ -1,35 +1,47 @@
-# Agent Workflow
+# React Coding Guidelines
 
-Use the `$orchestrate` skill only when the user explicitly invokes it or asks for orchestration. Otherwise, handle the task directly.
+## React
 
-The following workflow and model policy apply only when the user requests orchestration. The Main Agent then acts as the **Orchestrator and Planner**.
+- Use React 19.
+- Do not add `useMemo` or `useCallback` unless explicitly required.
+- Use `use(Context)` instead of `useContext(Context)` when appropriate.
+- Prefer named exports. Avoid default exports.
 
-The **Main Agent** is whichever agent the user invoked orchestration with. It remains the orchestrator for both native and non-native changes.
+## Components
 
-## Sub-Agent Model Policy
+- Keep component props minimal.
+- Prefer shared/global state over prop drilling.
+- Design components to be composable.
+- Split large or deeply nested components into smaller components.
+- Keep files focused. Do not collect unrelated helpers, components, and logic in one file.
+- Do not extract trivial logic into functions unnecessarily.
+- Avoid unnecessary prop drilling. Import it or transport it to the component that needs it instead.
 
-- Never use the same model as the active orchestrator.
-- Primary sub-agents use **Luna with MAX thinking**.
-- If Luna becomes blocked or cannot reach a defensible conclusion, escalate to **Terra with MAX thinking**.
-- If Terra also cannot proceed confidently, stop and ask the user for verification, missing information, or a recommendation.
-- Never guess merely to continue the workflow.
+## Utilities
 
-## Required Workflow
+- Extract reusable non-UI logic into utility functions.
+- Prefer utilities over passing reusable logic through component props.
+- Prefer named exports.
+- If a function needs many arguments, use one options object:
 
-For explicitly requested orchestration, follow the [orchestrate skill](.agents/skills/orchestrate/SKILL.md).
+```ts
+doSomething({ userId, amount, currency });
+```
 
-For native changes, including shared code that affects native behavior:
+instead of:
 
-**Recon + Research when needed -> Main Agent Plan -> Implementer -> device-test with Argent -> Final Reviewer -> Main Agent Final Report**
+```ts
+doSomething(userId, amount, currency);
+```
 
-The [device-test role](.codex/agents/device-test.md) owns actual-device acceptance checks and bug reproduction. Device verification must pass before final review. Route obvious implementation failures to the Implementer and unclear failures to the Debugger, then rerun device verification. Behavior-changing review repairs repeat device verification and final review.
+## Third-Party Libraries
 
-For other changes:
+- Prefer the library's documented API directly.
+- Do not create unnecessary abstractions or wrappers around third-party libraries.
+- Do not reimplement functionality already provided by the library.
 
-**Scanner -> Researcher when needed -> Orchestrator Plan -> Implementer -> Reviewer -> Debugger when needed -> Verifier -> Final Report**
+## General
 
-The orchestrator owns planning, delegation, escalation, context handoff, final completion decisions, and the final report.
-
-Follow this workflow when orchestration is explicitly requested.
-
-User instructions take precedence over this workflow.
+- Prefer the simplest implementation that satisfies the requirement.
+- Avoid premature abstraction and unnecessary indirection.
+- Optimize for readability, composability, and small focused files.

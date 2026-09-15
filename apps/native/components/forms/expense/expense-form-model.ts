@@ -116,6 +116,11 @@ export const createExpenseSchema = z
     }
   });
 
+export const expenseFormValidators = {
+  onChange: createExpenseSchema,
+  onSubmit: createExpenseSchema,
+} as const;
+
 export type ExpenseFormValues = z.input<typeof createExpenseSchema>;
 export type FormParticipant = ExpenseFormValues["participants"][number];
 

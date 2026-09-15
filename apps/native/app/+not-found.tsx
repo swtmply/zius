@@ -1,50 +1,24 @@
 import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Typography } from "heroui-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 export default function NotFoundScreen() {
   return (
     <ScrollView
+      className="flex-1 bg-page"
       contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{
-        flexGrow: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        backgroundColor: "#FAFAF8",
-      }}
+      contentContainerClassName="flex-grow items-center justify-center p-6"
     >
-      <View
-        style={{ width: "100%", maxWidth: 360, alignItems: "center", gap: 16 }}
-      >
-        <Text
-          selectable
-          style={{ color: "#171717", fontSize: 24, fontWeight: "600" }}
-        >
+      <View className="w-full max-w-[360px] items-center gap-4">
+        <Typography selectable className="text-center text-2xl font-semibold text-ink">
           Page not found
-        </Text>
-        <Text
-          selectable
-          style={{ color: "#737373", fontSize: 12, textAlign: "center" }}
-        >
+        </Typography>
+        <Typography selectable className="text-center text-xs text-supporting">
           This page does not exist.
-        </Text>
+        </Typography>
         <Link href="/" asChild>
-          <Pressable
-            style={({ pressed }) => ({
-              height: 48,
-              marginTop: 0,
-              paddingHorizontal: 24,
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 16,
-              borderCurve: "continuous",
-              backgroundColor: "#171717",
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "700" }}>
-              Go home
-            </Text>
+          <Pressable className="h-12 items-center justify-center rounded-2xl bg-dark-gradient px-6 active:opacity-72">
+            <Typography className="text-sm font-bold text-on-dark">Go home</Typography>
           </Pressable>
         </Link>
       </View>

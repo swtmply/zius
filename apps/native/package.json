@@ -4,8 +4,8 @@
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
-    "start": "expo start",
-    "dev": "expo start --clear",
+    "start": "EXPO_UNSTABLE_MCP_SERVER=1 expo start",
+    "dev": "EXPO_UNSTABLE_MCP_SERVER=1 expo start --clear",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "prebuild": "expo prebuild",
@@ -68,6 +68,7 @@
     "@types/node": "catalog:",
     "@types/react": "~19.2.18",
     "@zius/config": "workspace:*",
+    "expo-mcp": "~0.2.1",
     "typescript": "~6.0.3"
   }
 }

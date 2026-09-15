@@ -34,7 +34,7 @@ export function GroupExpensesLoading({ count = 2 }: { count?: number } = {}) {
       accessibilityState={{ busy: true }}
     >
       {Array.from({ length: count }, (_, index) => (
-        <View key={index} className="gap-3 rounded-2xl bg-panel p-4">
+        <View key={index} className="gap-2 rounded-2xl bg-panel p-4">
           <View className="flex-row items-center justify-between gap-2">
             <Skeleton className="size-10 rounded-full" />
             <View className="flex-1 gap-1">

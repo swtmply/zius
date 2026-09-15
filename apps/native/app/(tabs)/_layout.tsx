@@ -1,7 +1,7 @@
 import { Redirect } from "expo-router";
 import { Stack } from "expo-router/stack";
 
-import DashboardLoading from "@/components/dashboard/loading";
+import { DashboardLoading } from "@/components/dashboard/loading";
 import { authClient } from "@/lib/auth-client";
 
 export default function StackLayout() {

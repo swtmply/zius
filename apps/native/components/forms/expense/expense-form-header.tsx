@@ -14,11 +14,17 @@ export function ExpenseFormHeader({ isSubmitting, onSubmit }: ExpenseFormHeaderP
 
   return (
     <View className="flex-row justify-between items-center py-4">
-      <Button isIconOnly variant="ghost" onPress={() => router.back()}>
+      <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
         <HugeiconsIcon icon={ChevronLeft} size={24} />
       </Button>
-      <Typography className="text-2xl font-semibold">Create Expense</Typography>
-      <Button isIconOnly variant="ghost" isDisabled={isSubmitting} onPress={onSubmit}>
+      <Typography className="text-2xl font-semibold text-ink">Create Expense</Typography>
+      <Button
+        isIconOnly
+        variant="ghost"
+        accessibilityLabel="Create expense"
+        isDisabled={isSubmitting}
+        onPress={onSubmit}
+      >
         <HugeiconsIcon icon={Check} size={24} />
       </Button>
     </View>

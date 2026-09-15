@@ -1,15 +1,57 @@
 import { Redirect } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { Skeleton } from "heroui-native";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Onboarding } from "@/components/onboarding";
 import { SignIn } from "@/components/sign-in";
 import { authClient } from "@/lib/auth-client";
+
+const ONBOARDING_STORAGE_KEY = "zius-onboarding-complete";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { data: session, isPending } = authClient.useSession();
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(
+    __DEV__ ? false : null,
+  );
+
+  useEffect(() => {
+    if (__DEV__) return;
+
+    let mounted = true;
+
+    void SecureStore.getItemAsync(ONBOARDING_STORAGE_KEY)
+      .then((value) => {
+        if (mounted) setHasCompletedOnboarding(value === "true");
+      })
+      .catch(() => {
+        if (mounted) setHasCompletedOnboarding(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function completeOnboarding() {
+    if (!__DEV__) {
+      await SecureStore.setItemAsync(ONBOARDING_STORAGE_KEY, "true");
+    }
+
+    setHasCompletedOnboarding(true);
+  }
+
+  if (hasCompletedOnboarding === null) {
+    return <View style={{ flex: 1, backgroundColor: "#F2F2F7" }} />;
+  }
+
+  if (!hasCompletedOnboarding) {
+    return <Onboarding onComplete={completeOnboarding} />;
+  }
 
   if (isPending) {
     return (

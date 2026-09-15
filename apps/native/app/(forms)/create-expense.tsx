@@ -5,9 +5,9 @@ import { parseReceiptParam } from "@/utils/scan";
 import { getAlwaysShowSpotlights } from "@/utils/spotlights";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Button, Typography } from "heroui-native";
 import * as SecureStore from "expo-secure-store";
-import { useLocalSearchParams } from "expo-router";
-import { Typography } from "heroui-native";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -15,6 +15,7 @@ const CREATE_EXPENSE_ONBOARDING_STORAGE_KEY = "create-expense-onboarding-complet
 const CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE = "true";
 
 export default function CreateExpenseForm() {
+  const router = useRouter();
   const { groupId: groupIdParam, receipt: receiptParam } = useLocalSearchParams<{
     groupId?: string;
     receipt?: string;
@@ -32,6 +33,8 @@ export default function CreateExpenseForm() {
     ...trpc.group.get.queryOptions({ id: groupId ?? "" }),
     enabled: Boolean(groupId),
   });
+  const { data: currentParticipant, error: participantError } = participantQuery;
+  const { data: group, error: groupError } = groupQuery;
 
   useEffect(() => {
     if (!showCreateExpenseOnboarding) {
@@ -78,10 +81,29 @@ export default function CreateExpenseForm() {
   if (participantError || groupError) {
     return (
       <View className="bg-page flex-1 items-center justify-center px-4">
-        <View className="rounded-2xl bg-panel p-4">
+        <View className="w-full items-center gap-4 rounded-2xl bg-panel p-4">
           <Typography selectable className="text-sm text-danger">
             {groupError ? "Unable to load this group." : "Unable to load your participant details."}
           </Typography>
+          <View className="flex-row gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={() => {
+                void participantQuery.refetch();
+                if (groupId) void groupQuery.refetch();
+              }}
+            >
+              <Button.Label>Try again</Button.Label>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/home"))}
+            >
+              <Button.Label>Go back</Button.Label>
+            </Button>
+          </View>
         </View>
       </View>
     );
