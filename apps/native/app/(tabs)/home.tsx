@@ -4,8 +4,10 @@ import { DashboardLoading } from "@/components/dashboard/loading";
 import { DashboardExpenses, ExpensesEmptyState } from "@/components/dashboard/expenses";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
+import * as SecureStore from "expo-secure-store";
 import { Button } from "heroui-native";
 import { useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HugeiconsIcon } from "@hugeicons/react-native";
@@ -16,11 +18,61 @@ import {
   TransactionHistoryIcon,
   UserGroup03Icon,
 } from "@hugeicons/core-free-icons";
+import MockHome from "@/components/onboarding/mock-screens/home";
+import { getAlwaysShowSpotlights } from "@/utils/spotlights";
+
+const HOME_ONBOARDING_STORAGE_KEY = "home-onboarding-completed";
+const HOME_ONBOARDING_COMPLETED_VALUE = "true";
 
 export default function Home() {
-  const { data, isLoading, isRefetching, refetch } = useQuery(trpc.dashboard.get.queryOptions());
+  const { data, isLoading, isRefetching, refetch } = useQuery(
+    trpc.dashboard.get.queryOptions(),
+  );
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [showHomeOnboarding, setShowHomeOnboarding] = useState<boolean | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void Promise.all([
+      SecureStore.getItemAsync(HOME_ONBOARDING_STORAGE_KEY),
+      getAlwaysShowSpotlights(),
+    ])
+      .then(([value, alwaysShowSpotlights]) => {
+        if (isMounted) {
+          setShowHomeOnboarding(
+            value !== HOME_ONBOARDING_COMPLETED_VALUE ||
+              (__DEV__ && alwaysShowSpotlights),
+          );
+        }
+      })
+      .catch(() => {
+        // If local storage is unavailable, keep onboarding discoverable.
+        if (isMounted) setShowHomeOnboarding(true);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const completeHomeOnboarding = useCallback(async () => {
+    setShowHomeOnboarding(false);
+
+    try {
+      await SecureStore.setItemAsync(
+        HOME_ONBOARDING_STORAGE_KEY,
+        HOME_ONBOARDING_COMPLETED_VALUE,
+      );
+    } catch {
+      // The route can still be used; onboarding will be shown again next time.
+      console.warn("Could not persist home onboarding completion");
+    }
+  }, []);
+
   const headerActions = [
     {
       id: "transaction",
@@ -60,7 +112,11 @@ export default function Home() {
     },
   ] satisfies readonly HeaderCardAction[];
 
-  if (isLoading) return <DashboardLoading />;
+  if (isLoading || showHomeOnboarding === null) return <DashboardLoading />;
+
+  if (showHomeOnboarding) {
+    return <MockHome onComplete={completeHomeOnboarding} />;
+  }
 
   return (
     <View

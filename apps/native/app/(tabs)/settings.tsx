@@ -1,11 +1,12 @@
 import { Edit02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ActivityIndicator, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
-import { Typography } from "heroui-native";
+import { Typography, Switch } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { authClient } from "@/lib/auth-client";
+import { getAlwaysShowSpotlights, setAlwaysShowSpotlights } from "@/utils/spotlights";
 import { queryClient } from "@/utils/trpc";
 
 export default function Settings() {
@@ -18,6 +19,35 @@ export default function Settings() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deletionMessage, setDeletionMessage] = useState<string | null>(null);
+  const [alwaysShowSpotlights, setAlwaysShowSpotlightsState] = useState<boolean | null>(
+    __DEV__ ? null : false,
+  );
+
+  useEffect(() => {
+    if (!__DEV__) return;
+
+    let isMounted = true;
+
+    void getAlwaysShowSpotlights()
+      .then((enabled) => {
+        if (isMounted) setAlwaysShowSpotlightsState(enabled);
+      })
+      .catch(() => {
+        if (isMounted) setAlwaysShowSpotlightsState(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const updateAlwaysShowSpotlights = (enabled: boolean) => {
+    setAlwaysShowSpotlightsState(enabled);
+    void setAlwaysShowSpotlights(enabled).catch(() => {
+      console.warn("Could not persist always-show-spotlights setting");
+      setAlwaysShowSpotlightsState(!enabled);
+    });
+  };
 
   const startEditing = () => {
     setDraftName(user?.name ?? "");
@@ -206,7 +236,28 @@ export default function Settings() {
             </View>
           </View>
 
-          <Typography selectable className="text-sm text-danger">
+          {__DEV__ ? (
+            <>
+              <Text selectable className="text-[14px] text-[#171717]">
+                Developer Options
+              </Text>
+              <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+                <View className="min-h-[50px] flex-row items-center gap-4">
+                  <Text selectable className="flex-1 text-[14px] text-[#171717]">
+                    Always show spotlights on load
+                  </Text>
+                  <Switch
+                    accessibilityLabel="Always show spotlights on load"
+                    isDisabled={alwaysShowSpotlights === null}
+                    isSelected={alwaysShowSpotlights ?? false}
+                    onSelectedChange={updateAlwaysShowSpotlights}
+                  />
+                </View>
+              </View>
+            </>
+          ) : null}
+
+          <Text selectable className="text-[14px] text-[#FF343B]">
             Danger Zone
           </Typography>
           <Pressable
