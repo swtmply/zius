@@ -17,7 +17,7 @@ export function GroupFormHeader({ isDisabled, onSubmit }: GroupFormHeaderProps) 
       <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
         <HugeiconsIcon icon={ChevronLeft} size={24} color="#000000" />
       </Button>
-      <Typography className="text-xl font-semibold text-ink">Create Group</Typography>
+      <Typography className="text-2xl font-semibold text-ink">Create Group</Typography>
       <Button
         isIconOnly
         variant="ghost"

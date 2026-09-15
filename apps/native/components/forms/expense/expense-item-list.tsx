@@ -4,7 +4,7 @@ import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 
-import { ExpenseSelectionSheet } from "./expense-form-actions";
+import { ExpenseSelectionSheet } from "./expense-selection-sheet";
 import { getExpenseItemErrors, type ExpenseItem, type FormParticipant } from "./expense-form-model";
 
 type ExpenseItemListProps = {

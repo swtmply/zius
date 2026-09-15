@@ -1,15 +1,8 @@
 import { Edit02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Keyboard,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Typography } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { authClient } from "@/lib/auth-client";
@@ -49,16 +42,11 @@ export default function Settings() {
 
     setErrorMessage(null);
     setIsSaving(true);
-    const result = await authClient
-      .updateUser({ name })
-      .catch((error: unknown) => ({
-        error: {
-          message:
-            error instanceof Error
-              ? error.message
-              : "Unable to update your name.",
-        },
-      }));
+    const result = await authClient.updateUser({ name }).catch((error: unknown) => ({
+      error: {
+        message: error instanceof Error ? error.message : "Unable to update your name.",
+      },
+    }));
     setIsSaving(false);
 
     if (result.error) {
@@ -91,7 +79,7 @@ export default function Settings() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-page">
       <ScrollView
         automaticallyAdjustKeyboardInsets
         contentInsetAdjustmentBehavior="never"
@@ -104,12 +92,9 @@ export default function Settings() {
       >
         <View className="gap-4 px-4">
           <View className="flex-row items-center justify-between gap-4">
-            <Text
-              selectable
-              className="text-[24px] font-semibold tracking-[-0.5px] text-black"
-            >
+            <Typography selectable className="text-2xl font-semibold text-ink">
               Settings
-            </Text>
+            </Typography>
             <Pressable
               accessibilityLabel={isEditing ? "Save name" : "Edit name"}
               accessibilityRole="button"
@@ -127,16 +112,16 @@ export default function Settings() {
             </Pressable>
           </View>
 
-          <Text selectable className="text-[14px] text-[#171717]">
+          <Typography selectable className="text-sm text-ink">
             Profile
-          </Text>
-          <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+          </Typography>
+          <View className="min-h-[50px] justify-center rounded-2xl border border-border bg-panel px-4">
             {isEditing ? (
               <View className="py-2">
                 <View className="min-h-[50px] flex-row items-center gap-4">
-                  <Text selectable className="text-[14px] text-[#171717]">
+                  <Typography selectable className="text-sm text-ink">
                     Name
-                  </Text>
+                  </Typography>
                   <TextInput
                     accessibilityLabel="Name"
                     autoFocus
@@ -146,7 +131,7 @@ export default function Settings() {
                     placeholder="Your name"
                     placeholderTextColor="#C4C4C7"
                     returnKeyType="done"
-                    className="flex-1 py-0 text-right text-[14px] text-[#171717]"
+                    className="flex-1 py-0 text-right text-sm text-ink"
                     value={draftName}
                   />
                 </View>
@@ -157,129 +142,123 @@ export default function Settings() {
                     onPress={cancelEditing}
                     className="active:opacity-55"
                   >
-                    <Text className="text-[14px] text-[#929292]">Cancel</Text>
+                    <Typography className="text-sm text-supporting">Cancel</Typography>
                   </Pressable>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityState={{ busy: isSaving }}
                     disabled={isSaving}
                     onPress={() => void saveName()}
-                    className="h-9 min-w-18 items-center justify-center rounded-xl border-continuous bg-[#FF343B] px-4 active:opacity-72"
+                    className="h-9 min-w-18 items-center justify-center rounded-xl bg-danger px-4 active:opacity-72"
                   >
                     {isSaving ? (
                       <ActivityIndicator color="#FFFFFF" size="small" />
                     ) : (
-                      <Text className="text-[14px] text-white">Save</Text>
+                      <Typography className="text-sm text-on-dark">Save</Typography>
                     )}
                   </Pressable>
                 </View>
               </View>
             ) : (
               <View className="min-h-[50px] flex-row items-center gap-4">
-                <Text selectable className="text-[14px] text-[#171717]">
+                <Typography selectable className="text-sm text-ink">
                   Name
-                </Text>
-                <Text
+                </Typography>
+                <Typography
                   selectable
                   numberOfLines={1}
-                  className="flex-1 text-right text-[14px] text-[#929292]"
+                  className="flex-1 text-right text-sm text-supporting"
                 >
                   {user?.name || "Add your name"}
-                </Text>
+                </Typography>
               </View>
             )}
           </View>
-          <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+          <View className="min-h-[50px] justify-center rounded-2xl border border-border bg-panel px-4">
             <View className="min-h-[50px] flex-row items-center gap-4">
-              <Text selectable className="text-[14px] text-[#171717]">
+              <Typography selectable className="text-sm text-ink">
                 Email
-              </Text>
-              <Text
+              </Typography>
+              <Typography
                 selectable
                 numberOfLines={1}
-                className="flex-1 text-right text-[14px] text-[#929292]"
+                className="flex-1 text-right text-sm text-supporting"
               >
                 {user?.email ?? ""}
-              </Text>
+              </Typography>
             </View>
           </View>
 
-          <Text selectable className="text-[14px] text-[#171717]">
+          <Typography selectable className="text-sm text-ink">
             Account Settings
-          </Text>
-          <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+          </Typography>
+          <View className="min-h-[50px] justify-center rounded-2xl border border-border bg-panel px-4">
             <View className="min-h-[50px] flex-row items-center gap-4">
-              <Text selectable className="text-[14px] text-[#171717]">
+              <Typography selectable className="text-sm text-ink">
                 Password
-              </Text>
-              <Text
+              </Typography>
+              <Typography
                 selectable
-                className="flex-1 text-right text-[12px] tracking-[1px] text-[#929292]"
+                className="flex-1 text-right text-xs tracking-[1px] text-supporting"
               >
                 **********
-              </Text>
+              </Typography>
             </View>
           </View>
 
-          <Text selectable className="text-[14px] text-[#FF343B]">
+          <Typography selectable className="text-sm text-danger">
             Danger Zone
-          </Text>
+          </Typography>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ busy: isSigningOut }}
             disabled={isSigningOut || isSaving}
             onPress={() => void signOut()}
-            className="h-[50px] items-center justify-center rounded-2xl border-continuous bg-[#FF343B] active:opacity-72 disabled:opacity-72"
+            className="h-[50px] items-center justify-center rounded-2xl bg-danger active:opacity-72 disabled:opacity-72"
           >
             {isSigningOut ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text className="text-[14px] text-white">Logout</Text>
+              <Typography className="text-sm text-on-dark">Logout</Typography>
             )}
           </Pressable>
 
-          <View className="gap-1 rounded-2xl border border-continuous border-[#FF343B] bg-[#FFD9DB] p-4">
-            <Text selectable className="text-[14px] text-[#FF343B]">
+          <View className="gap-1 rounded-2xl border border-danger bg-danger/10 p-4">
+            <Typography selectable className="text-sm text-danger">
               Deleting Account
-            </Text>
-            <Text
-              selectable
-              className="text-[12px] leading-[15px] text-[#171717]"
-            >
-              When you delete your account, expenses currently attached to you
-              will not be deleted. You will no longer be able to access any of
-              your data.
-            </Text>
+            </Typography>
+            <Typography selectable className="text-xs leading-[15px] text-ink">
+              When you delete your account, expenses currently attached to you will not be deleted.
+              You will no longer be able to access any of your data.
+            </Typography>
             <Pressable
               accessibilityRole="button"
-              onPress={() =>
-                setDeletionMessage("Account deletion is not available yet.")
-              }
-              className="h-[50px] items-center justify-center rounded-2xl border-continuous bg-[#FF343B] active:opacity-72"
+              onPress={() => setDeletionMessage("Account deletion is not available yet.")}
+              className="h-[50px] items-center justify-center rounded-2xl bg-danger active:opacity-72"
             >
-              <Text className="text-[14px] text-white">Delete Account</Text>
+              <Typography className="text-sm text-on-dark">Delete Account</Typography>
             </Pressable>
             {deletionMessage ? (
-              <Text
+              <Typography
                 selectable
                 accessibilityRole="alert"
                 accessibilityLiveRegion="polite"
-                className="text-center text-[12px] text-[#FF343B]"
+                className="text-center text-xs text-danger"
               >
                 {deletionMessage}
-              </Text>
+              </Typography>
             ) : null}
           </View>
 
           {errorMessage ? (
-            <Text
+            <Typography
               selectable
               accessibilityRole="alert"
               accessibilityLiveRegion="polite"
-              className="text-center text-[12px] text-[#FF343B]"
+              className="text-center text-xs text-danger"
             >
               {errorMessage}
-            </Text>
+            </Typography>
           ) : null}
         </View>
       </ScrollView>

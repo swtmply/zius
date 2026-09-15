@@ -36,7 +36,10 @@ export function GroupPickerSelect({
   const query = useInfiniteQuery(
     trpc.group.list.infiniteQueryOptions(
       { limit: 50 },
-      { getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined },
+      {
+        enabled: isOpen,
+        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      },
     ),
   );
   const groups = query.data?.pages.flatMap((page) => page.items) ?? [];

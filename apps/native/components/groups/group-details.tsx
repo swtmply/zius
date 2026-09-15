@@ -61,7 +61,7 @@ export function GroupExpenseCard({ expense }: { expense: Group["expenses"][numbe
   const remaining = expense.participants.length - visibleParticipants.length;
 
   const content = (
-    <View className={`gap-3 rounded-2xl bg-panel p-4${isCancelled ? " opacity-70" : ""}`}>
+    <View className={`gap-2 rounded-2xl bg-panel p-4${isCancelled ? " opacity-70" : ""}`}>
       <View className="flex-row items-center justify-between gap-2">
         <View className="size-10 items-center justify-center rounded-full bg-page">
           <HugeiconsIcon icon={ShoppingBasket01Icon} size={18} color="#000000" />

@@ -14,7 +14,13 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <KeyboardProvider>
           <AppThemeProvider>
-            <HeroUINativeProvider>
+            <HeroUINativeProvider
+              config={{
+                devInfo: {
+                  stylingPrinciples: false,
+                },
+              }}
+            >
               <StatusBar style="auto" />
               <Stack screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="index" />

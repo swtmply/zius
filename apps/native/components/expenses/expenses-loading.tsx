@@ -10,7 +10,7 @@ export function ExpensesLoading({ count = 4 }: { count?: number }) {
       accessibilityState={{ busy: true }}
     >
       {Array.from({ length: count }, (_, index) => (
-        <View key={index} className="bg-panel rounded-2xl p-4 gap-3">
+        <View key={index} className="bg-panel rounded-2xl p-4 gap-2">
           <View className="flex-row items-center justify-between gap-2">
             <View className="size-10 rounded-full bg-page items-center justify-center">
               <Skeleton className="size-5 rounded-full" />
@@ -21,7 +21,7 @@ export function ExpensesLoading({ count = 4 }: { count?: number }) {
             </View>
             <Skeleton className="h-5 w-20 rounded" />
           </View>
-          <View className="border-t border-dashed border-border pt-3">
+          <View className="border-t border-dashed border-border">
             <View className="flex-row items-center gap-1">
               {[0, 1, 2].map((participant) => (
                 <View key={participant} className="rounded-full border-2 border-panel">

@@ -51,11 +51,7 @@ function HeaderCardActionButton({ action }: { action: HeaderCardAction }) {
   );
 }
 
-export default function DashboardHeaderCard({
-  owedToYouMinor,
-  youOweMinor,
-  actions,
-}: HeaderCardProps) {
+export function DashboardHeaderCard({ owedToYouMinor, youOweMinor, actions }: HeaderCardProps) {
   return (
     <View className="gap-4">
       <View className="flex-row gap-2">

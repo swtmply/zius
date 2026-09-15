@@ -1,6 +1,6 @@
-import DashboardHeaderCard, { type HeaderCardAction } from "@/components/dashboard/header-card";
-import DashboardHeader from "@/components/dashboard/header";
-import DashboardLoading from "@/components/dashboard/loading";
+import { DashboardHeaderCard, type HeaderCardAction } from "@/components/dashboard/header-card";
+import { DashboardHeader } from "@/components/dashboard/header";
+import { DashboardLoading } from "@/components/dashboard/loading";
 import { DashboardExpenses, ExpensesEmptyState } from "@/components/dashboard/expenses";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
