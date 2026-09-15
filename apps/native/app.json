@@ -2,7 +2,7 @@
   "expo": {
     "name": "zius",
     "slug": "zius",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -69,7 +69,16 @@
           }
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

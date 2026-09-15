@@ -345,7 +345,10 @@ const expenseListOutputSchema = z.object({
       totalMinor: z.number().int().positive(),
       currency: z.string(),
       status: z.enum(["active", "settled", "cancelled"]),
+      createdAt: z.iso.datetime(),
       occurredAt: z.iso.datetime(),
+      payerName: z.string(),
+      groupName: z.string().nullable(),
       settledAt: z.iso.datetime().nullable(),
       cancelledAt: z.iso.datetime().nullable(),
       cancelledByUserId: z.string().nullable(),
@@ -1158,6 +1161,7 @@ export const expenseRouter = router({
           iconName: expense.iconName,
           totalMinor: expense.totalMinor,
           currency: expense.currency,
+          createdAt: expense.createdAt,
           occurredAt: expense.occurredAt,
           status: expense.status,
           settledAt: expense.settledAt,
@@ -1165,8 +1169,10 @@ export const expenseRouter = router({
           cancelledByUserId: expense.cancelledByUserId,
           createdByUserId: expense.createdByUserId,
           payerId: expense.payerId,
+          groupName: group.name,
         })
         .from(expense)
+        .leftJoin(group, eq(group.id, expense.groupId))
         .where(and(involvementFilter, statusFilter, cursorFilter))
         .orderBy(...orderBy)
         .limit(input.limit + 1);
@@ -1257,7 +1263,10 @@ export const expenseRouter = router({
           totalMinor: expenseRow.totalMinor,
           currency: expenseRow.currency,
           status: expenseRow.status,
+          createdAt: expenseRow.createdAt.toISOString(),
           occurredAt: expenseRow.occurredAt.toISOString(),
+          payerName: payer?.name ?? "",
+          groupName: expenseRow.groupName,
           settledAt: expenseRow.settledAt?.toISOString() ?? null,
           cancelledAt: expenseRow.cancelledAt?.toISOString() ?? null,
           cancelledByUserId: expenseRow.cancelledByUserId,
