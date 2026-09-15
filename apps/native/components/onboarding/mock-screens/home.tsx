@@ -22,7 +22,8 @@ import Animated, {
 } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 
-import DashboardHeaderCard, {
+import {
+  DashboardHeaderCard,
   type HeaderCardAction,
 } from "@/components/dashboard/header-card";
 import {

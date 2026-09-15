@@ -6,7 +6,12 @@ import { Typography, Switch } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { authClient } from "@/lib/auth-client";
-import { getAlwaysShowSpotlights, setAlwaysShowSpotlights } from "@/utils/spotlights";
+import {
+  getAlwaysShowOnboardingPages,
+  getAlwaysShowSpotlights,
+  setAlwaysShowOnboardingPages,
+  setAlwaysShowSpotlights,
+} from "@/utils/spotlights";
 import { queryClient } from "@/utils/trpc";
 
 export default function Settings() {
@@ -22,18 +27,27 @@ export default function Settings() {
   const [alwaysShowSpotlights, setAlwaysShowSpotlightsState] = useState<boolean | null>(
     __DEV__ ? null : false,
   );
+  const [alwaysShowOnboardingPages, setAlwaysShowOnboardingPagesState] = useState<boolean | null>(
+    __DEV__ ? null : false,
+  );
 
   useEffect(() => {
     if (!__DEV__) return;
 
     let isMounted = true;
 
-    void getAlwaysShowSpotlights()
-      .then((enabled) => {
-        if (isMounted) setAlwaysShowSpotlightsState(enabled);
+    void Promise.all([getAlwaysShowSpotlights(), getAlwaysShowOnboardingPages()])
+      .then(([spotlightsEnabled, onboardingPagesEnabled]) => {
+        if (isMounted) {
+          setAlwaysShowSpotlightsState(spotlightsEnabled);
+          setAlwaysShowOnboardingPagesState(onboardingPagesEnabled);
+        }
       })
       .catch(() => {
-        if (isMounted) setAlwaysShowSpotlightsState(false);
+        if (isMounted) {
+          setAlwaysShowSpotlightsState(false);
+          setAlwaysShowOnboardingPagesState(false);
+        }
       });
 
     return () => {
@@ -46,6 +60,14 @@ export default function Settings() {
     void setAlwaysShowSpotlights(enabled).catch(() => {
       console.warn("Could not persist always-show-spotlights setting");
       setAlwaysShowSpotlightsState(!enabled);
+    });
+  };
+
+  const updateAlwaysShowOnboardingPages = (enabled: boolean) => {
+    setAlwaysShowOnboardingPagesState(enabled);
+    void setAlwaysShowOnboardingPages(enabled).catch(() => {
+      console.warn("Could not persist always-show-onboarding-pages setting");
+      setAlwaysShowOnboardingPagesState(!enabled);
     });
   };
 
@@ -238,14 +260,14 @@ export default function Settings() {
 
           {__DEV__ ? (
             <>
-              <Text selectable className="text-[14px] text-[#171717]">
+              <Typography selectable className="text-[14px] text-[#171717]">
                 Developer Options
-              </Text>
+              </Typography>
               <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
                 <View className="min-h-[50px] flex-row items-center gap-4">
-                  <Text selectable className="flex-1 text-[14px] text-[#171717]">
+                  <Typography selectable className="flex-1 text-[14px] text-[#171717]">
                     Always show spotlights on load
-                  </Text>
+                  </Typography>
                   <Switch
                     accessibilityLabel="Always show spotlights on load"
                     isDisabled={alwaysShowSpotlights === null}
@@ -254,10 +276,23 @@ export default function Settings() {
                   />
                 </View>
               </View>
+              <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+                <View className="min-h-[50px] flex-row items-center gap-4">
+                  <Typography selectable className="flex-1 text-[14px] text-[#171717]">
+                    Always show onboarding pages on load
+                  </Typography>
+                  <Switch
+                    accessibilityLabel="Always show onboarding pages on load"
+                    isDisabled={alwaysShowOnboardingPages === null}
+                    isSelected={alwaysShowOnboardingPages ?? false}
+                    onSelectedChange={updateAlwaysShowOnboardingPages}
+                  />
+                </View>
+              </View>
             </>
           ) : null}
 
-          <Text selectable className="text-[14px] text-[#FF343B]">
+          <Typography selectable className="text-[14px] text-[#FF343B]">
             Danger Zone
           </Typography>
           <Pressable

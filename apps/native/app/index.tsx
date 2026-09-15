@@ -9,24 +9,26 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Onboarding } from "@/components/onboarding";
 import { SignIn } from "@/components/sign-in";
 import { authClient } from "@/lib/auth-client";
+import { getAlwaysShowOnboardingPages } from "@/utils/spotlights";
 
 const ONBOARDING_STORAGE_KEY = "zius-onboarding-complete";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { data: session, isPending } = authClient.useSession();
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(
-    __DEV__ ? false : null,
-  );
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (__DEV__) return;
-
     let mounted = true;
 
-    void SecureStore.getItemAsync(ONBOARDING_STORAGE_KEY)
-      .then((value) => {
-        if (mounted) setHasCompletedOnboarding(value === "true");
+    void Promise.all([
+      SecureStore.getItemAsync(ONBOARDING_STORAGE_KEY),
+      getAlwaysShowOnboardingPages(),
+    ])
+      .then(([value, alwaysShowOnboardingPages]) => {
+        if (mounted) {
+          setHasCompletedOnboarding(value === "true" && !(__DEV__ && alwaysShowOnboardingPages));
+        }
       })
       .catch(() => {
         if (mounted) setHasCompletedOnboarding(false);
@@ -38,9 +40,7 @@ export default function LoginScreen() {
   }, []);
 
   async function completeOnboarding() {
-    if (!__DEV__) {
-      await SecureStore.setItemAsync(ONBOARDING_STORAGE_KEY, "true");
-    }
+    await SecureStore.setItemAsync(ONBOARDING_STORAGE_KEY, "true");
 
     setHasCompletedOnboarding(true);
   }
