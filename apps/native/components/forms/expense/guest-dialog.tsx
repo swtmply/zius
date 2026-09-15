@@ -29,12 +29,7 @@ type GuestSheetContentProps = {
   submitLabel: string;
   namePlaceholder: string;
   emailPlaceholder: string;
-  name: string;
-  email: string;
-  errors: Partial<Record<keyof Guest, string>>;
-  onNameChange: (value: string) => void;
-  onEmailChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit: (guest: Guest) => void;
   onClose: () => void;
 };
 
@@ -44,14 +39,13 @@ function GuestSheetContent({
   submitLabel,
   namePlaceholder,
   emailPlaceholder,
-  name,
-  email,
-  errors,
-  onNameChange,
-  onEmailChange,
   onSubmit,
   onClose,
 }: GuestSheetContentProps) {
+  // Keep keystrokes below the portal so they do not republish the entire sheet.
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [errors, setErrors] = useState<Partial<Record<keyof Guest, string>>>({});
   const nameInputRef = useRef<TextInput>(null);
   const emailInputRef = useRef<TextInput>(null);
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
@@ -60,8 +54,27 @@ function GuestSheetContent({
     if (!isOpen) {
       nameInputRef.current?.blur();
       emailInputRef.current?.blur();
+      setName("");
+      setEmail("");
+      setErrors({});
     }
   }, [isOpen]);
+
+  const handleSubmit = () => {
+    const result = guestSchema.safeParse({ name, email });
+
+    if (!result.success) {
+      const fieldErrors = z.flattenError(result.error).fieldErrors;
+      setErrors({
+        name: fieldErrors.name?.[0],
+        email: fieldErrors.email?.[0],
+      });
+      return;
+    }
+
+    onSubmit(result.data);
+    onClose();
+  };
 
   return (
     <View className="gap-4">
@@ -88,11 +101,16 @@ function GuestSheetContent({
             <Typography className="text-sm text-ink">Name</Typography>
             <TextInput
               ref={nameInputRef}
+              testID="guest-name-input"
+              accessibilityLabel={namePlaceholder}
               autoCapitalize="words"
               autoComplete="name"
               value={name}
               onBlur={onBlur}
-              onChangeText={onNameChange}
+              onChangeText={(value) => {
+                setName(value);
+                if (errors.name) setErrors((current) => ({ ...current, name: undefined }));
+              }}
               onFocus={onFocus}
               onSubmitEditing={() => emailInputRef.current?.focus()}
               placeholder={namePlaceholder}
@@ -115,14 +133,19 @@ function GuestSheetContent({
             <Typography className="text-sm text-ink">Email</Typography>
             <TextInput
               ref={emailInputRef}
+              testID="guest-email-input"
+              accessibilityLabel={emailPlaceholder}
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
               value={email}
               onBlur={onBlur}
-              onChangeText={onEmailChange}
+              onChangeText={(value) => {
+                setEmail(value);
+                if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
+              }}
               onFocus={onFocus}
-              onSubmitEditing={onSubmit}
+              onSubmitEditing={handleSubmit}
               placeholder={emailPlaceholder}
               placeholderTextColor="#8A8A8E"
               returnKeyType="done"
@@ -134,7 +157,7 @@ function GuestSheetContent({
           ) : null}
         </View>
 
-        <Button className="w-full bg-dark-gradient" onPress={onSubmit}>
+        <Button className="w-full bg-dark-gradient" onPress={handleSubmit}>
           <Button.Label>{submitLabel}</Button.Label>
         </Button>
       </View>
@@ -153,39 +176,9 @@ export function GuestDialog({
 }: GuestDialogProps) {
   const insets = useSafeAreaInsets();
   const [isOpen, setIsOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [errors, setErrors] = useState<Partial<Record<keyof Guest, string>>>({});
-
-  const reset = () => {
-    setName("");
-    setEmail("");
-    setErrors({});
-  };
-
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     Keyboard.dismiss();
-
-    if (!open) {
-      reset();
-    }
-  };
-
-  const handleSubmit = () => {
-    const result = guestSchema.safeParse({ name, email });
-
-    if (!result.success) {
-      const fieldErrors = z.flattenError(result.error).fieldErrors;
-      setErrors({
-        name: fieldErrors.name?.[0],
-        email: fieldErrors.email?.[0],
-      });
-      return;
-    }
-
-    onSubmit(result.data);
-    handleOpenChange(false);
   };
 
   return (
@@ -222,18 +215,7 @@ export function GuestDialog({
             submitLabel={submitLabel}
             namePlaceholder={namePlaceholder}
             emailPlaceholder={emailPlaceholder}
-            name={name}
-            email={email}
-            errors={errors}
-            onNameChange={(value) => {
-              setName(value);
-              setErrors((current) => ({ ...current, name: undefined }));
-            }}
-            onEmailChange={(value) => {
-              setEmail(value);
-              setErrors((current) => ({ ...current, email: undefined }));
-            }}
-            onSubmit={handleSubmit}
+            onSubmit={onSubmit}
             onClose={() => handleOpenChange(false)}
           />
         </BottomSheet.Content>

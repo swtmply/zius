@@ -5,7 +5,7 @@ import { View } from "react-native";
 import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { authClient } from "@/lib/auth-client";
 
-export default function DashboardHeader() {
+export function DashboardHeader() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
 
@@ -22,10 +22,14 @@ export default function DashboardHeader() {
         >
           <HugeiconsIcon icon={Notification} size={24} color="#000000" />
         </Button>
-        <PressableFeedback onPress={() => router.push("/(tabs)/settings")}>
+        <PressableFeedback
+          accessibilityRole="button"
+          accessibilityLabel="Open settings"
+          onPress={() => router.push("/(tabs)/settings")}
+        >
           <Avatar size="md">
-            <Avatar.Image source={{ uri: session?.user?.image ?? "" }} />
-            <Avatar.Fallback>{session?.user?.name[0]}</Avatar.Fallback>
+            {session?.user?.image ? <Avatar.Image source={{ uri: session.user.image }} /> : null}
+            <Avatar.Fallback>{session?.user?.name.slice(0, 1)}</Avatar.Fallback>
           </Avatar>
         </PressableFeedback>
       </View>

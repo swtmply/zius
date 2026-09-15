@@ -1,5 +1,5 @@
 import { TextInput, View } from "react-native";
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { Button, cn, Typography } from "heroui-native";
 
 const currencyFormatter = new Intl.NumberFormat("en-PH", {
@@ -7,6 +7,14 @@ const currencyFormatter = new Intl.NumberFormat("en-PH", {
   currency: "PHP",
   currencyDisplay: "symbol",
 });
+const currencyFractionDigits = currencyFormatter.resolvedOptions().maximumFractionDigits ?? 2;
+const currencyAmountFormatter = new Intl.NumberFormat("en-PH", {
+  minimumFractionDigits: currencyFractionDigits,
+  maximumFractionDigits: currencyFractionDigits,
+});
+const currencySymbol = currencyFormatter
+  .formatToParts(0)
+  .find((part) => part.type === "currency")?.value;
 
 type CurrencyInputProps = {
   value: string;
@@ -17,17 +25,8 @@ type CurrencyInputProps = {
 
 export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: CurrencyInputProps) {
   const inputRef = useRef<TextInput>(null);
-
-  const { maximumFractionDigits } = currencyFormatter.resolvedOptions();
-
-  const divisor = 10 ** (maximumFractionDigits ?? 2);
-
-  const formattedValue = new Intl.NumberFormat("en-PH", {
-    minimumFractionDigits: maximumFractionDigits,
-    maximumFractionDigits,
-  }).format(Number(value) / divisor);
-
-  const symbol = currencyFormatter.formatToParts(0).find((part) => part.type === "currency")?.value;
+  const divisor = 10 ** currencyFractionDigits;
+  const formattedValue = currencyAmountFormatter.format(Number(value) / divisor);
 
   const handleChangeText = (text: string) => {
     const digits = text.replace(/\D/g, "");
@@ -44,19 +43,20 @@ export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: Cu
     }
   };
 
-  const focus = () => {
-    inputRef.current?.focus();
-  };
-
   return (
     <View>
-      <Button variant="ghost" className="w-full h-24" onPress={focus}>
+      <Button
+        variant="ghost"
+        className="w-full h-24"
+        accessibilityLabel="Expense amount"
+        onPress={() => inputRef.current?.focus()}
+      >
         <Typography
           className={cn("text-2xl font-semibold text-ink", errorMessage && "text-danger")}
           style={{ fontVariant: ["tabular-nums"] }}
           selectable
         >
-          {symbol}
+          {currencySymbol}
           {formattedValue}
         </Typography>
       </Button>

@@ -1,14 +1,8 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "expo-router";
+import { Typography } from "heroui-native";
 import { useRef, useState, type RefObject } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-} from "react-native";
+import { ActivityIndicator, Pressable, TextInput, View, type TextInputProps } from "react-native";
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
@@ -29,7 +23,7 @@ type AuthFieldProps = TextInputProps & {
   label: string;
 };
 
-function AuthField({ inputRef, label, ...inputProps }: AuthFieldProps) {
+function AuthField({ inputRef, label, style, ...inputProps }: AuthFieldProps) {
   return (
     <View
       style={{
@@ -43,12 +37,13 @@ function AuthField({ inputRef, label, ...inputProps }: AuthFieldProps) {
         boxShadow: "0 9px 26px rgba(0, 0, 0, 0.12)",
       }}
     >
-      <Text style={{ width: 82, color: "#171717", fontSize: 14 }}>{label}</Text>
+      <Typography className="w-[82px] text-sm text-ink">{label}</Typography>
       <TextInput
+        {...inputProps}
+        accessibilityLabel={inputProps.accessibilityLabel ?? label}
         ref={inputRef}
         placeholderTextColor="#C4C4C7"
-        style={{ flex: 1, height: "100%", color: "#171717", fontSize: 14 }}
-        {...inputProps}
+        style={[{ flex: 1, height: "100%", color: "#171717", fontSize: 14 }, style]}
       />
     </View>
   );
@@ -72,14 +67,10 @@ export function SignIn() {
       setSubmissionError(null);
 
       const result =
-        mode === "sign-up"
-          ? signUpSchema.safeParse(value)
-          : signInSchema.safeParse(value);
+        mode === "sign-up" ? signUpSchema.safeParse(value) : signInSchema.safeParse(value);
 
       if (!result.success) {
-        setSubmissionError(
-          result.error.issues[0]?.message ?? "Check your details and try again",
-        );
+        setSubmissionError(result.error.issues[0]?.message ?? "Check your details and try again");
         return;
       }
 
@@ -92,9 +83,7 @@ export function SignIn() {
           },
           {
             onError(error) {
-              setSubmissionError(
-                error.error.message ?? "Unable to create your account",
-              );
+              setSubmissionError(error.error.message ?? "Unable to create your account");
             },
             onSuccess() {
               router.replace("/home");
@@ -131,18 +120,12 @@ export function SignIn() {
 
   return (
     <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
-      <Text
+      <Typography
         selectable
-        style={{
-          color: "#000000",
-          fontSize: 24,
-          fontWeight: "600",
-          letterSpacing: -0.5,
-          textAlign: "center",
-        }}
+        className="text-center text-2xl font-semibold tracking-[-0.5px] text-ink"
       >
         Zius
-      </Text>
+      </Typography>
 
       <View style={{ gap: 16 }}>
         {isSignUp ? (
@@ -209,9 +192,9 @@ export function SignIn() {
           {(isSubmitting) => (
             <>
               {submissionError ? (
-                <Text selectable style={{ color: "#DC2626", fontSize: 12 }}>
+                <Typography selectable className="text-xs text-danger">
                   {submissionError}
-                </Text>
+                </Typography>
               ) : null}
 
               <Pressable
@@ -232,17 +215,15 @@ export function SignIn() {
                 {isSubmitting ? (
                   <ActivityIndicator color="#FFFFFF" />
                 ) : (
-                  <Text style={{ color: "#FFFFFF", fontSize: 14 }}>
+                  <Typography className="text-sm text-white">
                     {isSignUp ? "Create Account" : "Login your account"}
-                  </Text>
+                  </Typography>
                 )}
               </Pressable>
 
-              <Text selectable style={{ color: "#929292", fontSize: 12 }}>
-                {isSignUp
-                  ? "Already have an account?"
-                  : "Don't have an account yet?"}
-              </Text>
+              <Typography selectable className="text-xs text-supporting">
+                {isSignUp ? "Already have an account?" : "Don't have an account yet?"}
+              </Typography>
 
               <Pressable
                 accessibilityRole="button"
@@ -258,9 +239,9 @@ export function SignIn() {
                   opacity: pressed || isSubmitting ? 0.72 : 1,
                 })}
               >
-                <Text style={{ color: "#111111", fontSize: 14 }}>
+                <Typography className="text-sm text-ink">
                   {isSignUp ? "Login your account" : "Create account"}
-                </Text>
+                </Typography>
               </Pressable>
             </>
           )}

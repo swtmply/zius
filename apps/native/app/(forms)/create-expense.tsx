@@ -2,32 +2,42 @@ import { ExpenseForm } from "@/components/forms/expense/expense-form";
 import { FormLoading } from "@/components/forms/form-loading";
 import MockCreateExpense from "@/components/onboarding/mock-screens/create-expense";
 import { parseReceiptParam } from "@/utils/scan";
+import { getAlwaysShowSpotlights } from "@/utils/spotlights";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Button, Typography } from "heroui-native";
 import * as SecureStore from "expo-secure-store";
-import { useLocalSearchParams } from "expo-router";
-import { Typography } from "heroui-native";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
-const CREATE_EXPENSE_ONBOARDING_STORAGE_KEY = "create-expense-onboarding-completed";
+const CREATE_EXPENSE_ONBOARDING_STORAGE_KEY =
+  "create-expense-onboarding-completed";
 const CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE = "true";
 
 export default function CreateExpenseForm() {
-  const { groupId: groupIdParam, receipt: receiptParam } = useLocalSearchParams<{
-    groupId?: string;
-    receipt?: string;
-  }>();
+  const router = useRouter();
+  const { groupId: groupIdParam, receipt: receiptParam } =
+    useLocalSearchParams<{
+      groupId?: string;
+      receipt?: string;
+    }>();
   const groupId = typeof groupIdParam === "string" ? groupIdParam : undefined;
   const initialReceipt = parseReceiptParam(receiptParam);
   const showCreateExpenseOnboarding = !groupId && !initialReceipt;
-  const [isOnboardingVisible, setIsOnboardingVisible] = useState<boolean | null>(
-    showCreateExpenseOnboarding ? null : false,
-  );
-  const { data: currentParticipant, error: participantError } = useQuery(
-    trpc.participant.current.queryOptions(),
-  );
-  const { data: group, error: groupError } = useQuery({
+  const [isOnboardingVisible, setIsOnboardingVisible] = useState<
+    boolean | null
+  >(showCreateExpenseOnboarding ? null : false);
+  const {
+    data: currentParticipant,
+    error: participantError,
+    refetch: refetchParticipant,
+  } = useQuery(trpc.participant.current.queryOptions());
+  const {
+    data: group,
+    error: groupError,
+    refetch: refetchGroup,
+  } = useQuery({
     ...trpc.group.get.queryOptions({ id: groupId ?? "" }),
     enabled: Boolean(groupId),
   });
@@ -40,10 +50,16 @@ export default function CreateExpenseForm() {
 
     let isMounted = true;
 
-    void SecureStore.getItemAsync(CREATE_EXPENSE_ONBOARDING_STORAGE_KEY)
-      .then((value) => {
+    void Promise.all([
+      SecureStore.getItemAsync(CREATE_EXPENSE_ONBOARDING_STORAGE_KEY),
+      getAlwaysShowSpotlights(),
+    ])
+      .then(([value, alwaysShowSpotlights]) => {
         if (isMounted) {
-          setIsOnboardingVisible(value !== CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE);
+          setIsOnboardingVisible(
+            value !== CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE ||
+              (__DEV__ && alwaysShowSpotlights),
+          );
         }
       })
       .catch(() => {
@@ -71,10 +87,35 @@ export default function CreateExpenseForm() {
   if (participantError || groupError) {
     return (
       <View className="bg-page flex-1 items-center justify-center px-4">
-        <View className="rounded-2xl bg-panel p-4">
+        <View className="w-full items-center gap-4 rounded-2xl bg-panel p-4">
           <Typography selectable className="text-sm text-danger">
-            {groupError ? "Unable to load this group." : "Unable to load your participant details."}
+            {groupError
+              ? "Unable to load this group."
+              : "Unable to load your participant details."}
           </Typography>
+          <View className="flex-row gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={() => {
+                void refetchParticipant();
+                if (groupId) void refetchGroup();
+              }}
+            >
+              <Button.Label>Try again</Button.Label>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() =>
+                router.canGoBack()
+                  ? router.back()
+                  : router.replace("/(tabs)/home")
+              }
+            >
+              <Button.Label>Go back</Button.Label>
+            </Button>
+          </View>
         </View>
       </View>
     );
