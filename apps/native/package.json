@@ -29,6 +29,7 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "expo": "^57.0.19",
+    "expo-build-properties": "~57.0.19",
     "expo-camera": "~57.0.4",
     "expo-constants": "~57.0.17",
     "expo-dev-client": "~57.0.18",

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ModeToggle } from "./mode-toggle";
 import UserMenu from "./user-menu";
 
-export default function Header() {
+export function Header() {
   const links = [
     { to: "/", label: "Home" },
     { to: "/dashboard", label: "Dashboard" },
@@ -12,12 +12,19 @@ export default function Header() {
   ] as const;
 
   return (
-    <div>
-      <div className="flex flex-row items-center justify-between px-2 py-1">
-        <nav className="flex gap-4 text-lg">
+    <header className="border-b bg-background/95">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="font-serif text-sm font-bold tracking-[-0.06em]">
+          ZIUS
+        </Link>
+        <nav aria-label="Main navigation" className="hidden items-center gap-6 text-xs sm:flex">
           {links.map(({ to, label }) => {
             return (
-              <Link key={to} href={to}>
+              <Link
+                key={to}
+                href={to}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+              >
                 {label}
               </Link>
             );
@@ -28,7 +35,6 @@ export default function Header() {
           <UserMenu />
         </div>
       </div>
-      <hr />
-    </div>
+    </header>
   );
 }
