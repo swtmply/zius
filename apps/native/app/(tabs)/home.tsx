@@ -1,7 +1,13 @@
-import { DashboardHeaderCard, type HeaderCardAction } from "@/components/dashboard/header-card";
+import {
+  DashboardHeaderCard,
+  type HeaderCardAction,
+} from "@/components/dashboard/header-card";
 import { DashboardHeader } from "@/components/dashboard/header";
 import { DashboardLoading } from "@/components/dashboard/loading";
-import { DashboardExpenses, ExpensesEmptyState } from "@/components/dashboard/expenses";
+import {
+  DashboardExpenses,
+  ExpensesEmptyState,
+} from "@/components/dashboard/expenses";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
 import * as SecureStore from "expo-secure-store";
@@ -75,9 +81,9 @@ export default function Home() {
 
   const headerActions = [
     {
-      id: "transaction",
-      label: "Transaction",
-      accessibilityLabel: "Create transaction",
+      id: "expense",
+      label: "Expense",
+      accessibilityLabel: "Create expense",
       icon: Add,
       onPress: () => router.push("/create-expense"),
     },
