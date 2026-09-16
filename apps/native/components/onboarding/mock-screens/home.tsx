@@ -84,9 +84,9 @@ const noop = () => undefined;
 
 const mockHeaderActions = [
   {
-    id: "transaction",
-    label: "Transaction",
-    accessibilityLabel: "Create transaction",
+    id: "expense",
+    label: "Expense",
+    accessibilityLabel: "Create expense",
     icon: Add,
     onPress: noop,
   },

@@ -5,14 +5,17 @@ function HeaderCardLoading() {
     <div className="space-y-4">
       <div className="flex gap-2">
         {["owe", "owed"].map((item) => (
-          <div key={item} className="flex-1 space-y-2 rounded-2xl bg-dark-gradient p-4">
+          <div
+            key={item}
+            className="flex-1 space-y-2 rounded-2xl bg-dark-gradient p-4"
+          >
             <Skeleton className="h-5 w-20 bg-white/15" />
             <Skeleton className="h-8 w-24 bg-white/15" />
           </div>
         ))}
       </div>
       <div className="panel flex items-start">
-        {["transaction", "groups", "history", "more"].map((item) => (
+        {["expense", "groups", "history", "more"].map((item) => (
           <div key={item} className="flex flex-1 flex-col items-center gap-1">
             <Skeleton className="size-12 rounded-full" />
             <Skeleton className="h-4 w-16" />
