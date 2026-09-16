@@ -1,1 +1,129 @@
 @import "@zius/ui/globals.css";
+
+/* Mirrors apps/native/global.css so both apps share one palette and scale. */
+@theme {
+  --color-page: #f2f2f7;
+  --color-panel: #ffffff;
+  --color-ink: #000000;
+  --color-supporting: rgb(60 60 67 / 50%);
+  --color-on-dark: #ffffff;
+  --color-dark-supporting: #727272;
+}
+
+@utility bg-dark-gradient {
+  background-image: linear-gradient(90deg, #1a1a1a, #2a2a2a);
+}
+
+/* The dashboard keeps the native app's fixed light palette, including in dark mode. */
+.dashboard {
+  color-scheme: light;
+  --background: #f2f2f7;
+  --foreground: #000;
+  --card: #fff;
+  --card-foreground: #000;
+  --popover: #fff;
+  --popover-foreground: #000;
+  --primary: #000;
+  --primary-foreground: #fff;
+  --muted: #f2f2f7;
+  --muted-foreground: #707075;
+  --border: #e0e0e5;
+  --input: #d3d3d8;
+  --secondary: #f2f2f7;
+  --secondary-foreground: #000;
+  --accent: #eeeef2;
+  --accent-foreground: #000;
+  --destructive: #ff343b;
+  --ring: #000;
+  /* Matches the native app's radius scale: lg 8px, xl 12px, 2xl 16px. */
+  --radius: 0.5rem;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl bg-panel p-4;
+  }
+  .dashed-divider {
+    @apply border-t border-dashed border-border;
+  }
+  .action {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-ink px-4 text-sm font-medium text-on-dark transition-opacity hover:opacity-85 active:opacity-70 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .action-secondary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-page px-4 text-sm font-medium text-ink transition-opacity hover:opacity-85 active:opacity-70 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .action-danger {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-destructive px-4 text-sm font-medium text-on-dark transition-opacity hover:opacity-85 active:opacity-70 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .icon-button {
+    @apply inline-flex size-12 shrink-0 items-center justify-center rounded-full text-ink transition-colors hover:bg-black/5 active:bg-black/10 disabled:pointer-events-none disabled:opacity-50;
+  }
+  .field {
+    @apply flex min-w-0 flex-col gap-2 text-sm text-ink;
+  }
+  .field input,
+  .field select,
+  .field textarea {
+    @apply min-h-11 w-full min-w-0 rounded-xl border border-input bg-panel px-3 py-2 text-base text-ink placeholder:text-supporting;
+  }
+  .dashboard :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    @apply outline-2 outline-offset-2 outline-ink;
+  }
+}
+
+/* Marketing site motion. Scroll-driven where the browser supports it, static otherwise. */
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+}
+
+@keyframes marquee {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes aurora-drift {
+  50% {
+    transform: translate3d(6%, -4%, 0) scale(1.15);
+  }
+}
+
+@layer components {
+  .reveal {
+    animation: reveal 1ms linear both;
+    animation-timeline: view();
+    animation-range: entry 5% cover 22%;
+  }
+  /* Two identical tracks side by side; each slides its own width, then snaps back. */
+  .marquee-track {
+    animation: marquee var(--marquee-duration, 80s) linear infinite;
+  }
+  .marquee:hover .marquee-track,
+  .marquee:focus-within .marquee-track {
+    animation-play-state: paused;
+  }
+  .aurora {
+    background-image:
+      radial-gradient(38rem 30rem at 18% 22%, rgb(88 86 214 / 18%), transparent 65%),
+      radial-gradient(32rem 26rem at 82% 12%, rgb(255 149 0 / 16%), transparent 62%),
+      radial-gradient(34rem 28rem at 62% 78%, rgb(52 199 89 / 14%), transparent 60%);
+    animation: aurora-drift 24s ease-in-out infinite alternate;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .aurora,
+    .marquee-track {
+      animation: none;
+      opacity: 1;
+      transform: none;
+    }
+    /* No auto-scroll means the screenshots have to be reachable by hand. */
+    .marquee {
+      overflow-x: auto;
+    }
+  }
+}

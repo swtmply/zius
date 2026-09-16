@@ -33,6 +33,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "catalog:",
     "@tanstack/react-query-devtools": "^5.101.4",
+    "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "^19.2.17",
     "@types/react-dom": "catalog:",
