@@ -43,6 +43,63 @@ For success and failure feedback, render `components/expense-creation-toast.tsx`
 
 Review each changed screen's loaded, loading, and empty or error states against the dashboard and these rules. Check currency weights, text hierarchy, avatar and icon sizes, gaps, and horizontal alignment. Run the relevant existing checks and report whether visual verification was performed on a device or emulator.
 
+## File Structure
+
+I want to have a specific folder structure for the mobile app. I want you to basically follow this and ask me for clarification if you don't know where to put a file. These are the sample files that in the future I want you to follow. Adding features and pages should follow this structure.
+
+```text
+native/
+├── app/
+│   ├── _layout.tsx (Stack)
+│   ├── index.tsx
+│   ├── +not-found.tsx
+│   └── (pages)/
+│       ├── (main)/
+│       │   ├── home.tsx
+│       │   └── history.tsx
+│       │   └── groups.tsx
+│       │   └── scan.tsx
+│       └── (modals)/
+│           ├── expenses/
+│           │   ├── index.tsx
+│           │   └── create.tsx
+│           │   └── [expenseId].tsx
+│           └── groups/
+│               ├── index.tsx
+│               └── create.tsx
+│               └── [groupId].tsx
+├── components/
+│   ├── expenses/
+│   │   ├── expense-card.tsx
+│   │   └── expense-*.tsx
+│   │   └── expense-form/
+│   │   │   ├── expense-form.tsx
+│   │   │   └── expense-(*-component).tsx
+│   │   └── skeletons/
+│   │       └── expense-*-skeleton.tsx
+│   ├── groups/
+│   │   ├── group-card.tsx
+│   │   └── group-*.tsx
+│   │   └── group-form/
+│   │   │   ├── group-form.tsx
+│   │   │   └── group-(*-component).tsx
+│   │   └── skeletons/
+│   │       └── group-*-skeleton.tsx
+│   └── layout/
+│       ├── (application-components).tsx
+│       └── skeletons/
+│           └── *-skeleton.tsx
+├── utils/
+│   ├── expenses/
+│   │   ├── expense-form.ts
+│   │   └── expense.ts
+│   ├── groups/
+│   │   ├── group-form.ts
+│   │   └── group.ts
+│   ├── scan-utils.ts
+│   └── *.ts
+```
+
 ## Device Testing
 
 Don't use frontier models for testing. Always use `gpt-5.6-luna` with `MAX` thinking when testing or any other cheaper model.

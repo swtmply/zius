@@ -1,323 +1,339 @@
-"use client";
-
-import { trpc } from "@/utils/trpc";
-import { useQuery } from "@tanstack/react-query";
+import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 
-type ImagePlaceholderProps = {
-  className: string;
-  height: number;
-  label: string;
-  width: number;
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
+import {
+  primaryButton,
+  secondaryButton,
+  sectionHeading,
+  sectionShell,
+  waitlistHref,
+} from "@/components/marketing/styles";
+import { comparison, mobileFeatures, sharedFeatures } from "@/components/marketing/features";
+
+export const metadata: Metadata = {
+  title: "Zius | Split the bill before the plates are cleared",
+  description:
+    "Zius is a mobile-first expense splitter. Scan the receipt, tap who is in, and settle to the last centavo. The web app keeps the same account in sync.",
 };
-
-const primaryButtonClasses =
-  "inline-flex min-h-11.5 items-center justify-center rounded-2xl bg-black px-6 text-[15px] font-semibold text-white no-underline transition hover:-translate-y-px hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-indigo-500 motion-reduce:transition-none";
-
-const sectionHeadingClasses =
-  "flex flex-col items-center gap-2.5 text-center [&>h2]:m-0 [&>h2]:text-[32px] [&>h2]:leading-[1.1] [&>h2]:font-bold [&>h2]:tracking-[-0.045em] max-sm:[&>h2]:text-[28px] [&>span]:text-xs [&>span]:font-semibold [&>span]:tracking-[0.06em] [&>span]:text-black/60 [&>span]:uppercase";
-
-function ImagePlaceholder({
-  className,
-  height,
-  label,
-  width,
-}: ImagePlaceholderProps) {
-  return (
-    <div
-      aria-label={`${label} image placeholder, ${width} by ${height} pixels`}
-      className={`flex shrink-0 flex-col items-center justify-center border border-dashed border-[#a8a8ad] bg-[#f7f7f8] text-center text-[#6b6b70] [background-image:linear-gradient(to_top_right,transparent_calc(50%_-_0.5px),#d2d2d7_50%,transparent_calc(50%_+_0.5px)),linear-gradient(to_bottom_right,transparent_calc(50%_-_0.5px),#d2d2d7_50%,transparent_calc(50%_+_0.5px))] [&>small]:bg-[#f7f7f8]/90 [&>small]:px-1.5 [&>small]:py-0.5 [&>small]:text-[11px] [&>span]:bg-[#f7f7f8]/90 [&>span]:px-1.5 [&>span]:py-0.5 [&>span]:text-[13px] [&>span]:font-semibold ${className}`}
-      role="img"
-    >
-      <span>{label}</span>
-      <small>
-        {width} × {height} px
-      </small>
-    </div>
-  );
-}
 
 const steps = [
   {
-    title: "Create a Transaction",
+    title: "Scan or type the bill",
     description:
-      "Name the expense, add the amount, and choose how you want to split it.",
+      "Snap the receipt on mobile, or type the amount anywhere. Name it so future-you remembers.",
   },
   {
-    title: "Add Participants",
+    title: "Tap who is in",
     description:
-      "Invite friends, roommates, or travel partners to the transaction.",
+      "Pick participants from a group or add a guest. Choose how the amount gets divided.",
   },
   {
-    title: "Settle Easily",
+    title: "Settle up",
     description:
-      "See every balance at a glance and settle up when everyone is ready.",
+      "Everyone sees the same balance, so nobody has to send the awkward follow-up message.",
   },
 ] as const;
 
 export default function Home() {
-  const healthCheck = useQuery(trpc.healthCheck.queryOptions());
-
   return (
     <main className="min-h-screen bg-white font-[family-name:var(--font-geist-sans)] text-black">
-      <header className="mx-auto flex min-h-17 w-[min(calc(100%-2rem),1080px)] items-center justify-between sm:min-h-18.5 sm:w-[min(calc(100%-2.5rem),1080px)]">
-        <a
-          aria-label="Zius home"
-          className="font-serif text-[15px] font-bold tracking-[-0.06em] text-black underline decoration-1 underline-offset-2"
-          href="#top"
-        >
-          ZIUS
-        </a>
-        <nav aria-label="Main navigation" className="flex items-center gap-4">
-          <a
-            className="hidden text-sm font-medium text-black/60 no-underline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-indigo-500 sm:block"
-            href="#features"
-          >
-            Features
-          </a>
-          <a
-            className="hidden text-sm font-medium text-black/60 no-underline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-indigo-500 sm:block"
-            href="/how-it-works"
-          >
-            How it works
-          </a>
-          <a
-            className={`${primaryButtonClasses} min-h-10 px-4.5 text-[13px] sm:min-h-11.5 sm:px-6 sm:text-[15px]`}
-            href="#waitlist"
-          >
-            Join the waitlist
-          </a>
-          <span className="text-sm text-muted-foreground">
-            {healthCheck.isLoading
-              ? "Checking..."
-              : healthCheck.data
-                ? "Connected"
-                : "Disconnected"}
-          </span>
-        </nav>
-      </header>
+      <SiteHeader />
 
-      <div
-        className="mx-auto w-[min(calc(100%-2rem),1080px)] sm:w-[min(calc(100%-2.5rem),1080px)]"
-        id="top"
-      >
-        <section className="grid min-h-196 grid-cols-[minmax(0,544px)_minmax(280px,383px)] items-center justify-between gap-14 max-md:min-h-0 max-md:grid-cols-1 max-md:justify-items-center max-md:py-18">
-          <div className="flex flex-col items-start gap-7 max-md:items-center max-md:text-center">
-            <h1 className="m-0 text-[clamp(44px,4.1vw,56px)] leading-[1.02] font-bold tracking-[-0.05em] max-sm:text-[42px]">
-              Effortless expense splitting with everyone.
+      <section className="relative overflow-hidden" id="top">
+        <div aria-hidden className="aurora pointer-events-none absolute inset-0 -z-10" />
+        <div
+          className={`${sectionShell} grid grid-cols-[minmax(0,1fr)_auto] items-center gap-14 py-20 max-md:grid-cols-1 max-md:justify-items-center max-md:py-14`}
+        >
+          <div className="flex max-w-140 flex-col items-start gap-6 max-md:items-center max-md:text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-3 py-1 text-xs font-semibold tracking-[0.04em] text-black/70 uppercase">
+              <span className="size-1.5 rounded-full bg-[#34c759]" />
+              iOS &amp; Android · early access
+            </span>
+            <h1 className="m-0 text-[clamp(44px,4.4vw,60px)] leading-[1.02] font-bold tracking-[-0.05em] max-sm:text-[40px]">
+              Split the bill before the plates are cleared.
             </h1>
-            <p className="m-0 max-w-130 text-[17px] leading-6 text-black/60 max-sm:text-base">
-              Track who owes whom, create custom groups, and settle up
-              instantly. No awkward conversations, just perfectly balanced math.
+            <p className="m-0 text-[17px] leading-6 text-black/60 max-sm:text-base">
+              Zius is built for your phone first. Scan the receipt at the table, tap who is in, and
+              everyone walks away knowing exactly what they owe, down to the last centavo.
             </p>
             <div className="flex items-center gap-4 max-sm:w-full max-sm:flex-col">
-              <a
-                className={`${primaryButtonClasses} max-sm:w-full`}
-                href="#waitlist"
-              >
-                Join the waitlist
+              <a className={`${primaryButton} max-sm:w-full`} href="#get-the-app">
+                Get the mobile app
               </a>
-              <a
-                className="inline-flex min-h-11.5 items-center justify-center rounded-2xl bg-[#ededed] px-6 text-[15px] font-semibold text-black no-underline transition hover:-translate-y-px hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-indigo-500 motion-reduce:transition-none max-sm:w-full"
-                href="#features"
-              >
-                View Demo
-              </a>
+              <Link className={`${secondaryButton} max-sm:w-full`} href="/features">
+                See what it does
+              </Link>
+            </div>
+            <p className="m-0 text-xs text-black/50">
+              Prefer a big screen? The web app is right here too, with the same account.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-3">
+            <Image
+              alt="The Zius mobile dashboard showing what you owe and what you are owed"
+              className="h-auto w-80 max-w-full"
+              height={902}
+              priority
+              src="/images/features/mobile-dashboard.png"
+              width={430}
+            />
+            <p className="m-0 max-w-70 text-center text-xs text-black/50">
+              Every balance in the group, on one screen. Scan a receipt and it lands here.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-black py-24 text-white max-sm:py-16" id="mobile">
+        <div className={`${sectionShell} flex flex-col gap-12`}>
+          <div className="flex flex-col gap-2.5 max-w-150">
+            <span className="text-xs font-semibold tracking-[0.06em] text-white/50 uppercase">
+              Start on mobile
+            </span>
+            <h2 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.045em] max-sm:text-[28px]">
+              The receipt is in your hand. So is Zius.
+            </h2>
+            <p className="m-0 text-[15px] leading-6 text-white/60">
+              Bills happen away from a desk. The mobile app does the things a browser simply cannot
+              do, starting with the camera.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-14 max-md:grid-cols-1 max-md:gap-10">
+            <Image
+              alt="Scanning a receipt in the Zius mobile app"
+              className="reveal h-auto w-80 max-w-full justify-self-center"
+              height={902}
+              loading="eager"
+              src="/images/features/receipt-camera.png"
+              width={430}
+            />
+            <ul className="m-0 flex list-none flex-col gap-6 p-0">
+              {mobileFeatures.map((feature) => (
+                <li
+                  className="reveal flex flex-col gap-2 border-l border-white/15 pl-5"
+                  key={feature.title}
+                >
+                  <span className="text-[10px] font-semibold tracking-[0.08em] text-[#ff9500] uppercase">
+                    {feature.tag}
+                  </span>
+                  <h3 className="m-0 text-xl font-bold tracking-[-0.03em]">{feature.title}</h3>
+                  <p className="m-0 text-sm leading-5 text-white/60">{feature.description}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex items-center gap-4 max-sm:flex-col max-sm:items-stretch">
+            <a
+              className="inline-flex min-h-11.5 items-center justify-center rounded-2xl bg-white px-6 text-[15px] font-semibold text-black no-underline transition hover:-translate-y-px hover:opacity-85 motion-reduce:transition-none"
+              href={waitlistHref}
+            >
+              Get early access
+            </a>
+            <Link
+              className="inline-flex min-h-11.5 items-center justify-center rounded-2xl border border-white/20 px-6 text-[15px] font-semibold text-white no-underline transition hover:-translate-y-px hover:opacity-85 motion-reduce:transition-none"
+              href="/how-it-works"
+            >
+              Watch how a split works
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className={`${sectionShell} flex flex-col gap-12 py-24 max-sm:py-16`} id="features">
+        <div className={sectionHeading}>
+          <span>On every screen</span>
+          <h2>Everything you need to split and settle.</h2>
+          <p>
+            The same ledger, the same math, whether you opened Zius on a phone in a restaurant or on
+            a laptop the morning after.
+          </p>
+        </div>
+        <ul className="m-0 grid list-none grid-cols-3 gap-6 p-0 max-md:grid-cols-2 max-sm:grid-cols-1">
+          {sharedFeatures.map((feature) => (
+            <li
+              className="reveal flex flex-col gap-2 rounded-3xl bg-[#f2f2f7] p-6 transition hover:-translate-y-1 motion-reduce:transition-none"
+              key={feature.title}
+            >
+              <h3 className="m-0 text-lg font-bold tracking-[-0.02em]">{feature.title}</h3>
+              <p className="m-0 text-sm leading-5 text-black/60">{feature.description}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={`${sectionShell} flex flex-col gap-12 py-10 pb-24 max-sm:pb-16`} id="web">
+        <div className="grid grid-cols-2 items-center gap-16 max-md:grid-cols-1 max-md:gap-10">
+          <div className="flex flex-col gap-4">
+            <span className="text-xs font-semibold tracking-[0.06em] text-black/60 uppercase">
+              Then open the web app
+            </span>
+            <h2 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.045em] max-sm:text-[28px]">
+              A wider view for the after-trip reckoning.
+            </h2>
+            <p className="m-0 text-[15px] leading-6 text-black/60">
+              Sign in with the same account and every expense your group logged on mobile is already
+              there. Filter a month of dinners, review who owes whom, and add what got missed with a
+              keyboard instead of a thumb.
+            </p>
+            <div className="flex items-center gap-4 max-sm:flex-col max-sm:items-stretch">
+              <Link className={secondaryButton} href="/login">
+                Open the web app
+              </Link>
             </div>
           </div>
           <Image
-            src="/images/dashboard.png"
-            alt="Dashboard"
-            width={383}
-            height={784}
-            loading="eager"
+            alt="The expense history in Zius"
+            className="reveal h-auto w-80 max-w-full justify-self-center"
+            height={902}
+            src="/images/features/expense-history.png"
+            width={430}
           />
-        </section>
+        </div>
 
-        <section
-          className="px-10 pt-18 pb-24 max-sm:px-2 max-sm:py-18"
-          id="features"
-        >
-          <div className={sectionHeadingClasses}>
-            <span>Smart and simple</span>
-            <h2>Everything you need to split &amp; settle.</h2>
-          </div>
+        <div className="overflow-hidden rounded-3xl border border-[#e6e6e6]">
+          <table className="w-full border-collapse text-left text-sm">
+            <caption className="sr-only">Feature availability on mobile and web</caption>
+            <thead className="bg-[#f2f2f7] text-xs tracking-[0.04em] text-black/60 uppercase">
+              <tr>
+                <th className="px-5 py-3 font-semibold" scope="col">
+                  Feature
+                </th>
+                <th className="w-24 px-5 py-3 text-center font-semibold" scope="col">
+                  Mobile
+                </th>
+                <th className="w-24 px-5 py-3 text-center font-semibold" scope="col">
+                  Web
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.map((row) => (
+                <tr className="border-t border-[#e6e6e6]" key={row.feature}>
+                  <th className="px-5 py-3.5 font-normal" scope="row">
+                    {row.feature}
+                  </th>
+                  <td className="px-5 py-3.5 text-center">
+                    <span className={row.mobile ? "font-semibold" : "text-black/30"}>
+                      {row.mobile ? "Yes" : "—"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-center">
+                    <span className={row.web ? "font-semibold" : "text-black/30"}>
+                      {row.web ? "Yes" : "—"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-          <div className="mt-14 grid grid-cols-2 items-center justify-items-center gap-22 max-md:grid-cols-1 max-md:gap-10 max-md:text-center">
-            <Image
-              src="/images/transaction.png"
-              alt="Dashboard"
-              width={383}
-              height={784}
-              loading="eager"
-            />
-            <div className="max-w-90">
-              <h3 className="m-0 mb-3 text-[32px] leading-[1.08] font-bold tracking-[-0.045em] max-sm:text-[28px]">
-                Perfect Bill Splitting
-              </h3>
-              <p className="m-0 text-sm leading-5 text-black/60">
-                Split every item or calculate complete group totals down to the
-                last centavo. Uneven splits are handled instantly.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-14 grid grid-cols-2 items-center justify-items-center gap-22 max-md:grid-cols-1 max-md:gap-10 max-md:text-center">
-            <div className="max-w-90 max-md:order-2">
-              <h3 className="m-0 mb-3 text-[32px] leading-[1.08] font-bold tracking-[-0.045em] max-sm:text-[28px]">
-                Custom Friendship Groups
-              </h3>
-              <p className="m-0 text-sm leading-5 text-black/60">
-                Split regular costs or one-time expenses across different
-                circles. Keep every balance and participant organized in one
-                place.
-              </p>
-            </div>
-
-            <Image
-              src="/images/create-transaction.png"
-              alt="Dashboard"
-              width={383}
-              height={784}
-              loading="eager"
-            />
-          </div>
-        </section>
-
-        <section
-          aria-labelledby="reviews-heading"
-          className="flex flex-col gap-10 rounded-[50px] bg-[#f2f2f7] px-10 py-20 max-sm:rounded-[32px] max-sm:px-6 max-sm:py-14"
-        >
-          <div className={sectionHeadingClasses}>
+      <section className={sectionShell} id="reviews">
+        <div className="flex flex-col gap-10 rounded-[50px] bg-[#f2f2f7] px-10 py-20 max-sm:rounded-[32px] max-sm:px-6 max-sm:py-14">
+          <div className={sectionHeading}>
             <span>User reviews</span>
-            <h2 id="reviews-heading">Loved by groups everywhere</h2>
+            <h2>Loved by groups everywhere</h2>
           </div>
           <div className="grid grid-cols-2 gap-6 max-sm:grid-cols-1">
-            <article className="flex min-h-44 flex-col justify-between gap-6 rounded-3xl bg-white p-6">
-              <p className="m-0 text-sm leading-5 text-black/60">
-                &quot;Zius saved our friendship during our Euro trip! It&apos;s
-                so clean and doesn&apos;t get confusing with multi-currency
-                conversions.&quot;
-              </p>
-              <div className="flex items-center gap-3">
-                <ImagePlaceholder
-                  className="size-10 overflow-hidden rounded-full [&>small]:hidden [&>span]:text-[8px]"
-                  height={40}
-                  label="Avatar"
-                  width={40}
-                />
-                <div className="flex flex-col gap-0.5">
-                  <strong className="text-sm">Marco B.</strong>
-                  <span className="text-[11px] text-black/60">Traveler</span>
+            {[
+              {
+                quote:
+                  "Zius saved our friendship during our Euro trip. We scanned every receipt at the table and never argued about it later.",
+                name: "Marco B.",
+                role: "Traveler",
+                tone: "bg-[#ff9500]",
+              },
+              {
+                quote:
+                  "Perfect for roommates. Electricity, internet, groceries, all in one group, and the totals always match to the centavo.",
+                name: "Allen W.",
+                role: "Roommate",
+                tone: "bg-[#5856d6]",
+              },
+            ].map((review) => (
+              <article
+                className="flex min-h-44 flex-col justify-between gap-6 rounded-3xl bg-white p-6"
+                key={review.name}
+              >
+                <p className="m-0 text-sm leading-5 text-black/60">&ldquo;{review.quote}&rdquo;</p>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`grid size-10 place-items-center rounded-full text-sm font-semibold text-white ${review.tone}`}
+                  >
+                    {review.name.slice(0, 1)}
+                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <strong className="text-sm">{review.name}</strong>
+                    <span className="text-[11px] text-black/60">{review.role}</span>
+                  </div>
                 </div>
-              </div>
-            </article>
-            <article className="flex min-h-44 flex-col justify-between gap-6 rounded-3xl bg-white p-6">
-              <p className="m-0 text-sm leading-5 text-black/60">
-                &quot;Perfect for roommates. We track electricity, internet, and
-                groceries. Instant notifications mean everyone stays on top of
-                things.&quot;
-              </p>
-              <div className="flex items-center gap-3">
-                <ImagePlaceholder
-                  className="size-10 overflow-hidden rounded-full [&>small]:hidden [&>span]:text-[8px]"
-                  height={40}
-                  label="Avatar"
-                  width={40}
-                />
-                <div className="flex flex-col gap-0.5">
-                  <strong className="text-sm">Allen W.</strong>
-                  <span className="text-[11px] text-black/60">Roommate</span>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section
-          className="flex flex-col gap-12 px-10 py-24 max-sm:px-2 max-sm:py-18"
-          id="how-it-works"
-        >
-          <div className={sectionHeadingClasses}>
-            <span>The process</span>
-            <h2>Get started in 3 steps</h2>
-          </div>
-          <ol className="m-0 grid list-none grid-cols-3 gap-6 p-0 max-sm:grid-cols-1">
-            {steps.map((step, index) => (
-              <li className="flex flex-col items-start gap-4" key={step.title}>
-                <span className="grid size-10 place-items-center rounded-full bg-black text-lg font-bold text-white">
-                  {index + 1}
-                </span>
-                <h3 className="m-0 text-lg font-bold">{step.title}</h3>
-                <p className="m-0 text-sm leading-5 text-black/60">
-                  {step.description}
-                </p>
-              </li>
+              </article>
             ))}
-          </ol>
-        </section>
+          </div>
+        </div>
+      </section>
 
-        <section
-          className="flex flex-col items-center gap-6 rounded-[50px] bg-black px-10 py-13 text-center text-white max-sm:rounded-[32px] max-sm:px-6 max-sm:py-14"
-          id="waitlist"
+      <section
+        className={`${sectionShell} flex flex-col gap-12 py-24 max-sm:py-16`}
+        id="how-it-works"
+      >
+        <div className={sectionHeading}>
+          <span>The process</span>
+          <h2>Get started in 3 steps</h2>
+        </div>
+        <ol className="m-0 grid list-none grid-cols-3 gap-6 p-0 max-sm:grid-cols-1">
+          {steps.map((step, index) => (
+            <li className="reveal flex flex-col items-start gap-4" key={step.title}>
+              <span className="grid size-10 place-items-center rounded-full bg-black text-lg font-bold text-white">
+                {index + 1}
+              </span>
+              <h3 className="m-0 text-lg font-bold">{step.title}</h3>
+              <p className="m-0 text-sm leading-5 text-black/60">{step.description}</p>
+            </li>
+          ))}
+        </ol>
+        <Link
+          className="text-sm font-semibold text-black underline underline-offset-4"
+          href="/how-it-works"
         >
+          See it screen by screen
+        </Link>
+      </section>
+
+      <section className={sectionShell} id="get-the-app">
+        <div className="flex flex-col items-center gap-6 rounded-[50px] bg-black px-10 py-16 text-center text-white max-sm:rounded-[32px] max-sm:px-6 max-sm:py-14">
           <h2 className="m-0 text-[32px] font-bold tracking-[-0.04em] max-sm:text-[28px]">
             Zius is your math genius friend
           </h2>
-          <p className="m-0 max-w-180 text-base leading-6 text-[#f2f2f7]">
-            No limits on transactions, groups, or friends. Enjoy complete access
-            to direct bill-splitting tools.
+          <p className="m-0 max-w-160 text-base leading-6 text-[#f2f2f7]">
+            The mobile app is in early access on iOS and Android. Get on the list and we will send
+            your build, no limits on expenses, groups, or people.
           </p>
-          <a
-            className="inline-flex min-h-11.5 items-center rounded-2xl border border-[#e6e6e6] px-6 text-[15px] font-semibold text-white no-underline transition hover:-translate-y-px hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-indigo-500 motion-reduce:transition-none"
-            href="mailto:hello@zius.app?subject=Zius%20waitlist"
-          >
-            Join the waitlist
-          </a>
-        </section>
-      </div>
-
-      <footer className="mt-10 border-t border-[#e6e6e6] bg-[#f2f2f7]">
-        <div className="mx-auto flex w-[min(calc(100%-2rem),1080px)] flex-col gap-10 pt-16 pb-10 sm:w-[min(calc(100%-2.5rem),1080px)]">
-          <nav
-            className="flex items-center justify-between gap-6 max-sm:flex-col max-sm:items-start"
-            aria-label="Footer navigation"
-          >
+          <div className="flex items-center gap-4 max-sm:w-full max-sm:flex-col">
             <a
-              className="text-xs text-black/60 no-underline"
-              href="/privacy-policy-tos#privacy"
+              className="inline-flex min-h-11.5 items-center justify-center rounded-2xl bg-white px-6 text-[15px] font-semibold text-black no-underline transition hover:-translate-y-px hover:opacity-85 motion-reduce:transition-none max-sm:w-full"
+              href={waitlistHref}
             >
-              Privacy Policy
+              Get early access
             </a>
-            <a
-              className="text-xs text-black/60 no-underline"
-              href="/privacy-policy-tos#tos"
+            <Link
+              className="inline-flex min-h-11.5 items-center justify-center rounded-2xl border border-[#e6e6e6]/40 px-6 text-[15px] font-semibold text-white no-underline transition hover:-translate-y-px hover:opacity-85 motion-reduce:transition-none max-sm:w-full"
+              href="/login"
             >
-              Terms and Conditions
-            </a>
-            <a
-              className="text-xs text-black/60 no-underline"
-              href="/privacy-policy-tos#account-deletion"
-            >
-              Account Deletion
-            </a>
-            <a
-              className="text-xs text-black/60 no-underline"
-              href="mailto:delosreyesjohnallen@gmail.com"
-            >
-              Contact Me
-            </a>
-          </nav>
-          <div className="flex items-center justify-between gap-6 max-sm:flex-col max-sm:items-start">
-            <span className="font-serif text-[15px] font-bold tracking-[-0.06em] text-black underline decoration-1 underline-offset-2">
-              ZIUS
-            </span>
-            <span className="text-xs text-black/60">
-              © 2026 John Allen Delos Reyes. All rights reserved.
-            </span>
+              Use the web app instead
+            </Link>
           </div>
         </div>
-      </footer>
+      </section>
+
+      <SiteFooter />
     </main>
   );
 }
