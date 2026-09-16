@@ -12,8 +12,8 @@ import { dashboardRoutes, withQuery } from "./routes";
 
 const headerActions = [
   {
-    label: "Transaction",
-    accessibilityLabel: "Create transaction",
+    label: "Expense",
+    accessibilityLabel: "Create Expense",
     icon: Add,
     href: dashboardRoutes.createExpense,
   },
@@ -27,7 +27,10 @@ const headerActions = [
     label: "History",
     accessibilityLabel: "View history",
     icon: TransactionHistoryIcon,
-    href: withQuery(dashboardRoutes.expenses, { sort: "newest", status: "active" }),
+    href: withQuery(dashboardRoutes.expenses, {
+      sort: "newest",
+      status: "active",
+    }),
   },
   {
     label: "More",

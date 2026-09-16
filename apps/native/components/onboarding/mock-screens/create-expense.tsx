@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { ExpenseActionTileContent } from "@/components/forms/expense/expense-form-actions";
+import { ExpenseActionTileContent } from "@/components/forms/expense/expense-action-tile-content";
 
 import { SpotlightContainer } from "../spotlight-container";
 import { SpotlightOverlay } from "../spotlight-overlay";
