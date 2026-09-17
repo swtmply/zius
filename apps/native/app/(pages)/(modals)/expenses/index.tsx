@@ -1,5 +1,6 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { FlatList, View } from "react-native";
 
 import { ExpensesEmptyState } from "@/components/expenses/expense-dashboard-list";

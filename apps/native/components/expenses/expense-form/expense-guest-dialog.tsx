@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
 
 import { Icon } from "@/components/icon";
+import { guardTap } from "@/utils/tap-guard";
 
 const guestSchema = z.object({
   name: z.string().trim().min(1, "Enter the guest's name"),
@@ -61,7 +62,8 @@ function GuestSheetContent({
     }
   }, [isOpen]);
 
-  const handleSubmit = () => {
+  // The sheet closes on submit, but its exit animation leaves the button tappable.
+  const handleSubmit = guardTap(() => {
     const result = guestSchema.safeParse({ name, email });
 
     if (!result.success) {
@@ -75,7 +77,7 @@ function GuestSheetContent({
 
     onSubmit(result.data);
     onClose();
-  };
+  });
 
   return (
     <View className="gap-4">

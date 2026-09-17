@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet, Button, Typography } from "heroui-native";
 import { SlidersVertical } from "@hugeicons/core-free-icons";

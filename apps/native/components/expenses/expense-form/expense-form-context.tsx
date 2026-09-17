@@ -7,7 +7,7 @@ import type { AppRouter } from "@zius/api/routers/index";
 import { useToast } from "heroui-native";
 import { createContext, use, useRef, useState } from "react";
 import { Keyboard } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { trpc } from "@/utils/trpc";
 import type { ParsedReceipt } from "@/utils/scan-utils";
 import type { ExpenseCategory } from "./expense-form-actions";

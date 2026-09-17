@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Keyboard, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet, Button, Menu, Skeleton, Typography, useToast } from "heroui-native";
 import {

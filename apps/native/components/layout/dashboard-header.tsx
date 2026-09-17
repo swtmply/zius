@@ -1,5 +1,5 @@
 import { Notification } from "@hugeicons/core-free-icons";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { View } from "react-native";
 import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { Icon } from "@/components/icon";

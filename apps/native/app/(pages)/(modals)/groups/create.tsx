@@ -2,7 +2,7 @@ import { GroupForm } from "@/components/groups/group-form/group-form";
 import { GroupFormLoading } from "@/components/groups/skeletons/group-form-skeleton";
 import { trpc } from "@/utils/trpc";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 

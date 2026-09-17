@@ -3,7 +3,7 @@ import type { AppRouter } from "@zius/api/routers/index";
 import { Add, ShoppingBasket01Icon } from "@hugeicons/core-free-icons";
 import { Button, PressableFeedback, Separator, Typography } from "heroui-native";
 import { View } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 
 import { Icon } from "@/components/icon";
 import { GroupAvatar } from "@/components/groups/group-avatar";

@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { ScrollView, View } from "react-native";
 import { Button, Typography } from "heroui-native";
 import { ChevronLeftFreeIcons } from "@hugeicons/core-free-icons";

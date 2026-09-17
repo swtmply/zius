@@ -8,7 +8,8 @@ import { GroupsHeader } from "@/components/groups/groups-header";
 import { GroupsLoading } from "@/components/groups/skeletons/groups-skeleton";
 import { GroupsEmptyState, GroupsQueryFooter } from "@/components/groups/groups-list-state";
 import { FlatList, View } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { trpc } from "@/utils/trpc";

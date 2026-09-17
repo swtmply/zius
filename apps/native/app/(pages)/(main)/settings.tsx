@@ -1,12 +1,13 @@
-import { Edit02Icon } from "@hugeicons/core-free-icons";
+import { ChevronLeftFreeIcons, Edit02Icon } from "@hugeicons/core-free-icons";
 import { useState, useEffect } from "react";
 import { ActivityIndicator, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
-import { Typography, Switch, useToast } from "heroui-native";
+import { Button, Typography, Switch, useToast } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "@/components/icon";
 import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
 import { authClient } from "@/lib/auth-client";
+import { useRouter } from "@/utils/navigation";
 import {
   getAlwaysShowOnboardingPages,
   getAlwaysShowSpotlights,
@@ -17,6 +18,7 @@ import { queryClient } from "@/utils/trpc";
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { toast } = useToast();
   const { data: session } = authClient.useSession();
   const user = session?.user;
@@ -146,7 +148,15 @@ export default function Settings() {
       >
         <View className="gap-4 px-4">
           <View className="flex-row items-center justify-between gap-4">
-            <Typography selectable className="text-2xl font-semibold text-ink">
+            <Button
+              isIconOnly
+              variant="ghost"
+              accessibilityLabel="Go back"
+              onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))}
+            >
+              <Icon icon={ChevronLeftFreeIcons} size={24} colorClassName="accent-ink" />
+            </Button>
+            <Typography selectable className="flex-1 text-2xl font-semibold text-ink">
               Settings
             </Typography>
             <Pressable

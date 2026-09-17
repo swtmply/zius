@@ -1,5 +1,5 @@
 import { ChevronLeft } from "@hugeicons/core-free-icons";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { Button, Skeleton } from "heroui-native";
 import { ScrollView, View } from "react-native";
 
