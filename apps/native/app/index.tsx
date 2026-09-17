@@ -6,8 +6,8 @@ import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { Onboarding } from "@/components/onboarding";
-import { SignIn } from "@/components/sign-in";
+import { Onboarding } from "@/components/layout/onboarding/onboarding";
+import { SignIn } from "@/components/layout/sign-in";
 import { authClient } from "@/lib/auth-client";
 import { getAlwaysShowOnboardingPages } from "@/utils/spotlights";
 

@@ -1,5 +1,5 @@
 import { expenseCategories } from "@zius/api/expense-categories";
-import { resolveExpenseIcon } from "@/utils/expense-categories";
+import { resolveExpenseIcon } from "@/utils/expenses/expense-categories";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
 import {

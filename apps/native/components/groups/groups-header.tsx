@@ -55,7 +55,7 @@ export function GroupsHeader({
             isIconOnly
             variant="ghost"
             accessibilityLabel="Create group"
-            onPress={() => router.push("/create-group")}
+            onPress={() => router.push("/groups/create")}
           >
             <HugeiconsIcon icon={Add} size={24} color="#000000" />
           </Button>
