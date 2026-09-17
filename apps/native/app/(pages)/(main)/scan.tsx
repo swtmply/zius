@@ -1,7 +1,7 @@
+import { Icon } from "@/components/icon";
 import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
 import { groupReceiptLines, parseReceiptLines } from "@/utils/scan-utils";
 import { Check, ChevronLeft, ImageIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -168,7 +168,7 @@ export default function Scan() {
             isDisabled={processing}
             onPress={retake}
           >
-            <HugeiconsIcon icon={ChevronLeft} size={24} color="#000000" />
+            <Icon icon={ChevronLeft} size={24} colorClassName="accent-ink" />
           </Button>
           <Typography className="text-2xl font-semibold text-ink">Preview</Typography>
           <Button
@@ -179,7 +179,7 @@ export default function Scan() {
             accessibilityState={{ busy: processing }}
             onPress={() => void submit()}
           >
-            <HugeiconsIcon icon={Check} size={24} color="#000000" />
+            <Icon icon={Check} size={24} colorClassName="accent-ink" />
           </Button>
         </View>
 
@@ -336,7 +336,7 @@ export default function Scan() {
           className="h-15 w-15 items-center justify-center rounded-full bg-black/35"
           onPress={() => acquireImage("gallery")}
         >
-          <HugeiconsIcon icon={ImageIcon} color="white" size={24} />
+          <Icon icon={ImageIcon} color="white" size={24} />
         </PressableFeedback>
         <PressableFeedback
           accessibilityLabel="Take picture"

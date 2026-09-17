@@ -1,7 +1,8 @@
 import type { HugeiconsProps } from "@hugeicons/react-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Avatar, Typography } from "heroui-native";
 import { View } from "react-native";
+
+import { Icon } from "@/components/icon";
 
 export type ActionParticipant = {
   name: string;
@@ -42,7 +43,7 @@ export function ExpenseActionTileContent({
         <ParticipantAvatar participant={participant} />
       ) : (
         <View className="size-12 items-center justify-center rounded-full bg-page">
-          {icon ? <HugeiconsIcon icon={icon} size={24} color="#000000" /> : null}
+          {icon ? <Icon icon={icon} size={24} colorClassName="accent-ink" /> : null}
         </View>
       )}
       <Typography

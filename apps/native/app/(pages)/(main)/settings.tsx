@@ -1,10 +1,11 @@
 import { Edit02Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useState, useEffect } from "react";
 import { ActivityIndicator, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
-import { Typography, Switch } from "heroui-native";
+import { Typography, Switch, useToast } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
+import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
 import { authClient } from "@/lib/auth-client";
 import {
   getAlwaysShowOnboardingPages,
@@ -16,6 +17,7 @@ import { queryClient } from "@/utils/trpc";
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
+  const { toast } = useToast();
   const { data: session } = authClient.useSession();
   const user = session?.user;
   const [isEditing, setIsEditing] = useState(false);
@@ -157,9 +159,9 @@ export default function Settings() {
               className="active:opacity-55 disabled:opacity-55"
             >
               {isSaving ? (
-                <ActivityIndicator color="#171717" size="small" />
+                <ActivityIndicator colorClassName="accent-ink" size="small" />
               ) : (
-                <HugeiconsIcon color="#07132D" icon={Edit02Icon} size={24} />
+                <Icon colorClassName="accent-ink" icon={Edit02Icon} size={24} />
               )}
             </Pressable>
           </View>
@@ -181,7 +183,7 @@ export default function Settings() {
                     onChangeText={setDraftName}
                     onSubmitEditing={() => void saveName()}
                     placeholder="Your name"
-                    placeholderTextColor="#C4C4C7"
+                    placeholderTextColorClassName="accent-muted"
                     returnKeyType="done"
                     className="flex-1 py-0 text-right text-sm text-ink"
                     value={draftName}
@@ -204,9 +206,9 @@ export default function Settings() {
                     className="h-9 min-w-18 items-center justify-center rounded-xl bg-danger px-4 active:opacity-72"
                   >
                     {isSaving ? (
-                      <ActivityIndicator color="#FFFFFF" size="small" />
+                      <ActivityIndicator colorClassName="accent-danger-foreground" size="small" />
                     ) : (
-                      <Typography className="text-sm text-on-dark">Save</Typography>
+                      <Typography className="text-sm text-danger-foreground">Save</Typography>
                     )}
                   </Pressable>
                 </View>
@@ -260,12 +262,12 @@ export default function Settings() {
 
           {__DEV__ ? (
             <>
-              <Typography selectable className="text-[14px] text-[#171717]">
+              <Typography selectable className="text-[14px] text-ink">
                 Developer Options
               </Typography>
-              <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+              <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-panel px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
                 <View className="min-h-[50px] flex-row items-center gap-4">
-                  <Typography selectable className="flex-1 text-[14px] text-[#171717]">
+                  <Typography selectable className="flex-1 text-[14px] text-ink">
                     Always show spotlights on load
                   </Typography>
                   <Switch
@@ -276,9 +278,9 @@ export default function Settings() {
                   />
                 </View>
               </View>
-              <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-white px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+              <View className="min-h-[50px] justify-center rounded-2xl border-continuous bg-panel px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
                 <View className="min-h-[50px] flex-row items-center gap-4">
-                  <Typography selectable className="flex-1 text-[14px] text-[#171717]">
+                  <Typography selectable className="flex-1 text-[14px] text-ink">
                     Always show onboarding pages on load
                   </Typography>
                   <Switch
@@ -289,10 +291,34 @@ export default function Settings() {
                   />
                 </View>
               </View>
+              <Pressable
+                accessibilityLabel="Show persistent debug toast"
+                accessibilityRole="button"
+                onPress={() =>
+                  toast.show({
+                    duration: "persistent",
+                    component: (props) => (
+                      <ExpenseCreationToast
+                        {...props}
+                        variant="success"
+                        title="Debug toast"
+                        description="Persistent toast, stays until dismissed."
+                      />
+                    ),
+                  })
+                }
+                className="min-h-[50px] justify-center rounded-2xl border-continuous bg-panel px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)] active:opacity-72"
+              >
+                <View className="min-h-[50px] flex-row items-center gap-4">
+                  <Typography selectable={false} className="flex-1 text-[14px] text-ink">
+                    Show persistent debug toast
+                  </Typography>
+                </View>
+              </Pressable>
             </>
           ) : null}
 
-          <Typography selectable className="text-[14px] text-[#FF343B]">
+          <Typography selectable className="text-[14px] text-danger">
             Danger Zone
           </Typography>
           <Pressable
@@ -303,9 +329,9 @@ export default function Settings() {
             className="h-[50px] items-center justify-center rounded-2xl bg-danger active:opacity-72 disabled:opacity-72"
           >
             {isSigningOut ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator colorClassName="accent-danger-foreground" />
             ) : (
-              <Typography className="text-sm text-on-dark">Logout</Typography>
+              <Typography className="text-sm text-danger-foreground">Logout</Typography>
             )}
           </Pressable>
 
@@ -322,7 +348,7 @@ export default function Settings() {
               onPress={() => setDeletionMessage("Account deletion is not available yet.")}
               className="h-[50px] items-center justify-center rounded-2xl bg-danger active:opacity-72"
             >
-              <Typography className="text-sm text-on-dark">Delete Account</Typography>
+              <Typography className="text-sm text-danger-foreground">Delete Account</Typography>
             </Pressable>
             {deletionMessage ? (
               <Typography

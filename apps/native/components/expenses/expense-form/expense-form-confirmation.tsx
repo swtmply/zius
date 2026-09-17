@@ -1,9 +1,10 @@
 import { BottomSheet, Button, PressableFeedback, Typography } from "heroui-native";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { XIcon } from "@hugeicons/core-free-icons";
 import { useExpenseForm } from "./expense-form-context";
+
+import { Icon } from "@/components/icon";
 
 export function ExpenseFormConfirmation() {
   const insets = useSafeAreaInsets();
@@ -36,7 +37,7 @@ export function ExpenseFormConfirmation() {
               accessibilityLabel="Close expense confirmation"
               onPress={() => setIsGroupDialogOpen(false)}
             >
-              <HugeiconsIcon icon={XIcon} />
+              <Icon icon={XIcon} colorClassName="accent-ink" />
             </Button>
           </View>
           <form.Subscribe selector={(state) => state.isSubmitting}>

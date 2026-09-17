@@ -1,9 +1,9 @@
 import { X } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button, Typography } from "heroui-native";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { GroupAvatar } from "@/components/groups/group-avatar";
 
 import type { GroupFormParticipant } from "@/utils/groups/group-form";
@@ -48,7 +48,7 @@ export function GroupParticipantList({
             accessibilityLabel={`Remove ${participant.name}`}
             onPress={() => onRemove(participant.id)}
           >
-            <HugeiconsIcon icon={X} size={16} color="#8A8A8E" />
+            <Icon icon={X} size={16} colorClassName="accent-muted" />
           </Button>
         </View>
       ))}

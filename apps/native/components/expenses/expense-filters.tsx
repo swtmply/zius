@@ -1,10 +1,11 @@
 import { SlidersVertical } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet, Button, Typography } from "heroui-native";
 import { View } from "react-native";
+
+import { Icon } from "@/components/icon";
 
 const statusOptions = [
   { value: "all", label: "All" },
@@ -37,11 +38,11 @@ export function ExpenseFilters({ status, sort }: { status: ExpenseStatus; sort: 
     <BottomSheet isOpen={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
       <Button
         isIconOnly
-        className="size-12 rounded-full bg-dark-gradient"
+        className="size-12 rounded-full bg-contrast-gradient"
         accessibilityLabel="Open expense filters"
         onPress={openFilters}
       >
-        <HugeiconsIcon icon={SlidersVertical} size={22} color="#FFFFFF" />
+        <Icon icon={SlidersVertical} size={22} colorClassName="accent-on-ink" />
       </Button>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
@@ -93,7 +94,7 @@ export function ExpenseFilters({ status, sort }: { status: ExpenseStatus; sort: 
           </View>
 
           <Button
-            className="w-full bg-dark-gradient"
+            className="w-full bg-contrast-gradient"
             onPress={() => {
               router.setParams({ status: draftStatus, sort: draftSort });
               setIsFiltersOpen(false);

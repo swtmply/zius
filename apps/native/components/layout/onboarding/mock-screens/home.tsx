@@ -6,7 +6,6 @@ import {
   TransactionHistoryIcon,
   UserGroup03Icon,
 } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Avatar, Button, Typography } from "heroui-native";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ScrollView, View } from "react-native";
@@ -26,10 +25,8 @@ import {
   DashboardHeaderCard,
   type HeaderCardAction,
 } from "@/components/layout/dashboard-header-card";
-import {
-  ExpenseCard,
-  type DashboardExpense,
-} from "@/components/expenses/expense-card";
+import { Icon } from "@/components/icon";
+import { ExpenseCard, type DashboardExpense } from "@/components/expenses/expense-card";
 import { SpotlightOverlay } from "../spotlight-overlay";
 import { SpotlightProvider, useSpotlight } from "../spotlight-provider";
 import { SpotlightContainer } from "../spotlight-container";
@@ -116,18 +113,11 @@ const mockHeaderActions = [
 function MockDashboardHeader() {
   return (
     <View className="pt-4 flex-row items-center justify-between">
-      <Typography className="text-2xl font-semibold text-ink">
-        Dashboard
-      </Typography>
+      <Typography className="text-2xl font-semibold text-ink">Dashboard</Typography>
 
       <View className="flex-row items-center gap-2">
-        <Button
-          variant="ghost"
-          isIconOnly
-          accessibilityLabel="Notifications"
-          onPress={noop}
-        >
-          <HugeiconsIcon icon={Notification} size={24} color="#000000" />
+        <Button variant="ghost" isIconOnly accessibilityLabel="Notifications" onPress={noop}>
+          <Icon icon={Notification} size={24} colorClassName="accent-ink" />
         </Button>
         <Avatar size="md">
           <Avatar.Fallback>A</Avatar.Fallback>
@@ -137,13 +127,7 @@ function MockDashboardHeader() {
   );
 }
 
-function MockExpenseSection({
-  title,
-  expense,
-}: {
-  title: string;
-  expense: DashboardExpense;
-}) {
+function MockExpenseSection({ title, expense }: { title: string; expense: DashboardExpense }) {
   return (
     <>
       <View className="flex-row items-center justify-between gap-4">
@@ -181,8 +165,7 @@ type Step = (typeof STEPS)[number];
 const STEP_HINTS = {
   header: {
     title: "Your balance at a glance",
-    description:
-      "See what you owe and what others owe you. And control links to find out more.",
+    description: "See what you owe and what others owe you. And control links to find out more.",
   },
   unsettled: {
     title: "Keep track of open expenses",
@@ -230,9 +213,7 @@ function OnboardingHint({
     previousStepIndex.current = stepIndex;
     contentDirection.set(stepIndex > previousIndex ? 1 : -1);
     contentProgress.set(reducedMotion ? 1 : 0);
-    contentProgress.set(
-      withTiming(1, reducedMotion ? { duration: 0 } : HINT_TRANSITION),
-    );
+    contentProgress.set(withTiming(1, reducedMotion ? { duration: 0 } : HINT_TRANSITION));
   }, [reducedMotion, stepIndex, contentDirection, contentProgress]);
 
   const contentStyle = useAnimatedStyle(() => {
@@ -252,12 +233,8 @@ function OnboardingHint({
 
   return (
     <Animated.View style={contentStyle}>
-      <Typography className="text-sm font-semibold text-ink">
-        {STEP_HINTS[step].title}
-      </Typography>
-      <Typography className="text-xs text-supporting">
-        {STEP_HINTS[step].description}
-      </Typography>
+      <Typography className="text-sm font-semibold text-ink">{STEP_HINTS[step].title}</Typography>
+      <Typography className="text-xs text-supporting">{STEP_HINTS[step].description}</Typography>
     </Animated.View>
   );
 }
@@ -331,10 +308,7 @@ function MockContent({ onComplete }: MockHomeProps) {
         className="bg-page flex-1"
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom + 16 }}
       >
-        <ScrollView
-          contentContainerClassName="p-4 gap-2"
-          showsVerticalScrollIndicator={false}
-        >
+        <ScrollView contentContainerClassName="p-4 gap-2" showsVerticalScrollIndicator={false}>
           <MockDashboardHeader />
 
           <SpotlightTarget id="header">
@@ -345,16 +319,10 @@ function MockContent({ onComplete }: MockHomeProps) {
             />
           </SpotlightTarget>
           <SpotlightTarget id="unsettled">
-            <MockExpenseSection
-              title="Unsettled Expenses"
-              expense={mockUnsettledExpense}
-            />
+            <MockExpenseSection title="Unsettled Expenses" expense={mockUnsettledExpense} />
           </SpotlightTarget>
           <SpotlightTarget id="settled">
-            <MockExpenseSection
-              title="Settled Expenses"
-              expense={mockSettledExpense}
-            />
+            <MockExpenseSection title="Settled Expenses" expense={mockSettledExpense} />
           </SpotlightTarget>
           <View className="h-14" />
         </ScrollView>
@@ -366,12 +334,12 @@ function MockContent({ onComplete }: MockHomeProps) {
           }}
         >
           <Button
-            className="size-18 rounded-full bg-dark-gradient"
+            className="size-18 rounded-full bg-contrast-gradient"
             isIconOnly
             accessibilityLabel="Scan receipt"
             onPress={noop}
           >
-            <HugeiconsIcon icon={Scan} size={28} color="#FFFFFF" />
+            <Icon icon={Scan} size={28} colorClassName="accent-on-ink" />
           </Button>
         </SpotlightTarget>
 
@@ -388,11 +356,7 @@ function MockContent({ onComplete }: MockHomeProps) {
           style={{ minHeight: 80 }}
           accessibilityRole="summary"
         >
-          <OnboardingHint
-            step={step}
-            stepIndex={stepIndex}
-            onContinue={nextTarget}
-          />
+          <OnboardingHint step={step} stepIndex={stepIndex} onContinue={nextTarget} />
         </SpotlightContainer>
       </View>
     </GestureDetector>

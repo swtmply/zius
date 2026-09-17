@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet, Button, Menu, Typography, useToast } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   Archive02Icon,
   ChevronLeftFreeIcons,
@@ -13,21 +12,17 @@ import {
   MoreHorizontalIcon,
 } from "@hugeicons/core-free-icons";
 
+import { Icon } from "@/components/icon";
 import { trpc } from "@/utils/trpc";
 import { formatDate } from "@/utils";
 import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
 import { ExpenseDetailsLoading } from "@/components/expenses/skeletons/expense-details-skeleton";
-import {
-  ExpenseOverview,
-  ExpenseSummary,
-} from "@/components/expenses/expense-summary";
+import { ExpenseOverview, ExpenseSummary } from "@/components/expenses/expense-summary";
 
 export default function ExpenseDetails() {
   const { expenseId } = useLocalSearchParams<{ expenseId: string }>();
 
-  const expenseQuery = useQuery(
-    trpc.expense.get.queryOptions({ id: expenseId }),
-  );
+  const expenseQuery = useQuery(trpc.expense.get.queryOptions({ id: expenseId }));
   const { data } = expenseQuery;
   const participantQuery = useQuery(trpc.participant.current.queryOptions());
   const { data: currentParticipant } = participantQuery;
@@ -37,14 +32,12 @@ export default function ExpenseDetails() {
   const { toast } = useToast();
   const insets = useSafeAreaInsets();
   const [isSettling, setIsSettling] = useState(false);
-  const [participantStatuses, setParticipantStatuses] = useState<
-    Record<string, "paid" | "unpaid">
-  >({});
+  const [participantStatuses, setParticipantStatuses] = useState<Record<string, "paid" | "unpaid">>(
+    {},
+  );
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const canEditPayments =
-    data?.status === "active" &&
-    !!currentParticipant &&
-    data.payerId === currentParticipant.id;
+    data?.status === "active" && !!currentParticipant && data.payerId === currentParticipant.id;
   const isSettlingActive = isSettling && canEditPayments;
   const updateExpense = useMutation(
     trpc.expense.update.mutationOptions({
@@ -64,9 +57,7 @@ export default function ExpenseDetails() {
 
     const participants = data.participants.flatMap((participant) => {
       const status = participantStatuses[participant.id];
-      return status && status !== participant.status
-        ? [{ id: participant.id, status }]
-        : [];
+      return status && status !== participant.status ? [{ id: participant.id, status }] : [];
     });
 
     if (participants.length === 0) {
@@ -111,8 +102,7 @@ export default function ExpenseDetails() {
   };
 
   const paidParticipantCount =
-    data?.participants.filter((participant) => participant.status === "paid")
-      .length ?? 0;
+    data?.participants.filter((participant) => participant.status === "paid").length ?? 0;
 
   const startSettling = () => {
     if (!canEditPayments || updateExpense.isPending) return;
@@ -121,13 +111,7 @@ export default function ExpenseDetails() {
   };
 
   const submitCancellation = async () => {
-    if (
-      !data ||
-      !data.canCancel ||
-      data.status !== "active" ||
-      cancelExpense.isPending
-    )
-      return;
+    if (!data || !data.canCancel || data.status !== "active" || cancelExpense.isPending) return;
 
     try {
       await cancelExpense.mutateAsync({ id: expenseId });
@@ -171,8 +155,7 @@ export default function ExpenseDetails() {
     }
   };
 
-  const goBack = () =>
-    router.canGoBack() ? router.back() : router.replace("/home");
+  const goBack = () => (router.canGoBack() ? router.back() : router.replace("/home"));
 
   if (
     !expenseQuery.isError &&
@@ -199,17 +182,8 @@ export default function ExpenseDetails() {
       >
         <View className="gap-4">
           <View className="flex-row items-center justify-between gap-4 py-4">
-            <Button
-              isIconOnly
-              variant="ghost"
-              accessibilityLabel="Go back"
-              onPress={goBack}
-            >
-              <HugeiconsIcon
-                icon={ChevronLeftFreeIcons}
-                size={24}
-                color="#000000"
-              />
+            <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={goBack}>
+              <Icon icon={ChevronLeftFreeIcons} size={24} colorClassName="accent-ink" />
             </Button>
             <Typography className="flex-1 text-center text-2xl font-semibold text-ink">
               Expense
@@ -217,10 +191,7 @@ export default function ExpenseDetails() {
             <View className="size-12" />
           </View>
           <View className="items-center gap-4 py-8">
-            <Typography
-              selectable
-              className="text-center text-sm text-supporting"
-            >
+            <Typography selectable className="text-center text-sm text-supporting">
               Unable to load expense details.
             </Typography>
             <Button
@@ -246,17 +217,8 @@ export default function ExpenseDetails() {
         contentContainerClassName="gap-4 px-4 pt-safe pb-safe-offset-8"
       >
         <View className="flex-row items-center justify-between gap-4 py-4">
-          <Button
-            isIconOnly
-            variant="ghost"
-            accessibilityLabel="Go back"
-            onPress={goBack}
-          >
-            <HugeiconsIcon
-              icon={ChevronLeftFreeIcons}
-              size={24}
-              color="#000000"
-            />
+          <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={goBack}>
+            <Icon icon={ChevronLeftFreeIcons} size={24} colorClassName="accent-ink" />
           </Button>
           <Typography
             selectable
@@ -274,56 +236,34 @@ export default function ExpenseDetails() {
               accessibilityState={{ busy: updateExpense.isPending }}
               onPress={() => void submit()}
             >
-              <HugeiconsIcon icon={Check} size={24} color="#000000" />
+              <Icon icon={Check} size={24} colorClassName="accent-ink" />
             </Button>
           ) : canEditPayments || data.canCancel ? (
             <Menu>
-              <Menu.Trigger
-                asChild
-                isDisabled={cancelExpense.isPending || updateExpense.isPending}
-              >
+              <Menu.Trigger asChild isDisabled={cancelExpense.isPending || updateExpense.isPending}>
                 <Button
                   isIconOnly
                   variant="ghost"
-                  isDisabled={
-                    cancelExpense.isPending || updateExpense.isPending
-                  }
+                  isDisabled={cancelExpense.isPending || updateExpense.isPending}
                   accessibilityLabel="Expense actions"
                   accessibilityState={{
-                    disabled:
-                      cancelExpense.isPending || updateExpense.isPending,
+                    disabled: cancelExpense.isPending || updateExpense.isPending,
                   }}
                 >
-                  <HugeiconsIcon
-                    icon={MoreHorizontalIcon}
-                    size={24}
-                    color="#000000"
-                  />
+                  <Icon icon={MoreHorizontalIcon} size={24} colorClassName="accent-ink" />
                 </Button>
               </Menu.Trigger>
               <Menu.Portal>
                 <Menu.Overlay />
-                <Menu.Content
-                  presentation="popover"
-                  width={120}
-                  className="p-2"
-                >
+                <Menu.Content presentation="popover" width={120} className="p-2">
                   {canEditPayments ? (
                     <Menu.Item
                       className="gap-2 rounded-xl px-2 py-1.5"
-                      isDisabled={
-                        updateExpense.isPending || cancelExpense.isPending
-                      }
+                      isDisabled={updateExpense.isPending || cancelExpense.isPending}
                       onPress={startSettling}
                     >
-                      <HugeiconsIcon
-                        icon={Edit02Icon}
-                        size={18}
-                        color="#000000"
-                      />
-                      <Menu.ItemTitle className="text-sm font-normal">
-                        Edit
-                      </Menu.ItemTitle>
+                      <Icon icon={Edit02Icon} size={18} colorClassName="accent-ink" />
+                      <Menu.ItemTitle className="text-sm font-normal">Edit</Menu.ItemTitle>
                     </Menu.Item>
                   ) : null}
                   {data.canCancel ? (
@@ -333,14 +273,8 @@ export default function ExpenseDetails() {
                       variant="danger"
                       onPress={() => setIsCancelDialogOpen(true)}
                     >
-                      <HugeiconsIcon
-                        icon={Archive02Icon}
-                        size={18}
-                        color="#FF3B30"
-                      />
-                      <Menu.ItemTitle className="text-sm font-normal">
-                        Archive
-                      </Menu.ItemTitle>
+                      <Icon icon={Archive02Icon} size={18} color="#FF3B30" />
+                      <Menu.ItemTitle className="text-sm font-normal">Archive</Menu.ItemTitle>
                     </Menu.Item>
                   ) : null}
                 </Menu.Content>
@@ -358,24 +292,16 @@ export default function ExpenseDetails() {
             className="gap-1 rounded-2xl border border-border bg-default px-4 py-3"
             accessible
             accessibilityLabel={`Cancelled by ${data.cancelledBy?.name ?? "an unknown user"} on ${
-              data.cancelledAt
-                ? formatDate(new Date(data.cancelledAt))
-                : "an unknown date"
+              data.cancelledAt ? formatDate(new Date(data.cancelledAt)) : "an unknown date"
             }. Paid participant records remain visible.`}
           >
-            <Typography className="text-sm font-semibold text-supporting">
-              Cancelled
-            </Typography>
+            <Typography className="text-sm font-semibold text-supporting">Cancelled</Typography>
             <Typography className="text-xs text-supporting">
               Cancelled by {data.cancelledBy?.name ?? "an unknown user"}
-              {data.cancelledAt
-                ? ` on ${formatDate(new Date(data.cancelledAt))}`
-                : ""}
-              .
+              {data.cancelledAt ? ` on ${formatDate(new Date(data.cancelledAt))}` : ""}.
             </Typography>
             <Typography className="text-xs text-supporting">
-              This expense no longer affects balances. Paid participant records
-              remain visible.
+              This expense no longer affects balances. Paid participant records remain visible.
             </Typography>
           </View>
         ) : null}
@@ -416,8 +342,8 @@ export default function ExpenseDetails() {
                 {paidParticipantCount === 0
                   ? "No participant payments have been recorded yet."
                   : `${paidParticipantCount} participant${paidParticipantCount === 1 ? " has" : "s have"} already paid.`}{" "}
-                Cancellation is permanent and removes this expense from
-                balances. Existing payment records remain visible.
+                Cancellation is permanent and removes this expense from balances. Existing payment
+                records remain visible.
               </BottomSheet.Description>
             </View>
             <View className="gap-1">

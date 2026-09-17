@@ -1,20 +1,16 @@
 import { expenseCategories } from "@zius/api/expense-categories";
+import { Icon } from "@/components/icon";
 import { resolveExpenseIcon } from "@/utils/expenses/expense-categories";
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
-import {
-  Split,
-  UserGroup03Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
+import { Split, UserGroup03Icon } from "@hugeicons/core-free-icons";
 import { Avatar, Separator, Switch, Typography } from "heroui-native";
 import { View } from "react-native";
 
 import { formatCurrency } from "@/utils";
 
 export type ExpenseDetails = inferRouterOutputs<AppRouter>["expense"]["get"];
-export type ExpenseParticipantStatus =
-  ExpenseDetails["participants"][number]["status"];
+export type ExpenseParticipantStatus = ExpenseDetails["participants"][number]["status"];
 
 type ExpenseMetricProps = {
   label: string;
@@ -23,11 +19,11 @@ type ExpenseMetricProps = {
 
 function ExpenseMetric({ label, amount }: ExpenseMetricProps) {
   return (
-    <View className="flex-1 gap-2 rounded-2xl bg-dark-gradient p-4">
-      <Typography className="text-sm text-dark-supporting">{label}</Typography>
+    <View className="flex-1 gap-2 rounded-2xl bg-contrast-gradient p-4">
+      <Typography className="text-sm text-on-ink-supporting">{label}</Typography>
       <Typography
         selectable
-        className="text-2xl font-semibold text-on-dark"
+        className="text-2xl font-semibold text-on-ink"
         adjustsFontSizeToFit
         numberOfLines={1}
         style={{ fontVariant: ["tabular-nums"] }}
@@ -77,18 +73,14 @@ function ParticipantAvatar({
     <Avatar className={className} size="sm" alt={name}>
       {image ? <Avatar.Image source={{ uri: image }} /> : null}
       <Avatar.Fallback>
-        <Typography className={fallbackClassName}>
-          {name.slice(0, 1).toUpperCase()}
-        </Typography>
+        <Typography className={fallbackClassName}>{name.slice(0, 1).toUpperCase()}</Typography>
       </Avatar.Fallback>
     </Avatar>
   );
 }
 
 export function ExpenseOverview({ expense }: { expense: ExpenseDetails }) {
-  const payer = expense.participants.find(
-    (participant) => participant.id === expense.payerId,
-  );
+  const payer = expense.participants.find((participant) => participant.id === expense.payerId);
 
   return (
     <View className="gap-4">
@@ -109,18 +101,14 @@ export function ExpenseOverview({ expense }: { expense: ExpenseDetails }) {
               className="size-12 bg-page"
               fallbackClassName="text-sm text-ink"
             />
-            <Typography
-              selectable
-              className="text-xs text-ink"
-              numberOfLines={1}
-            >
+            <Typography selectable className="text-xs text-ink" numberOfLines={1}>
               {expense.payerName}
             </Typography>
           </View>
 
           <View className="flex-1 items-center gap-1">
             <View className="size-12 items-center justify-center rounded-full bg-page">
-              <HugeiconsIcon icon={Split} size={24} color="#000000" />
+              <Icon icon={Split} size={24} colorClassName="accent-ink" />
             </View>
             <Typography className="text-xs" numberOfLines={1}>
               {splitMethodLabel(expense.splitMethod)}
@@ -129,7 +117,7 @@ export function ExpenseOverview({ expense }: { expense: ExpenseDetails }) {
 
           <View className="flex-1 items-center gap-1">
             <View className="size-12 items-center justify-center rounded-full bg-page">
-              <HugeiconsIcon icon={UserGroup03Icon} size={24} color="#000000" />
+              <Icon icon={UserGroup03Icon} size={24} colorClassName="accent-ink" />
             </View>
             <Typography className="text-xs" numberOfLines={1}>
               {expense.groupId ? expense.groupName : "Standalone"}
@@ -138,10 +126,10 @@ export function ExpenseOverview({ expense }: { expense: ExpenseDetails }) {
 
           <View className="flex-1 items-center gap-1">
             <View className="size-12 items-center justify-center rounded-full bg-page">
-              <HugeiconsIcon
+              <Icon
                 icon={resolveExpenseIcon(expense.iconName)}
                 size={24}
-                color="#000000"
+                colorClassName="accent-ink"
               />
             </View>
             <Typography className="text-xs" numberOfLines={1}>
@@ -159,10 +147,7 @@ type ExpenseSummaryProps = {
   participantStatuses: Record<string, ExpenseParticipantStatus>;
   isSettling: boolean;
   isDisabled: boolean;
-  onStatusChange: (
-    participantId: string,
-    status: ExpenseParticipantStatus,
-  ) => void;
+  onStatusChange: (participantId: string, status: ExpenseParticipantStatus) => void;
 };
 
 export function ExpenseSummary({
@@ -178,19 +163,13 @@ export function ExpenseSummary({
     <View className="gap-2">
       <View className="flex-row items-center justify-between gap-2">
         <Typography className="text-sm text-ink">Expense Summary</Typography>
-        <Typography className="text-xs text-muted">
-          {expenseStatusLabel(expense.status)}
-        </Typography>
+        <Typography className="text-xs text-muted">{expenseStatusLabel(expense.status)}</Typography>
       </View>
       <View className="gap-2 rounded-2xl bg-panel p-4">
         {expense.participants.map((participant, index) => {
-          const isPaid =
-            (participantStatuses[participant.id] ?? participant.status) ===
-            "paid";
+          const isPaid = (participantStatuses[participant.id] ?? participant.status) === "paid";
           const assignedItems = hasItems
-            ? expense.items.filter(
-                (item) => item.assignedParticipantId === participant.id,
-              )
+            ? expense.items.filter((item) => item.assignedParticipantId === participant.id)
             : [];
 
           return (
@@ -201,22 +180,13 @@ export function ExpenseSummary({
               <View className="flex-row items-center justify-between gap-2">
                 <View className="min-w-0 flex-1 gap-2">
                   <View className="flex-row items-center gap-1">
-                    <ParticipantAvatar
-                      name={participant.name}
-                      image={participant.image}
-                    />
-                    <Typography
-                      selectable
-                      className="shrink text-sm text-ink"
-                      numberOfLines={1}
-                    >
+                    <ParticipantAvatar name={participant.name} image={participant.image} />
+                    <Typography selectable className="shrink text-sm text-ink" numberOfLines={1}>
                       {participant.name}
                     </Typography>
                     {isPaid && !isSettling ? (
                       <View className="rounded-full bg-ink px-2 py-0.5">
-                        <Typography className="text-xs text-on-dark">
-                          Paid
-                        </Typography>
+                        <Typography className="text-xs text-on-ink">Paid</Typography>
                       </View>
                     ) : null}
                   </View>
@@ -224,15 +194,8 @@ export function ExpenseSummary({
                   {assignedItems.length > 0 ? (
                     <View className="flex-row flex-wrap gap-1">
                       {assignedItems.map((item) => (
-                        <View
-                          key={item.id}
-                          className="rounded-full bg-page px-2 py-1"
-                        >
-                          <Typography
-                            selectable
-                            className="text-xs text-ink"
-                            numberOfLines={1}
-                          >
+                        <View key={item.id} className="rounded-full bg-page px-2 py-1">
+                          <Typography selectable className="text-xs text-ink" numberOfLines={1}>
                             {`${item.quantity}x ${item.name}`}
                           </Typography>
                         </View>
@@ -255,10 +218,7 @@ export function ExpenseSummary({
                       isSelected={isPaid}
                       isDisabled={isDisabled}
                       onSelectedChange={(isSelected) =>
-                        onStatusChange(
-                          participant.id,
-                          isSelected ? "paid" : "unpaid",
-                        )
+                        onStatusChange(participant.id, isSelected ? "paid" : "unpaid")
                       }
                     />
                   ) : null}

@@ -32,7 +32,7 @@ export function ExpenseTitleInput({
           onBlur={onBlur}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor="#8A8A8E"
+          placeholderTextColorClassName="accent-muted"
           accessibilityLabel={label}
           accessibilityHint={errorMessage}
           aria-invalid={Boolean(errorMessage)}

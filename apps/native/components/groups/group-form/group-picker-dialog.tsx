@@ -1,5 +1,4 @@
 import { Check, X } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button, Select, Skeleton, Typography } from "heroui-native";
@@ -7,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Keyboard, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { trpc } from "@/utils/trpc";
 
 type GroupPickerSelectProps = {
@@ -132,7 +132,7 @@ export function GroupPickerSelect({
                 accessibilityLabel="Close group picker"
                 onPress={() => handleOpenChange(false)}
               >
-                <HugeiconsIcon icon={X} size={16} color="#000000" />
+                <Icon icon={X} size={16} colorClassName="accent-ink" />
               </Button>
             </View>
 
@@ -193,16 +193,15 @@ export function GroupPickerSelect({
                   >
                     {({ isSelected: itemIsSelected }) => (
                       <View
-                        className="min-h-12 flex-1 flex-row items-center justify-between rounded-xl px-2"
+                        className="min-h-12 flex-1 flex-row items-center justify-between rounded-xl border-ink px-2"
                         style={{
-                          borderColor: "#000000",
                           borderRadius: 12,
                           borderWidth: itemIsSelected ? 1 : 0,
                         }}
                       >
                         <Select.ItemLabel className="flex-1 text-sm text-ink" />
                         {itemIsSelected ? (
-                          <HugeiconsIcon icon={Check} size={16} color="#000000" />
+                          <Icon icon={Check} size={16} colorClassName="accent-ink" />
                         ) : null}
                       </View>
                     )}
@@ -217,16 +216,15 @@ export function GroupPickerSelect({
                     >
                       {({ isSelected: itemIsSelected }) => (
                         <View
-                          className="min-h-12 flex-1 flex-row items-center justify-between rounded-xl px-2"
+                          className="min-h-12 flex-1 flex-row items-center justify-between rounded-xl border-ink px-2"
                           style={{
-                            borderColor: "#000000",
                             borderRadius: 12,
                             borderWidth: itemIsSelected ? 1 : 0,
                           }}
                         >
                           <Select.ItemLabel className="flex-1 text-sm text-ink" numberOfLines={1} />
                           {itemIsSelected ? (
-                            <HugeiconsIcon icon={Check} size={16} color="#000000" />
+                            <Icon icon={Check} size={16} colorClassName="accent-ink" />
                           ) : null}
                         </View>
                       )}
@@ -256,7 +254,7 @@ export function GroupPickerSelect({
             </BottomSheetScrollView>
 
             <Button
-              className="w-full bg-dark-gradient"
+              className="w-full bg-contrast-gradient"
               isDisabled={isDisabled}
               onPress={() => {
                 onSubmit(selectedGroupId === NONE_OPTION ? undefined : selectedGroupId);

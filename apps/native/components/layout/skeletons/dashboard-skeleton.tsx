@@ -5,9 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 function DashboardHeaderLoading() {
   return (
     <View className="pt-4 flex-row items-center justify-between">
-      <Typography className="text-2xl font-semibold text-ink">
-        Dashboard
-      </Typography>
+      <Typography className="text-2xl font-semibold text-ink">Dashboard</Typography>
       <View className="flex-row items-center gap-2">
         <Skeleton className="size-12 rounded-full" />
         <Skeleton className="size-12 rounded-full" />
@@ -21,10 +19,7 @@ function HeaderCardLoading() {
     <View className="gap-4">
       <View className="flex-row gap-2">
         {[0, 1].map((item) => (
-          <View
-            key={item}
-            className="flex-1 rounded-2xl bg-dark-gradient p-4 gap-2"
-          >
+          <View key={item} className="flex-1 rounded-2xl bg-contrast-gradient p-4 gap-2">
             <Skeleton className="h-5 w-20 rounded" />
             <Skeleton className="h-8 w-24 rounded" />
           </View>
@@ -89,9 +84,7 @@ interface DashboardLoadingProps {
   showScanButton?: boolean;
 }
 
-export function DashboardLoading({
-  showScanButton = true,
-}: DashboardLoadingProps) {
+export function DashboardLoading({ showScanButton = true }: DashboardLoadingProps) {
   const insets = useSafeAreaInsets();
 
   return (

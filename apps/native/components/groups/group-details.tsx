@@ -1,11 +1,11 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
 import { Add, ShoppingBasket01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button, PressableFeedback, Separator, Typography } from "heroui-native";
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 
+import { Icon } from "@/components/icon";
 import { GroupAvatar } from "@/components/groups/group-avatar";
 
 type Group = inferRouterOutputs<AppRouter>["group"]["get"];
@@ -64,7 +64,7 @@ export function GroupExpenseCard({ expense }: { expense: Group["expenses"][numbe
     <View className={`gap-2 rounded-2xl bg-panel p-4${isCancelled ? " opacity-70" : ""}`}>
       <View className="flex-row items-center justify-between gap-2">
         <View className="size-10 items-center justify-center rounded-full bg-page">
-          <HugeiconsIcon icon={ShoppingBasket01Icon} size={18} color="#000000" />
+          <Icon icon={ShoppingBasket01Icon} size={18} colorClassName="accent-ink" />
         </View>
         <View className="flex-1 gap-1">
           <Typography
@@ -154,7 +154,7 @@ export function GroupExpensesSection({
             accessibilityLabel="Add expense"
             onPress={onAddExpense}
           >
-            <HugeiconsIcon icon={Add} size={16} color="#FFFFFF" />
+            <Icon icon={Add} size={16} colorClassName="accent-on-ink" />
             <Button.Label className="text-xs">Add Expense</Button.Label>
           </Button>
         ) : null}

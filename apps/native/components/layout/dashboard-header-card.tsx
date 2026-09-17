@@ -1,8 +1,8 @@
 import type { HugeiconsProps } from "@hugeicons/react-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import { formatCurrency } from "@/utils";
 
 export type HeaderCardAction = {
@@ -21,10 +21,10 @@ export interface HeaderCardProps {
 
 function BalanceMetric({ label, amount }: { label: string; amount: number }) {
   return (
-    <View className="flex-1 rounded-2xl bg-dark-gradient p-4 gap-2">
-      <Typography className="text-sm text-dark-supporting">{label}</Typography>
+    <View className="flex-1 rounded-2xl bg-contrast-gradient p-4 gap-2">
+      <Typography className="text-sm text-on-ink-supporting">{label}</Typography>
       <Typography
-        className="text-2xl font-semibold text-on-dark"
+        className="text-2xl font-semibold text-on-ink"
         adjustsFontSizeToFit
         numberOfLines={1}
       >
@@ -44,7 +44,7 @@ function HeaderCardActionButton({ action }: { action: HeaderCardAction }) {
         accessibilityLabel={action.accessibilityLabel}
         onPress={action.onPress}
       >
-        <HugeiconsIcon icon={action.icon} size={24} color="#000000" />
+        <Icon icon={action.icon} size={24} colorClassName="accent-ink" />
       </Button>
       <Typography className="text-xs text-ink">{action.label}</Typography>
     </View>

@@ -3,7 +3,6 @@ import { Keyboard, Pressable, RefreshControl, ScrollView, TextInput, View } from
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BottomSheet, Button, Menu, Skeleton, Typography, useToast } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   Archive02Icon,
   Check,
@@ -14,6 +13,7 @@ import {
   RestoreBinIcon,
   XIcon,
 } from "@hugeicons/core-free-icons";
+import { Icon } from "@/components/icon";
 import { trpc } from "@/utils/trpc";
 import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
 import { GroupExpensesSection, GroupParticipants } from "@/components/groups/group-details";
@@ -201,7 +201,11 @@ export default function GroupDetailsPage() {
                 }
               }}
             >
-              <HugeiconsIcon icon={isEditing ? XIcon : ChevronLeftFreeIcons} size={24} />
+              <Icon
+                icon={isEditing ? XIcon : ChevronLeftFreeIcons}
+                size={24}
+                colorClassName="accent-ink"
+              />
             </Button>
             <View className="flex-1 items-center">
               {query.isPending ? (
@@ -242,7 +246,7 @@ export default function GroupDetailsPage() {
                 accessibilityState={{ busy: updateGroup.isPending }}
                 onPress={submit}
               >
-                <HugeiconsIcon icon={Check} size={24} />
+                <Icon icon={Check} size={24} colorClassName="accent-ink" />
               </Button>
             ) : group && canManageArchive && !isArchived ? (
               <Menu>
@@ -256,7 +260,7 @@ export default function GroupDetailsPage() {
                       disabled: updateGroup.isPending || archiveActionPending,
                     }}
                   >
-                    <HugeiconsIcon icon={MoreHorizontalIcon} size={24} />
+                    <Icon icon={MoreHorizontalIcon} size={24} colorClassName="accent-ink" />
                   </Button>
                 </Menu.Trigger>
                 <Menu.Portal>
@@ -270,11 +274,11 @@ export default function GroupDetailsPage() {
                         setIsEditing(true);
                       }}
                     >
-                      <HugeiconsIcon icon={Edit02Icon} size={18} color="#000000" />
+                      <Icon icon={Edit02Icon} size={18} colorClassName="accent-ink" />
                       <Menu.ItemTitle className="text-sm font-normal">Edit</Menu.ItemTitle>
                     </Menu.Item>
                     <Menu.Item className="gap-2 rounded-xl px-2 py-1.5" isDisabled variant="danger">
-                      <HugeiconsIcon icon={Delete02Icon} size={18} color="#FF3B30" />
+                      <Icon icon={Delete02Icon} size={18} color="#FF3B30" />
                       <Menu.ItemTitle className="text-sm font-normal">Delete</Menu.ItemTitle>
                     </Menu.Item>
                     <Menu.Item
@@ -283,7 +287,7 @@ export default function GroupDetailsPage() {
                       variant="danger"
                       onPress={() => setIsArchiveDialogOpen(true)}
                     >
-                      <HugeiconsIcon icon={Archive02Icon} size={18} color="#FF3B30" />
+                      <Icon icon={Archive02Icon} size={18} color="#FF3B30" />
                       <Menu.ItemTitle className="text-sm font-normal">Archive</Menu.ItemTitle>
                     </Menu.Item>
                   </Menu.Content>
@@ -298,7 +302,7 @@ export default function GroupDetailsPage() {
                 accessibilityState={{ busy: archiveActionPending }}
                 onPress={() => setIsArchiveDialogOpen(true)}
               >
-                <HugeiconsIcon icon={RestoreBinIcon} size={24} />
+                <Icon icon={RestoreBinIcon} size={24} colorClassName="accent-ink" />
               </Button>
             ) : (
               <View className="size-12" />

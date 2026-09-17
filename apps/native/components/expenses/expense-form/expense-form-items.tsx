@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import { Button, Typography } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Add } from "@hugeicons/core-free-icons";
+import { Icon } from "@/components/icon";
 import { SectionHeader } from "@/components/layout/section-header";
 import { formatCurrency } from "@/utils";
 import { ExpenseItemList } from "./expense-item-list";
@@ -34,7 +34,7 @@ export function ExpenseFormItems() {
               action={
                 <Button
                   size="sm"
-                  className="h-8 min-h-0 gap-2 rounded-full bg-dark-gradient px-3"
+                  className="h-8 min-h-0 gap-2 rounded-full bg-contrast-gradient px-3"
                   isDisabled={isSubmitting}
                   onPress={() =>
                     setItems([
@@ -43,8 +43,8 @@ export function ExpenseFormItems() {
                     ])
                   }
                 >
-                  <HugeiconsIcon icon={Add} size={16} color="#FFFFFF" />
-                  <Button.Label className="text-xs font-normal text-white">Add Item</Button.Label>
+                  <Icon icon={Add} size={16} colorClassName="accent-on-ink" />
+                  <Button.Label className="text-xs font-normal text-on-ink">Add Item</Button.Label>
                 </Button>
               }
             />

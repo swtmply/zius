@@ -1,8 +1,9 @@
 import { Check, ChevronLeft } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
+
+import { Icon } from "@/components/icon";
 
 type ExpenseFormHeaderProps = {
   isSubmitting: boolean;
@@ -15,7 +16,7 @@ export function ExpenseFormHeader({ isSubmitting, onSubmit }: ExpenseFormHeaderP
   return (
     <View className="flex-row justify-between items-center py-4">
       <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
-        <HugeiconsIcon icon={ChevronLeft} size={24} />
+        <Icon icon={ChevronLeft} size={24} colorClassName="accent-ink" />
       </Button>
       <Typography className="text-2xl font-semibold text-ink">Create Expense</Typography>
       <Button
@@ -25,7 +26,7 @@ export function ExpenseFormHeader({ isSubmitting, onSubmit }: ExpenseFormHeaderP
         isDisabled={isSubmitting}
         onPress={onSubmit}
       >
-        <HugeiconsIcon icon={Check} size={24} />
+        <Icon icon={Check} size={24} colorClassName="accent-ink" />
       </Button>
     </View>
   );

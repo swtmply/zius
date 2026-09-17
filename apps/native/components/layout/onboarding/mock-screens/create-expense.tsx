@@ -6,12 +6,12 @@ import {
   Split,
   UserGroup03Icon,
 } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Button, PressableFeedback, Typography } from "heroui-native";
 import { useEffect, useRef, useState } from "react";
 import { ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { ExpenseActionTileContent } from "@/components/expenses/expense-form/expense-action-tile-content";
 
 import { SpotlightContainer } from "../spotlight-container";
@@ -141,12 +141,12 @@ function MockCreateExpenseContent({ onComplete }: MockCreateExpenseProps) {
       >
         <View className="flex-row items-center justify-between py-4">
           <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={noop}>
-            <HugeiconsIcon icon={ChevronLeft} size={24} />
+            <Icon icon={ChevronLeft} size={24} colorClassName="accent-ink" />
           </Button>
           <Typography className="text-2xl font-semibold">Create Expense</Typography>
           <SpotlightTarget id="submit">
             <Button isIconOnly variant="ghost" accessibilityLabel="Submit expense" onPress={noop}>
-              <HugeiconsIcon icon={Check} size={24} />
+              <Icon icon={Check} size={24} colorClassName="accent-ink" />
             </Button>
           </SpotlightTarget>
         </View>
@@ -219,11 +219,11 @@ function MockCreateExpenseContent({ onComplete }: MockCreateExpenseProps) {
             <Typography className="text-ink">Participants</Typography>
             <Button
               size="sm"
-              className="h-8 min-h-0 gap-2 rounded-full bg-dark-gradient px-3"
+              className="h-8 min-h-0 gap-2 rounded-full bg-contrast-gradient px-3"
               onPress={noop}
             >
-              <HugeiconsIcon icon={Add} size={16} color="#FFFFFF" />
-              <Button.Label className="text-xs font-normal text-white">
+              <Icon icon={Add} size={16} colorClassName="accent-on-ink" />
+              <Button.Label className="text-xs font-normal text-on-ink">
                 Add Participant
               </Button.Label>
             </Button>
@@ -253,11 +253,11 @@ function MockCreateExpenseContent({ onComplete }: MockCreateExpenseProps) {
             <Typography className="text-ink">Expense Summary</Typography>
             <Button
               size="sm"
-              className="h-8 min-h-0 gap-2 rounded-full bg-dark-gradient px-3"
+              className="h-8 min-h-0 gap-2 rounded-full bg-contrast-gradient px-3"
               onPress={noop}
             >
-              <HugeiconsIcon icon={Add} size={16} color="#FFFFFF" />
-              <Button.Label className="text-xs font-normal text-white">Add Item</Button.Label>
+              <Icon icon={Add} size={16} colorClassName="accent-on-ink" />
+              <Button.Label className="text-xs font-normal text-on-ink">Add Item</Button.Label>
             </Button>
           </View>
           <View className="rounded-2xl bg-panel px-4">

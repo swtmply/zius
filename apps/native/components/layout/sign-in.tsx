@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Typography } from "heroui-native";
 import { useRef, useState, type RefObject } from "react";
 import { ActivityIndicator, Pressable, TextInput, View, type TextInputProps } from "react-native";
+import { useCSSVariable } from "uniwind";
 import { z } from "zod";
 
 import { authClient } from "@/lib/auth-client";
@@ -26,6 +27,7 @@ type AuthFieldProps = TextInputProps & {
 function AuthField({ inputRef, label, style, ...inputProps }: AuthFieldProps) {
   return (
     <View
+      className="bg-panel"
       style={{
         height: 54,
         flexDirection: "row",
@@ -33,7 +35,6 @@ function AuthField({ inputRef, label, style, ...inputProps }: AuthFieldProps) {
         borderRadius: 16,
         borderCurve: "continuous",
         paddingHorizontal: 16,
-        backgroundColor: "#FFFFFF",
         boxShadow: "0 9px 26px rgba(0, 0, 0, 0.12)",
       }}
     >
@@ -42,8 +43,9 @@ function AuthField({ inputRef, label, style, ...inputProps }: AuthFieldProps) {
         {...inputProps}
         accessibilityLabel={inputProps.accessibilityLabel ?? label}
         ref={inputRef}
-        placeholderTextColor="#C4C4C7"
-        style={[{ flex: 1, height: "100%", color: "#171717", fontSize: 14 }, style]}
+        placeholderTextColorClassName="accent-muted"
+        className="h-full flex-1 text-sm text-ink"
+        style={[{ flex: 1, height: "100%" }, style]}
       />
     </View>
   );
@@ -56,6 +58,7 @@ export function SignIn() {
   const passwordInputRef = useRef<TextInput>(null);
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
 
   const form = useForm({
     defaultValues: {
@@ -208,22 +211,18 @@ export function SignIn() {
                   justifyContent: "center",
                   borderRadius: 16,
                   borderCurve: "continuous",
-                  backgroundColor: "#000000",
+                  backgroundColor: ink,
                   opacity: pressed || isSubmitting ? 0.72 : 1,
                 })}
               >
                 {isSubmitting ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator colorClassName="accent-on-ink" />
                 ) : (
-                  <Typography className="text-sm text-white">
+                  <Typography className="text-sm text-on-ink">
                     {isSignUp ? "Create Account" : "Login your account"}
                   </Typography>
                 )}
               </Pressable>
-
-              <Typography selectable className="text-xs text-supporting">
-                {isSignUp ? "Already have an account?" : "Don't have an account yet?"}
-              </Typography>
 
               <Pressable
                 accessibilityRole="button"
@@ -235,7 +234,7 @@ export function SignIn() {
                   justifyContent: "center",
                   borderRadius: 15,
                   borderCurve: "continuous",
-                  backgroundColor: "#ECECEC",
+                  backgroundColor: panel,
                   opacity: pressed || isSubmitting ? 0.72 : 1,
                 })}
               >

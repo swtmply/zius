@@ -3,8 +3,9 @@ import { useState } from "react";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheet, Button, Typography } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { SlidersVertical } from "@hugeicons/core-free-icons";
+
+import { Icon } from "@/components/icon";
 
 const statusOptions = [
   { value: "all", label: "All" },
@@ -51,11 +52,11 @@ export function GroupFilters({
     <BottomSheet isOpen={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
       <Button
         isIconOnly
-        className="size-12 rounded-full bg-dark-gradient"
+        className="size-12 rounded-full bg-contrast-gradient"
         accessibilityLabel="Open group filters"
         onPress={openFilters}
       >
-        <HugeiconsIcon icon={SlidersVertical} size={22} color="#FFFFFF" />
+        <Icon icon={SlidersVertical} size={22} colorClassName="accent-on-ink" />
       </Button>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
@@ -120,7 +121,7 @@ export function GroupFilters({
             ))}
           </View>
           <Button
-            className="w-full bg-dark-gradient"
+            className="w-full bg-contrast-gradient"
             onPress={() => {
               router.setParams({ status: draftStatus, type: draftType, sort: draftSort });
               setIsFiltersOpen(false);

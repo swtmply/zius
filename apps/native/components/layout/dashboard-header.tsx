@@ -1,8 +1,8 @@
 import { Notification } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
 import { View } from "react-native";
 import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
+import { Icon } from "@/components/icon";
 import { authClient } from "@/lib/auth-client";
 
 export function DashboardHeader() {
@@ -20,7 +20,7 @@ export function DashboardHeader() {
           accessibilityLabel="Notifications"
           onPress={() => router.push("/notifications")}
         >
-          <HugeiconsIcon icon={Notification} size={24} color="#000000" />
+          <Icon icon={Notification} size={24} colorClassName="accent-ink" />
         </Button>
         <PressableFeedback
           accessibilityRole="button"

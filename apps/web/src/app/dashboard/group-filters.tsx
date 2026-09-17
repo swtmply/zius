@@ -61,7 +61,7 @@ export function GroupFilters({
       <button
         type="button"
         aria-label="Open group filters"
-        className="icon-button bg-dark-gradient text-on-dark hover:bg-dark-gradient"
+        className="icon-button bg-contrast-gradient text-on-ink hover:bg-contrast-gradient"
         onClick={() => {
           setDraftStatus(status);
           setDraftType(type);
@@ -82,7 +82,7 @@ export function GroupFilters({
         <OptionPills label="Sort" options={sortOptions} value={draftSort} onChange={setDraftSort} />
         <button
           type="button"
-          className="action w-full bg-dark-gradient"
+          className="action w-full bg-contrast-gradient"
           onClick={() => {
             router.replace(
               withQuery(dashboardRoutes.groups, {

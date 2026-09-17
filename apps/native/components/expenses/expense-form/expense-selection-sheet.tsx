@@ -1,12 +1,13 @@
 import { Check, X } from "@hugeicons/core-free-icons";
 import type { HugeiconsProps } from "@hugeicons/react-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Avatar, Button, PressableFeedback, Select, Typography } from "heroui-native";
 import { useState, type ReactNode } from "react";
 import { Keyboard, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ExpenseActionTileContent, type ActionParticipant } from "./expense-action-tile-content";
+
+import { Icon } from "@/components/icon";
 
 export type ExpenseSelectionOption = {
   value: string;
@@ -122,7 +123,7 @@ export function ExpenseSelectionSheet({
                 accessibilityLabel={`Close ${title.toLowerCase()} sheet`}
                 onPress={() => setIsOpen(false)}
               >
-                <HugeiconsIcon icon={X} size={16} color="#000000" />
+                <Icon icon={X} size={16} colorClassName="accent-ink" />
               </Button>
             </View>
 
@@ -143,9 +144,8 @@ export function ExpenseSelectionSheet({
                 >
                   {({ isSelected }) => (
                     <View
-                      className="min-h-12 flex-1 flex-row items-center gap-3 rounded-xl px-2"
+                      className="min-h-12 flex-1 flex-row items-center gap-3 rounded-xl border-ink px-2"
                       style={{
-                        borderColor: "#000000",
                         borderRadius: 12,
                         borderWidth: isSelected ? 1 : 0,
                       }}
@@ -163,11 +163,13 @@ export function ExpenseSelectionSheet({
                         </Avatar>
                       ) : option.icon ? (
                         <View className="size-10 items-center justify-center">
-                          <HugeiconsIcon icon={option.icon} size={24} color="#000000" />
+                          <Icon icon={option.icon} size={24} colorClassName="accent-ink" />
                         </View>
                       ) : null}
                       <Select.ItemLabel className="flex-1 text-sm text-ink" numberOfLines={1} />
-                      {isSelected ? <HugeiconsIcon icon={Check} size={16} color="#000000" /> : null}
+                      {isSelected ? (
+                        <Icon icon={Check} size={16} colorClassName="accent-ink" />
+                      ) : null}
                     </View>
                   )}
                 </Select.Item>
@@ -175,7 +177,7 @@ export function ExpenseSelectionSheet({
             </BottomSheetScrollView>
 
             <Button
-              className="w-full bg-dark-gradient"
+              className="w-full bg-contrast-gradient"
               isDisabled={isDisabled}
               onPress={() => {
                 onSubmit(draftValue);

@@ -1,7 +1,7 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
+import { Icon } from "@/components/icon";
 import { resolveExpenseIcon } from "@/utils/expenses/expense-categories";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Avatar, PressableFeedback, Separator, Typography } from "heroui-native";
 import { View } from "react-native";
 
@@ -32,7 +32,7 @@ function ExpenseCardContent({ expense }: { expense: ExpenseCardExpense }) {
     <View className={`bg-panel rounded-2xl p-4 gap-2${isCancelled ? " opacity-70" : ""}`}>
       <View className="flex-row items-center justify-between gap-2">
         <View className="size-10 rounded-full bg-page items-center justify-center">
-          <HugeiconsIcon icon={resolveExpenseIcon(expense.iconName)} size={18} color="#000000" />
+          <Icon icon={resolveExpenseIcon(expense.iconName)} size={18} colorClassName="accent-ink" />
         </View>
         <View className="flex-1 gap-1">
           <Typography

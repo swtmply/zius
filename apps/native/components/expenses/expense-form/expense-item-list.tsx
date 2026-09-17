@@ -1,11 +1,15 @@
 import { X } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { ExpenseSelectionSheet } from "./expense-selection-sheet";
-import { getExpenseItemErrors, type ExpenseItem, type FormParticipant } from "@/utils/expenses/expense-form";
+import { Icon } from "@/components/icon";
+import {
+  getExpenseItemErrors,
+  type ExpenseItem,
+  type FormParticipant,
+} from "@/utils/expenses/expense-form";
 
 type ExpenseItemListProps = {
   items: ExpenseItem[];
@@ -148,7 +152,7 @@ function ExpenseItemRow({
           editable={!isDisabled}
           onChangeText={(name) => onChange({ ...item, name })}
           placeholder="Item name"
-          placeholderTextColor="#8A8A8E"
+          placeholderTextColorClassName="accent-muted"
           returnKeyType="next"
           value={item.name}
         />
@@ -183,7 +187,7 @@ function ExpenseItemRow({
           variant="ghost"
           onPress={onRemove}
         >
-          <HugeiconsIcon icon={X} color="#8A8A8E" size={16} />
+          <Icon icon={X} colorClassName="accent-muted" size={16} />
         </Button>
       </View>
 

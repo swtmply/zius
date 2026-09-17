@@ -1,9 +1,9 @@
 import { X } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { Avatar, Button, PressableFeedback, Typography } from "heroui-native";
 import { View } from "react-native";
 
 import { ParticipantSplitInput } from "./expense-participant-split-input";
+import { Icon } from "@/components/icon";
 import type { FormParticipant, SplitMethod } from "@/utils/expenses/expense-form";
 
 type ParticipantListProps = {
@@ -88,7 +88,7 @@ export function ParticipantList({
                   accessibilityLabel={`Remove ${participant.name}`}
                   onPress={() => onRemove(participant.id)}
                 >
-                  <HugeiconsIcon icon={X} size={16} color="#8A8A8E" />
+                  <Icon icon={X} size={16} colorClassName="accent-muted" />
                 </Button>
               </View>
             </View>

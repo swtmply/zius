@@ -1,5 +1,8 @@
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { Toast, type ToastComponentProps } from "heroui-native";
 import { View } from "react-native";
+
+import { Icon } from "@/components/icon";
 
 type ExpenseCreationToastProps = ToastComponentProps & {
   variant: "success" | "danger";
@@ -19,25 +22,22 @@ export function ExpenseCreationToast({
     <Toast
       {...props}
       variant={variant}
-      placement="top"
-      className={`flex-row items-center gap-4 rounded-3xl border px-4 py-4 shadow-none ${
-        isSuccess ? "border-[#2dcc55] bg-[#d7f5df]" : "border-[#ef4444] bg-[#fee2e2]"
-      }`}
+      placement="bottom"
+      className="flex-row items-center gap-4 rounded-3xl bg-panel px-4 py-4 shadow-none"
     >
       <View className="flex-1 gap-1">
-        <Toast.Title
-          className={`text-sm font-normal ${isSuccess ? "text-[#2dcc55]" : "text-[#dc2626]"}`}
-        >
+        <Toast.Title className="text-sm font-normal text-ink">
           {title ?? (isSuccess ? "Expense created successfully" : "Failed to create expense")}
         </Toast.Title>
-        <Toast.Description className="text-xs text-black">{description}</Toast.Description>
+        <Toast.Description className="text-xs text-supporting">{description}</Toast.Description>
       </View>
       <Toast.Close
-        className={`size-6 min-h-0 min-w-0 rounded-full p-0 ${isSuccess ? "bg-[#2dcc55]" : "bg-[#ef4444]"}`}
-        iconProps={{ size: 16, color: "#ffffff" }}
+        className="size-9 min-h-0 min-w-0 rounded-full bg-page p-0"
         hitSlop={10}
         accessibilityLabel="Dismiss notification"
-      />
+      >
+        <Icon colorClassName="accent-ink" icon={Cancel01Icon} size={20} />
+      </Toast.Close>
     </Toast>
   );
 }

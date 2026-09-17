@@ -18,19 +18,19 @@ import { StatusBar } from "expo-status-bar";
 
 const ONBOARDING_PAGES = [
   {
-    image: require("../assets/images/hand-coins.png"),
+    image: require("../../../assets/images/hand-coins.png"),
     imageLabel: "A hand dropping coins into another hand",
     title: "Keep money matters simple",
     description: "Track who paid, who owes, and settle up without awkward math.",
   },
   {
-    image: require("../assets/images/camera.png"),
+    image: require("../../../assets/images/camera.png"),
     imageLabel: "A camera for scanning receipts",
     title: "Scan receipts in a snap",
     description: "Capture a receipt and turn it into an expense in seconds.",
   },
   {
-    image: require("../assets/images/hand-like.png"),
+    image: require("../../../assets/images/hand-like.png"),
     imageLabel: "A thumbs-up hand",
     title: "Split expenses with ease",
     description: "Create groups, share costs, and stay on top of every balance.",
@@ -75,8 +75,11 @@ function ProgressBar({
   }));
 
   return (
-    <View style={styles.progressBar}>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.progressFill, style]} />
+    <View className="bg-default" style={styles.progressBar}>
+      <Animated.View
+        className="bg-ink"
+        style={[StyleSheet.absoluteFill, styles.progressFill, style]}
+      />
     </View>
   );
 }
@@ -120,13 +123,9 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
             minIndex,
             Math.min(maxIndex, Math.round(-gestureStartX.get() / width)),
           );
-          const projectedDelta =
-            translateX.get() - gestureStartX.get() + project(event.velocityX);
+          const projectedDelta = translateX.get() - gestureStartX.get() + project(event.velocityX);
           const step = Math.abs(projectedDelta) > width * 0.2 ? Math.sign(projectedDelta) : 0;
-          const nextIndex = Math.max(
-            minIndex,
-            Math.min(maxIndex, currentIndex - step),
-          );
+          const nextIndex = Math.max(minIndex, Math.min(maxIndex, currentIndex - step));
 
           translateX.set(
             withSpring(-nextIndex * width, {
@@ -159,8 +158,8 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View className="bg-page" style={styles.container}>
+      <StatusBar style="auto" />
 
       <View style={[styles.progressRow, { marginTop: insets.top + 20 }]}>
         {ONBOARDING_PAGES.map((_, index) => (
@@ -188,23 +187,23 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
                     resizeMode="contain"
                     style={{ width: imageSize, height: imageSize }}
                   />
-                  <Typography className="!text-black text-center text-2xl font-semibold" style={styles.title}>
+                  <Typography className="!text-ink text-center text-2xl font-semibold">
                     {page.title}
                   </Typography>
-                  <Typography
-                    className="!text-[#3C3C43] max-w-[290px] text-center text-xs leading-[17px]"
-                    style={styles.description}
-                  >
+                  <Typography className="!text-muted max-w-[290px] text-center text-xs leading-[17px]">
                     {page.description}
                   </Typography>
                   <Pressable
                     testID={`onboarding-action-${index}`}
                     accessibilityRole="button"
-                    accessibilityLabel={index === ONBOARDING_PAGES.length - 1 ? "Get started" : "Continue"}
+                    accessibilityLabel={
+                      index === ONBOARDING_PAGES.length - 1 ? "Get started" : "Continue"
+                    }
                     onPress={() => handleAction(index)}
+                    className="bg-ink"
                     style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
                   >
-                    <Typography className="!text-white text-sm" style={styles.actionLabel}>
+                    <Typography className="!text-on-ink text-sm">
                       {index === ONBOARDING_PAGES.length - 1 ? "Get Started" : "Continue"}
                     </Typography>
                   </Pressable>
@@ -221,7 +220,6 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2F2F7",
   },
   progressRow: {
     flexDirection: "row",
@@ -234,17 +232,9 @@ const styles = StyleSheet.create({
     height: 8,
     overflow: "hidden",
     borderRadius: 99,
-    backgroundColor: "#D1D1D6",
   },
   progressFill: {
     borderRadius: 99,
-    backgroundColor: "#000000",
-  },
-  title: {
-    color: "#000000",
-  },
-  description: {
-    color: "#3C3C43",
   },
   viewport: {
     flex: 1,
@@ -272,12 +262,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderRadius: 16,
     borderCurve: "continuous",
-    backgroundColor: "#202020",
   },
   actionPressed: {
     opacity: 0.72,
-  },
-  actionLabel: {
-    color: "#FFFFFF",
   },
 });

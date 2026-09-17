@@ -430,7 +430,7 @@ function ExpenseFormFields({ initialGroup }: { initialGroup?: Group }) {
           </p>
           <button
             type="submit"
-            className="action w-full bg-dark-gradient"
+            className="action w-full bg-contrast-gradient"
             disabled={!participants.length}
           >
             {createExpense.isPending

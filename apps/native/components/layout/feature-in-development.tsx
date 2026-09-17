@@ -1,8 +1,9 @@
 import { useRouter } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { Button, Typography } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ChevronLeftFreeIcons } from "@hugeicons/core-free-icons";
+
+import { Icon } from "@/components/icon";
 
 export function FeatureInDevelopment() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export function FeatureInDevelopment() {
         accessibilityLabel="Go back"
         onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))}
       >
-        <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} />
+        <Icon icon={ChevronLeftFreeIcons} size={24} colorClassName="accent-ink" />
         <Button.Label>Back</Button.Label>
       </Button>
     </ScrollView>

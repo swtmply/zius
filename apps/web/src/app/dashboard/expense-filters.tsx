@@ -47,7 +47,7 @@ export function ExpenseFilters({ status, sort }: { status: ExpenseStatus; sort: 
       <button
         type="button"
         aria-label="Open expense filters"
-        className="icon-button bg-dark-gradient text-on-dark hover:bg-dark-gradient"
+        className="icon-button bg-contrast-gradient text-on-ink hover:bg-contrast-gradient"
         onClick={() => {
           setDraftStatus(status);
           setDraftSort(sort);
@@ -66,7 +66,7 @@ export function ExpenseFilters({ status, sort }: { status: ExpenseStatus; sort: 
         <OptionPills label="Sort" options={sortOptions} value={draftSort} onChange={setDraftSort} />
         <button
           type="button"
-          className="action w-full bg-dark-gradient"
+          className="action w-full bg-contrast-gradient"
           onClick={() => {
             router.replace(
               withQuery(dashboardRoutes.expenses, { status: draftStatus, sort: draftSort }),

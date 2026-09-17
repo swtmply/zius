@@ -22,7 +22,7 @@ export default function RootLayout() {
               }}
             >
               <StatusBar style="auto" />
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
                 <Stack.Screen name="index" />
                 <Stack.Screen name="(pages)/(main)" />
                 <Stack.Screen name="(pages)/(modals)/expenses/index" />

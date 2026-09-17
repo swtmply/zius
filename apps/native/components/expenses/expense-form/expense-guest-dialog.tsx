@@ -1,10 +1,11 @@
 import { Add, X } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { BottomSheet, Button, Typography, useBottomSheetAwareHandlers } from "heroui-native";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { z } from "zod";
+
+import { Icon } from "@/components/icon";
 
 const guestSchema = z.object({
   name: z.string().trim().min(1, "Enter the guest's name"),
@@ -87,7 +88,7 @@ function GuestSheetContent({
           accessibilityLabel={`Close ${title.toLowerCase()} sheet`}
           onPress={onClose}
         >
-          <HugeiconsIcon icon={X} size={16} color="#000000" />
+          <Icon icon={X} size={16} colorClassName="accent-ink" />
         </Button>
       </View>
 
@@ -114,7 +115,7 @@ function GuestSheetContent({
               onFocus={onFocus}
               onSubmitEditing={() => emailInputRef.current?.focus()}
               placeholder={namePlaceholder}
-              placeholderTextColor="#8A8A8E"
+              placeholderTextColorClassName="accent-muted"
               returnKeyType="next"
               className="flex-1 text-sm text-ink"
             />
@@ -147,7 +148,7 @@ function GuestSheetContent({
               onFocus={onFocus}
               onSubmitEditing={handleSubmit}
               placeholder={emailPlaceholder}
-              placeholderTextColor="#8A8A8E"
+              placeholderTextColorClassName="accent-muted"
               returnKeyType="done"
               className="flex-1 text-sm text-ink"
             />
@@ -157,7 +158,7 @@ function GuestSheetContent({
           ) : null}
         </View>
 
-        <Button className="w-full bg-dark-gradient" onPress={handleSubmit}>
+        <Button className="w-full bg-contrast-gradient" onPress={handleSubmit}>
           <Button.Label>{submitLabel}</Button.Label>
         </Button>
       </View>
@@ -186,12 +187,14 @@ export function GuestDialog({
       <BottomSheet.Trigger asChild>
         <Button
           size="sm"
-          className={`min-h-0 rounded-full bg-dark-gradient ${
+          className={`min-h-0 rounded-full bg-contrast-gradient ${
             compact ? "h-7 gap-1 px-2" : "h-8 gap-2 px-3"
           }`}
         >
-          <HugeiconsIcon icon={Add} size={compact ? 14 : 16} color="#FFFFFF" />
-          <Button.Label className={`font-normal text-white ${compact ? "text-[10px]" : "text-xs"}`}>
+          <Icon icon={Add} size={compact ? 14 : 16} colorClassName="accent-on-ink" />
+          <Button.Label
+            className={`font-normal text-on-ink ${compact ? "text-[10px]" : "text-xs"}`}
+          >
             {triggerLabel}
           </Button.Label>
         </Button>

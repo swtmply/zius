@@ -1,8 +1,9 @@
 import { ChevronLeft } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
 import { Button, Skeleton } from "heroui-native";
 import { ScrollView, View } from "react-native";
+
+import { Icon } from "@/components/icon";
 
 export function FormLoading() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export function FormLoading() {
           accessibilityLabel="Go back"
           onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))}
         >
-          <HugeiconsIcon icon={ChevronLeft} size={24} />
+          <Icon icon={ChevronLeft} size={24} colorClassName="accent-ink" />
         </Button>
         <Skeleton className="h-8 w-40 rounded-lg" />
         <Skeleton className="size-12 rounded-full" />

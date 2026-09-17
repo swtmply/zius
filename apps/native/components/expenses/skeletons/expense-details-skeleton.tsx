@@ -1,8 +1,9 @@
 import { View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, Skeleton, Typography } from "heroui-native";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { ChevronLeftFreeIcons } from "@hugeicons/core-free-icons";
+
+import { Icon } from "@/components/icon";
 
 export function ExpenseDetailsLoading() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function ExpenseDetailsLoading() {
     >
       <View className="flex-row items-center justify-between gap-4 py-4">
         <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={goBack}>
-          <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} color="#000000" />
+          <Icon icon={ChevronLeftFreeIcons} size={24} colorClassName="accent-ink" />
         </Button>
         <Skeleton className="h-8 w-40 rounded-md" />
         <Skeleton className="size-12 rounded-full" />
@@ -25,7 +26,7 @@ export function ExpenseDetailsLoading() {
       <View className="gap-4">
         <View className="flex-row gap-2">
           {["total", "owed"].map((item) => (
-            <View key={item} className="flex-1 gap-2 rounded-2xl bg-dark-gradient p-4">
+            <View key={item} className="flex-1 gap-2 rounded-2xl bg-contrast-gradient p-4">
               <Skeleton className="h-5 w-20 rounded" />
               <Skeleton className="h-8 w-24 rounded" />
             </View>

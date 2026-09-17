@@ -1,8 +1,9 @@
 import { Check, ChevronLeft } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
 import { useRouter } from "expo-router";
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
+
+import { Icon } from "@/components/icon";
 
 type GroupFormHeaderProps = {
   isDisabled: boolean;
@@ -15,7 +16,7 @@ export function GroupFormHeader({ isDisabled, onSubmit }: GroupFormHeaderProps) 
   return (
     <View className="flex-row items-center justify-between py-4">
       <Button isIconOnly variant="ghost" accessibilityLabel="Go back" onPress={() => router.back()}>
-        <HugeiconsIcon icon={ChevronLeft} size={24} color="#000000" />
+        <Icon icon={ChevronLeft} size={24} colorClassName="accent-ink" />
       </Button>
       <Typography className="text-2xl font-semibold text-ink">Create Group</Typography>
       <Button
@@ -25,7 +26,7 @@ export function GroupFormHeader({ isDisabled, onSubmit }: GroupFormHeaderProps) 
         isDisabled={isDisabled}
         onPress={onSubmit}
       >
-        <HugeiconsIcon icon={Check} size={24} color="#000000" />
+        <Icon icon={Check} size={24} colorClassName="accent-ink" />
       </Button>
     </View>
   );
