@@ -57,7 +57,7 @@ export function Home() {
       <Link
         href={dashboardRoutes.scan}
         aria-label="Scan receipt"
-        className="fixed right-4 bottom-4 z-10 flex size-18 items-center justify-center rounded-full bg-dark-gradient text-on-dark shadow-lg"
+        className="fixed right-4 bottom-4 z-10 flex size-18 items-center justify-center rounded-full bg-contrast-gradient text-on-ink shadow-lg"
       >
         <HugeiconsIcon icon={Scan} size={28} />
       </Link>

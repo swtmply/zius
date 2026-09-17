@@ -5,9 +5,10 @@ import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCSSVariable } from "uniwind";
 
-import { Onboarding } from "@/components/onboarding";
-import { SignIn } from "@/components/sign-in";
+import { Onboarding } from "@/components/layout/onboarding/onboarding";
+import { SignIn } from "@/components/layout/sign-in";
 import { authClient } from "@/lib/auth-client";
 import { getAlwaysShowOnboardingPages } from "@/utils/spotlights";
 
@@ -15,6 +16,7 @@ const ONBOARDING_STORAGE_KEY = "zius-onboarding-complete";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const page = useCSSVariable("--page") as string;
   const { data: session, isPending } = authClient.useSession();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
 
@@ -46,7 +48,7 @@ export default function LoginScreen() {
   }
 
   if (hasCompletedOnboarding === null) {
-    return <View style={{ flex: 1, backgroundColor: "#F2F2F7" }} />;
+    return <View className="flex-1 bg-page" />;
   }
 
   if (!hasCompletedOnboarding) {
@@ -55,14 +57,7 @@ export default function LoginScreen() {
 
   if (isPending) {
     return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#FFFFFF",
-        }}
-      >
+      <View className="flex-1 items-center justify-center bg-page">
         <View
           className="w-full max-w-[420px] gap-4 px-4"
           accessible
@@ -85,7 +80,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAwareScrollView
       bottomOffset={16}
-      style={{ flex: 1, backgroundColor: "#FFFFFF" }}
+      style={{ flex: 1, backgroundColor: page }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
@@ -96,7 +91,7 @@ export default function LoginScreen() {
         paddingTop: Math.max(insets.top, 24) + 27,
         paddingBottom: Math.max(insets.bottom, 24),
         paddingHorizontal: 16,
-        backgroundColor: "#FFFFFF",
+        backgroundColor: page,
       }}
     >
       <SignIn />

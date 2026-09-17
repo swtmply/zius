@@ -29,7 +29,7 @@ export function Participants({
         <h2 className="text-sm text-ink">Participants</h2>
         <button
           type="button"
-          className="inline-flex h-8 items-center gap-2 rounded-full bg-ink px-3 text-xs font-medium text-on-dark"
+          className="inline-flex h-8 items-center gap-2 rounded-full bg-ink px-3 text-xs font-medium text-on-ink"
           onClick={() =>
             setParticipants([...participants, { name: "", email: "", share: "0", paid: false }])
           }

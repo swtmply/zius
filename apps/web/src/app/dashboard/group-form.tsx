@@ -61,7 +61,7 @@ export function GroupForm() {
             setParticipants={setParticipants}
             splitMethod="group"
           />
-          <button type="submit" className="action w-full bg-dark-gradient">
+          <button type="submit" className="action w-full bg-contrast-gradient">
             {createGroup.isPending ? "Creating…" : "Create group"}
           </button>
         </fieldset>

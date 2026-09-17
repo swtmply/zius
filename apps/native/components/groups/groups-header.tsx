@@ -1,9 +1,9 @@
 import { Add, ChevronLeftFreeIcons } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react-native";
-import { useRouter } from "expo-router";
+import { useRouter } from "@/utils/navigation";
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 
+import { Icon } from "@/components/icon";
 import {
   GroupFilters,
   type GroupSort,
@@ -47,7 +47,7 @@ export function GroupsHeader({
           accessibilityLabel="Go back"
           onPress={() => router.back()}
         >
-          <HugeiconsIcon icon={ChevronLeftFreeIcons} size={24} color="#000000" />
+          <Icon icon={ChevronLeftFreeIcons} size={24} colorClassName="accent-ink" />
         </Button>
         <Typography className="flex-1 text-2xl font-semibold text-ink">Groups</Typography>
         <View className="flex-row items-center gap-2">
@@ -55,9 +55,9 @@ export function GroupsHeader({
             isIconOnly
             variant="ghost"
             accessibilityLabel="Create group"
-            onPress={() => router.push("/create-group")}
+            onPress={() => router.push("/groups/create")}
           >
-            <HugeiconsIcon icon={Add} size={24} color="#000000" />
+            <Icon icon={Add} size={24} colorClassName="accent-ink" />
           </Button>
           <GroupFilters status={status} type={type} sort={sort} />
         </View>

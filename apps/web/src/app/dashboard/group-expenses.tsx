@@ -23,7 +23,7 @@ export function GroupExpensesSection({
         {addExpenseHref ? (
           <Link
             href={addExpenseHref}
-            className="inline-flex h-8 items-center gap-2 rounded-full bg-ink px-3 text-xs font-medium text-on-dark"
+            className="inline-flex h-8 items-center gap-2 rounded-full bg-ink px-3 text-xs font-medium text-on-ink"
           >
             <HugeiconsIcon icon={Add} size={16} />
             Add Expense

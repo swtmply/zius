@@ -17,8 +17,8 @@ export default function NotFoundScreen() {
           This page does not exist.
         </Typography>
         <Link href="/" asChild>
-          <Pressable className="h-12 items-center justify-center rounded-2xl bg-dark-gradient px-6 active:opacity-72">
-            <Typography className="text-sm font-bold text-on-dark">Go home</Typography>
+          <Pressable className="h-12 items-center justify-center rounded-2xl bg-contrast-gradient px-6 active:opacity-72">
+            <Typography className="text-sm font-bold text-on-ink">Go home</Typography>
           </Pressable>
         </Link>
       </View>

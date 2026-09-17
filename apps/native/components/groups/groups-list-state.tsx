@@ -1,7 +1,7 @@
 import { Button, Typography } from "heroui-native";
 import { View } from "react-native";
 
-import { GroupsLoading } from "@/components/groups/groups-loading";
+import { GroupsLoading } from "@/components/groups/skeletons/groups-skeleton";
 
 export function GroupsEmptyState() {
   return (

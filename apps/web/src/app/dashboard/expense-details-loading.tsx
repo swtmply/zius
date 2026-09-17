@@ -12,9 +12,9 @@ export function ExpenseDetailsLoading() {
       <div className="space-y-4">
         <div className="flex gap-2">
           {["total", "owed"].map((item) => (
-            <div key={item} className="flex-1 space-y-2 rounded-2xl bg-dark-gradient p-4">
-              <Skeleton className="h-5 w-20 bg-white/15" />
-              <Skeleton className="h-8 w-24 bg-white/15" />
+            <div key={item} className="flex-1 space-y-2 rounded-2xl bg-contrast-gradient p-4">
+              <Skeleton className="h-5 w-20 bg-on-ink/15" />
+              <Skeleton className="h-8 w-24 bg-on-ink/15" />
             </div>
           ))}
         </div>

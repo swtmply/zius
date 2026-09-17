@@ -22,7 +22,7 @@ export function OptionPills<Value extends string>({
             role="radio"
             aria-checked={value === option.value}
             className={`min-h-9 rounded-full px-4 text-sm transition-opacity active:opacity-70 ${
-              value === option.value ? "bg-ink text-on-dark" : "bg-page text-ink"
+              value === option.value ? "bg-ink text-on-ink" : "bg-page text-ink"
             }`}
             onClick={() => onChange(option.value)}
           >

@@ -22,15 +22,15 @@ export default function RootLayout() {
               }}
             >
               <StatusBar style="auto" />
-              <Stack screenOptions={{ headerShown: false }}>
+              <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
                 <Stack.Screen name="index" />
-                <Stack.Screen name="(tabs)" />
-                <Stack.Screen name="(forms)/create-expense" />
-                <Stack.Screen name="(forms)/create-group" />
-                <Stack.Screen name="(modals)/groups/index" />
-                <Stack.Screen name="(modals)/groups/[groupId]" />
-                <Stack.Screen name="(modals)/expenses" />
-                <Stack.Screen name="(modals)/expenses/[expenseId]" />
+                <Stack.Screen name="(pages)/(main)" />
+                <Stack.Screen name="(pages)/(modals)/expenses/index" />
+                <Stack.Screen name="(pages)/(modals)/expenses/create" />
+                <Stack.Screen name="(pages)/(modals)/expenses/[expenseId]" />
+                <Stack.Screen name="(pages)/(modals)/groups/index" />
+                <Stack.Screen name="(pages)/(modals)/groups/create" />
+                <Stack.Screen name="(pages)/(modals)/groups/[groupId]" />
               </Stack>
             </HeroUINativeProvider>
           </AppThemeProvider>

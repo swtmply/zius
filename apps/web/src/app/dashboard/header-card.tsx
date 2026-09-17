@@ -42,9 +42,9 @@ const headerActions = [
 
 function BalanceMetric({ label, amount }: { label: string; amount: number }) {
   return (
-    <div className="min-w-0 flex-1 space-y-2 rounded-2xl bg-dark-gradient p-4">
-      <p className="text-sm text-dark-supporting">{label}</p>
-      <p className="truncate text-2xl font-semibold tabular-nums text-on-dark">
+    <div className="min-w-0 flex-1 space-y-2 rounded-2xl bg-contrast-gradient p-4">
+      <p className="text-sm text-on-ink-supporting">{label}</p>
+      <p className="truncate text-2xl font-semibold tabular-nums text-on-ink">
         {formatCurrency(amount)}
       </p>
     </div>
