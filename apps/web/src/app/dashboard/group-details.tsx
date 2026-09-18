@@ -57,13 +57,19 @@ export function GroupDetails({ id }: { id: string }) {
       return;
     }
 
+    const toastId = toast.loading("Renaming group", { description: "Saving your group name." });
+
     try {
       await updateGroup.mutateAsync({ id, name: trimmedName });
       await refreshDashboard();
       setIsEditing(false);
-      toast.success("Group renamed", { description: "Your group name has been updated." });
+      toast.success("Group renamed", {
+        id: toastId,
+        description: "Your group name has been updated.",
+      });
     } catch (error) {
       toast.error("Failed to rename group", {
+        id: toastId,
         description:
           error instanceof Error && error.message.trim() ? error.message : "Please try again.",
       });

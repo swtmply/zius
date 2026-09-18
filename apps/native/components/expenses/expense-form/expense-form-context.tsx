@@ -1,4 +1,4 @@
-import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
+import { ExpenseCreationToast, showPendingToast } from "@/components/layout/expense-creation-toast";
 import { useForm } from "@tanstack/react-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
@@ -107,6 +107,22 @@ export function useExpenseFormController({
       Keyboard.dismiss();
     },
     onSubmit: async ({ value, meta }) => {
+      if (value.participants.length < 2) {
+        Keyboard.dismiss();
+        setIsGroupDialogOpen(false);
+        toast.show({
+          component: (props) => (
+            <ExpenseCreationToast
+              {...props}
+              variant="danger"
+              title="Add another participant"
+              description="An expense needs at least two participants."
+            />
+          ),
+        });
+        return;
+      }
+
       // A selected group can only take the expense when every participant already
       // belongs to it. Otherwise the choice is a new group or a standalone expense.
       const needsGroupChoice =
@@ -130,6 +146,7 @@ export function useExpenseFormController({
             }))
           : [];
       let expenseId: string;
+      showPendingToast(toast, "Creating expense", "Saving your expense, hang tight.");
       try {
         const createdExpense = await createExpense.mutateAsync({
           ...value,
@@ -141,6 +158,7 @@ export function useExpenseFormController({
         });
         expenseId = createdExpense.id;
       } catch (error) {
+        toast.hide("all");
         const code = error instanceof TRPCClientError ? error.data?.code : undefined;
         const description =
           code === "UNAUTHORIZED"
@@ -173,6 +191,7 @@ export function useExpenseFormController({
       setGroupMemberEmails(
         (group?.participants ?? []).map((participant) => participant.email.toLowerCase()),
       );
+      toast.hide("all");
       toast.show({
         component: (props) => (
           <ExpenseCreationToast

@@ -3,6 +3,7 @@
 Complete guide to Layout Transitions, Custom Animations, and List Animations.
 
 ## Table of Contents
+
 - [Layout Transitions](#layout-transitions)
 - [Custom Entering/Exiting Animations](#custom-enteringexiting-animations)
 - [Custom Layout Transitions](#custom-layout-transitions)
@@ -16,35 +17,36 @@ Complete guide to Layout Transitions, Custom Animations, and List Animations.
 Animate position and size changes when a component's layout changes. Apply via the `layout` prop.
 
 ```tsx
-import Animated, { LinearTransition } from 'react-native-reanimated';
+import Animated, { LinearTransition } from "react-native-reanimated";
 
-<Animated.View layout={LinearTransition.duration(300)} />
+<Animated.View layout={LinearTransition.duration(300)} />;
 ```
 
 ### Available Transitions
 
-| Transition | Behavior |
-|------------|----------|
-| `LinearTransition` | Animates position and dimensions together |
-| `SequencedTransition` | Animates X/width first, then Y/height |
-| `FadingTransition` | Fades out at old position, fades in at new |
-| `JumpingTransition` | Element "jumps" to new position |
-| `CurvedTransition` | Different easing for each property |
-| `EntryExitTransition` | Uses entering/exiting animations |
+| Transition            | Behavior                                   |
+| --------------------- | ------------------------------------------ |
+| `LinearTransition`    | Animates position and dimensions together  |
+| `SequencedTransition` | Animates X/width first, then Y/height      |
+| `FadingTransition`    | Fades out at old position, fades in at new |
+| `JumpingTransition`   | Element "jumps" to new position            |
+| `CurvedTransition`    | Different easing for each property         |
+| `EntryExitTransition` | Uses entering/exiting animations           |
 
 ### LinearTransition
 
 ```tsx
-import { LinearTransition, Easing } from 'react-native-reanimated';
+import { LinearTransition, Easing } from "react-native-reanimated";
 
 // Timing-based
-LinearTransition.duration(400).easing(Easing.out(Easing.quad))
+LinearTransition.duration(400).easing(Easing.out(Easing.quad));
 
 // Spring-based
-LinearTransition.springify().damping(15).stiffness(120)
+LinearTransition.springify().damping(15).stiffness(120);
 ```
 
 **Modifiers:**
+
 - `.duration(ms)` — animation length (default: 300)
 - `.delay(ms)` — delay before start
 - `.easing(fn)` — easing function (ignored with springify)
@@ -61,7 +63,7 @@ LinearTransition.springify().damping(15).stiffness(120)
 Animates X and width first, then Y and height.
 
 ```tsx
-SequencedTransition.duration(500).reverse()
+SequencedTransition.duration(500).reverse();
 ```
 
 - `.reverse()` — animate Y/height first instead
@@ -71,7 +73,7 @@ SequencedTransition.duration(500).reverse()
 Component fades out at old position, then fades in at new position.
 
 ```tsx
-FadingTransition.duration(600)
+FadingTransition.duration(600);
 ```
 
 ### JumpingTransition
@@ -79,7 +81,7 @@ FadingTransition.duration(600)
 Creates a "jumping" effect when moving to new position.
 
 ```tsx
-JumpingTransition.duration(400)
+JumpingTransition.duration(400);
 ```
 
 ### CurvedTransition
@@ -87,14 +89,13 @@ JumpingTransition.duration(400)
 Different easing per property for curved movement paths.
 
 ```tsx
-import { CurvedTransition, Easing } from 'react-native-reanimated';
+import { CurvedTransition, Easing } from "react-native-reanimated";
 
-CurvedTransition
-  .duration(500)
+CurvedTransition.duration(500)
   .easingX(Easing.in(Easing.exp))
   .easingY(Easing.out(Easing.quad))
   .easingWidth(Easing.in(Easing.ease))
-  .easingHeight(Easing.out(Easing.exp))
+  .easingHeight(Easing.out(Easing.exp));
 ```
 
 ### EntryExitTransition
@@ -102,11 +103,9 @@ CurvedTransition
 Uses entering/exiting animations for layout changes.
 
 ```tsx
-import { EntryExitTransition, FlipInEasyX, FlipOutEasyY } from 'react-native-reanimated';
+import { EntryExitTransition, FlipInEasyX, FlipOutEasyY } from "react-native-reanimated";
 
-EntryExitTransition
-  .entering(FlipInEasyX)
-  .exiting(FlipOutEasyY)
+EntryExitTransition.entering(FlipInEasyX).exiting(FlipOutEasyY);
 ```
 
 ---
@@ -119,28 +118,23 @@ Create fully custom mount/unmount animations when presets aren't enough.
 
 ```tsx
 function CustomEntering(targetValues) {
-  'worklet';
+  "worklet";
   const animations = {
     opacity: withTiming(1, { duration: 500 }),
-    transform: [
-      { translateY: withSpring(0) },
-      { scale: withTiming(1) },
-    ],
+    transform: [{ translateY: withSpring(0) }, { scale: withTiming(1) }],
   };
   const initialValues = {
     opacity: 0,
-    transform: [
-      { translateY: -targetValues.targetHeight },
-      { scale: 0.5 },
-    ],
+    transform: [{ translateY: -targetValues.targetHeight }, { scale: 0.5 }],
   };
   return { initialValues, animations };
 }
 
-<Animated.View entering={CustomEntering} />
+<Animated.View entering={CustomEntering} />;
 ```
 
 **Available targetValues:**
+
 - `targetOriginX`, `targetOriginY` — position in parent
 - `targetWidth`, `targetHeight` — dimensions
 - `targetGlobalOriginX`, `targetGlobalOriginY` — global position
@@ -151,7 +145,7 @@ function CustomEntering(targetValues) {
 
 ```tsx
 function CustomExiting(currentValues) {
-  'worklet';
+  "worklet";
   const animations = {
     opacity: withTiming(0, { duration: 300 }),
     transform: [{ translateX: withTiming(currentValues.windowWidth) }],
@@ -163,10 +157,11 @@ function CustomExiting(currentValues) {
   return { initialValues, animations };
 }
 
-<Animated.View exiting={CustomExiting} />
+<Animated.View exiting={CustomExiting} />;
 ```
 
 **Available currentValues:**
+
 - `currentOriginX`, `currentOriginY` — position in parent
 - `currentWidth`, `currentHeight` — dimensions
 - `currentGlobalOriginX`, `currentGlobalOriginY` — global position
@@ -177,7 +172,7 @@ function CustomExiting(currentValues) {
 
 ```tsx
 function CustomEntering(values) {
-  'worklet';
+  "worklet";
   return {
     initialValues: { opacity: 0 },
     animations: { opacity: withTiming(1) },
@@ -196,7 +191,7 @@ For fully custom position/size change animations.
 
 ```tsx
 function CustomLayoutTransition(values) {
-  'worklet';
+  "worklet";
   const animations = {
     originX: withSpring(values.targetOriginX),
     originY: withSpring(values.targetOriginY),
@@ -212,10 +207,11 @@ function CustomLayoutTransition(values) {
   return { initialValues, animations };
 }
 
-<Animated.View layout={CustomLayoutTransition} />
+<Animated.View layout={CustomLayoutTransition} />;
 ```
 
 **Available values (both current and target):**
+
 - `originX`, `originY` — position
 - `width`, `height` — dimensions
 - `globalOriginX`, `globalOriginY` — global position
@@ -231,18 +227,13 @@ Animate items in lists (FlatList, map) when items are added, removed, or reorder
 ### Basic Usage
 
 ```tsx
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, LinearTransition } from "react-native-reanimated";
 
 function AnimatedList({ items }) {
   return (
     <View>
       {items.map((item) => (
-        <Animated.View
-          key={item.id}
-          entering={FadeIn}
-          exiting={FadeOut}
-          layout={LinearTransition}
-        >
+        <Animated.View key={item.id} entering={FadeIn} exiting={FadeOut} layout={LinearTransition}>
           <Text>{item.title}</Text>
         </Animated.View>
       ))}
@@ -254,7 +245,7 @@ function AnimatedList({ items }) {
 ### With FlatList
 
 ```tsx
-import Animated from 'react-native-reanimated';
+import Animated from "react-native-reanimated";
 
 const AnimatedFlatList = Animated.FlatList;
 
@@ -282,14 +273,10 @@ function List({ data }) {
 
 ```tsx
 items.map((item, index) => (
-  <Animated.View
-    key={item.id}
-    entering={FadeInDown.delay(index * 100)}
-    layout={LinearTransition}
-  >
+  <Animated.View key={item.id} entering={FadeInDown.delay(index * 100)} layout={LinearTransition}>
     {/* content */}
   </Animated.View>
-))
+));
 ```
 
 ### Shuffle Animation
@@ -324,17 +311,20 @@ Global configuration for layout animations.
 ### LayoutAnimationConfig Component
 
 ```tsx
-import { LayoutAnimationConfig } from 'react-native-reanimated';
+import { LayoutAnimationConfig } from "react-native-reanimated";
 
 // Disable all layout animations for children
 <LayoutAnimationConfig skipEntering skipExiting>
-  <Animated.View entering={FadeIn}> {/* won't animate */}
+  <Animated.View entering={FadeIn}>
+    {" "}
+    {/* won't animate */}
     {children}
   </Animated.View>
-</LayoutAnimationConfig>
+</LayoutAnimationConfig>;
 ```
 
 **Props:**
+
 - `skipEntering` — skip entering animations
 - `skipExiting` — skip exiting animations
 
@@ -355,6 +345,7 @@ import { ReducedMotionConfig, ReduceMotion } from 'react-native-reanimated';
 ```
 
 **ReduceMotion values:**
+
 - `ReduceMotion.System` — respect device setting (default)
 - `ReduceMotion.Always` — always reduce motion
 - `ReduceMotion.Never` — never reduce motion
@@ -363,9 +354,9 @@ import { ReducedMotionConfig, ReduceMotion } from 'react-native-reanimated';
 
 ## Platform Compatibility
 
-| Feature | Android | iOS | Web |
-|---------|---------|-----|-----|
-| Layout Transitions | Yes | Yes | Yes |
-| Custom Entering/Exiting | Yes | Yes | No |
-| Custom Layout | Yes | Yes | No |
-| List Animations | Yes | Yes | Partial |
+| Feature                 | Android | iOS | Web     |
+| ----------------------- | ------- | --- | ------- |
+| Layout Transitions      | Yes     | Yes | Yes     |
+| Custom Entering/Exiting | Yes     | Yes | No      |
+| Custom Layout           | Yes     | Yes | No      |
+| List Animations         | Yes     | Yes | Partial |

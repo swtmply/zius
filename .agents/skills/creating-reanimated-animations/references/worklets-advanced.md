@@ -3,6 +3,7 @@
 Understanding worklets and advanced Reanimated APIs for complex use cases.
 
 ## Table of Contents
+
 - [Worklets](#worklets)
 - [Thread Communication](#thread-communication)
 - [Advanced Hooks](#advanced-hooks)
@@ -21,8 +22,8 @@ Add the `'worklet'` directive at the top of a function:
 
 ```tsx
 function myWorklet() {
-  'worklet';
-  console.log('Running on UI thread');
+  "worklet";
+  console.log("Running on UI thread");
 }
 ```
 
@@ -45,8 +46,8 @@ Worklets capture variables from their enclosing scope:
 const threshold = 100;
 
 function checkThreshold() {
-  'worklet';
-  console.log('Threshold is', threshold); // captures `threshold`
+  "worklet";
+  console.log("Threshold is", threshold); // captures `threshold`
 }
 ```
 
@@ -76,7 +77,7 @@ Unlike regular functions, worklets are not hoisted:
 myWorklet(); // ERROR - not defined yet
 
 function myWorklet() {
-  'worklet';
+  "worklet";
 }
 ```
 
@@ -89,11 +90,11 @@ function myWorklet() {
 Execute worklets on the UI thread from JS thread:
 
 ```tsx
-import { runOnUI } from 'react-native-reanimated';
+import { runOnUI } from "react-native-reanimated";
 // v4: also available as scheduleOnUI from react-native-worklets
 
 function startAnimation() {
-  'worklet';
+  "worklet";
   sharedValue.value = withSpring(100);
 }
 
@@ -102,7 +103,7 @@ runOnUI(startAnimation)();
 
 // With arguments:
 function animateTo(target) {
-  'worklet';
+  "worklet";
   sharedValue.value = withSpring(target);
 }
 runOnUI(animateTo)(200);
@@ -113,17 +114,17 @@ runOnUI(animateTo)(200);
 Execute JS functions from worklets (UI thread):
 
 ```tsx
-import { runOnJS } from 'react-native-reanimated';
+import { runOnJS } from "react-native-reanimated";
 // v4: also available as scheduleOnRN from react-native-worklets
 
 function showAlert(message) {
-  Alert.alert('Done', message);
+  Alert.alert("Done", message);
 }
 
 const pan = Gesture.Pan().onEnd(() => {
-  'worklet';
+  "worklet";
   // Call JS function from UI thread
-  runOnJS(showAlert)('Gesture completed!');
+  runOnJS(showAlert)("Gesture completed!");
 });
 ```
 
@@ -132,12 +133,12 @@ const pan = Gesture.Pan().onEnd(() => {
 ```tsx
 // WRONG - myFunc defined in worklet scope
 const gesture = Gesture.Pan().onEnd(() => {
-  const myFunc = () => console.log('hi');
+  const myFunc = () => console.log("hi");
   runOnJS(myFunc)(); // ERROR
 });
 
 // CORRECT - myFunc defined in component scope
-const myFunc = () => console.log('hi');
+const myFunc = () => console.log("hi");
 const gesture = Gesture.Pan().onEnd(() => {
   runOnJS(myFunc)(); // Works
 });
@@ -152,7 +153,7 @@ const gesture = Gesture.Pan().onEnd(() => {
 React to shared value changes with custom logic:
 
 ```tsx
-import { useAnimatedReaction, runOnJS } from 'react-native-reanimated';
+import { useAnimatedReaction, runOnJS } from "react-native-reanimated";
 
 useAnimatedReaction(
   () => scrollY.value, // "prepare" - returns value to watch
@@ -162,11 +163,12 @@ useAnimatedReaction(
       runOnJS(onScrolledPastHeader)();
     }
   },
-  [] // optional deps for react function
+  [], // optional deps for react function
 );
 ```
 
 **Use cases:**
+
 - Trigger side effects on threshold crossings
 - Sync shared values conditionally
 - Debug shared value changes
@@ -176,13 +178,13 @@ useAnimatedReaction(
 Run code every frame (~60/120 fps):
 
 ```tsx
-import { useFrameCallback } from 'react-native-reanimated';
+import { useFrameCallback } from "react-native-reanimated";
 
 useFrameCallback((frameInfo) => {
   // frameInfo: { timestamp, timeSincePreviousFrame, timeSinceFirstFrame }
 
   // Physics simulation
-  position.value += velocity.value * frameInfo.timeSincePreviousFrame / 1000;
+  position.value += (velocity.value * frameInfo.timeSincePreviousFrame) / 1000;
   velocity.value *= 0.98; // friction
 }, true); // autostart = true
 ```
@@ -195,7 +197,7 @@ const frameCallback = useFrameCallback((info) => {
 }, false); // don't autostart
 
 // Control manually:
-frameCallback.setActive(true);  // start
+frameCallback.setActive(true); // start
 frameCallback.setActive(false); // stop
 ```
 
@@ -224,17 +226,17 @@ const composedHandler = useComposedEventHandler([scrollHandler1, scrollHandler2]
 Create custom event handlers for native events:
 
 ```tsx
-import { useEvent } from 'react-native-reanimated';
+import { useEvent } from "react-native-reanimated";
 
 const handler = useEvent(
   (event) => {
-    'worklet';
+    "worklet";
     sharedValue.value = event.nativeEvent.someValue;
   },
-  ['onCustomEvent'] // event names to listen
+  ["onCustomEvent"], // event names to listen
 );
 
-<CustomNativeComponent onCustomEvent={handler} />
+<CustomNativeComponent onCustomEvent={handler} />;
 ```
 
 ### useHandler
@@ -242,11 +244,15 @@ const handler = useEvent(
 Lower-level hook for custom event handler creation:
 
 ```tsx
-import { useHandler } from 'react-native-reanimated';
+import { useHandler } from "react-native-reanimated";
 
 const { doDependenciesDiffer } = useHandler(
-  { onScroll: (e) => { /* ... */ } },
-  ['onScroll']
+  {
+    onScroll: (e) => {
+      /* ... */
+    },
+  },
+  ["onScroll"],
 );
 ```
 
@@ -259,15 +265,15 @@ const { doDependenciesDiffer } = useHandler(
 Get component measurements on UI thread:
 
 ```tsx
-import { useAnimatedRef, measure, runOnUI } from 'react-native-reanimated';
+import { useAnimatedRef, measure, runOnUI } from "react-native-reanimated";
 
 const ref = useAnimatedRef<Animated.View>();
 
 const getMeasurements = () => {
-  'worklet';
+  "worklet";
   const measurements = measure(ref);
   // { x, y, width, height, pageX, pageY }
-  console.log('Width:', measurements.width);
+  console.log("Width:", measurements.width);
 };
 
 // Call from gesture or other worklet
@@ -281,13 +287,13 @@ runOnUI(getMeasurements)();
 Send commands to native components:
 
 ```tsx
-import { dispatchCommand, useAnimatedRef } from 'react-native-reanimated';
+import { dispatchCommand, useAnimatedRef } from "react-native-reanimated";
 
 const scrollRef = useAnimatedRef<Animated.ScrollView>();
 
 const scrollToTop = () => {
-  'worklet';
-  dispatchCommand(scrollRef, 'scrollTo', [0, 0, true]);
+  "worklet";
+  dispatchCommand(scrollRef, "scrollTo", [0, 0, true]);
 };
 ```
 
@@ -296,12 +302,12 @@ const scrollToTop = () => {
 Directly set native props (escape hatch):
 
 ```tsx
-import { setNativeProps, useAnimatedRef } from 'react-native-reanimated';
+import { setNativeProps, useAnimatedRef } from "react-native-reanimated";
 
 const ref = useAnimatedRef<Animated.View>();
 
 const updateNative = () => {
-  'worklet';
+  "worklet";
   setNativeProps(ref, { opacity: 0.5 });
 };
 ```
@@ -313,7 +319,7 @@ const updateNative = () => {
 Create a mutable value outside React (for advanced use cases):
 
 ```tsx
-import { makeMutable } from 'react-native-reanimated';
+import { makeMutable } from "react-native-reanimated";
 
 // Outside component - persists across renders
 const globalOffset = makeMutable(0);
@@ -337,7 +343,7 @@ globalOffset.value = null; // or use cancelAnimation
 Configure Reanimated's console output:
 
 ```tsx
-import { configureReanimatedLogger, ReanimatedLogLevel } from 'react-native-reanimated';
+import { configureReanimatedLogger, ReanimatedLogLevel } from "react-native-reanimated";
 
 configureReanimatedLogger({
   level: ReanimatedLogLevel.warn, // 'warn' | 'error' | 'log'
@@ -353,9 +359,12 @@ Enable detailed stack traces for debugging:
 // In babel.config.js
 module.exports = {
   plugins: [
-    ['react-native-reanimated/plugin', {
-      disableInlineStylesWarning: true,
-    }],
+    [
+      "react-native-reanimated/plugin",
+      {
+        disableInlineStylesWarning: true,
+      },
+    ],
   ],
 };
 ```
@@ -363,11 +372,12 @@ module.exports = {
 ### Common Performance Tips
 
 1. **Separate static and animated styles:**
+
 ```tsx
 // GOOD
 const staticStyle = { padding: 20, borderRadius: 8 };
 const animatedStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-<Animated.View style={[staticStyle, animatedStyle]} />
+<Animated.View style={[staticStyle, animatedStyle]} />;
 
 // BAD - recreates static styles in worklet
 const style = useAnimatedStyle(() => ({
@@ -378,6 +388,7 @@ const style = useAnimatedStyle(() => ({
 ```
 
 2. **Avoid creating objects in worklets:**
+
 ```tsx
 // BAD
 const style = useAnimatedStyle(() => ({
@@ -388,12 +399,14 @@ const style = useAnimatedStyle(() => ({
 ```
 
 3. **Use `useDerivedValue` for computed values:**
+
 ```tsx
 // Instead of computing in multiple places
 const derived = useDerivedValue(() => offset.value * 2);
 ```
 
 4. **Cancel animations when unmounting:**
+
 ```tsx
 useEffect(() => {
   return () => {

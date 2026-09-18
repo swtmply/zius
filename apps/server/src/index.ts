@@ -1,11 +1,7 @@
 import { trpcServer } from "@hono/trpc-server";
 import { Scalar } from "@scalar/hono-api-reference";
 import { createContext } from "@zius/api/context";
-import {
-  createOpenApiDocument,
-  handleOpenApiRequest,
-  OPENAPI_ENDPOINT,
-} from "@zius/api/openapi";
+import { createOpenApiDocument, handleOpenApiRequest, OPENAPI_ENDPOINT } from "@zius/api/openapi";
 import { appRouter } from "@zius/api/routers/index";
 import { auth } from "@zius/auth";
 import { env } from "@zius/env/server";
@@ -42,10 +38,7 @@ app.all(`${OPENAPI_ENDPOINT}/*`, (c) => {
   return handleOpenApiRequest(c.req.raw, () => createContext({ context: c }));
 });
 
-const documentsByBaseUrl = new Map<
-  string,
-  ReturnType<typeof createOpenApiDocument>
->();
+const documentsByBaseUrl = new Map<string, ReturnType<typeof createOpenApiDocument>>();
 
 function getOpenApiDocument(requestUrl: string) {
   const url = new URL(requestUrl);

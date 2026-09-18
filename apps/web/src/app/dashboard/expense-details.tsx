@@ -47,16 +47,22 @@ export function ExpenseDetails({ id }: { id: string }) {
       return;
     }
 
+    const toastId = toast.loading("Updating expense", {
+      description: "Saving your payment statuses.",
+    });
+
     try {
       await updateExpense.mutateAsync({ id, participants });
       await refreshDashboard();
       setIsSettling(false);
       setParticipantStatuses({});
       toast.success("Expense updated successfully", {
+        id: toastId,
         description: "Your payment statuses have been saved.",
       });
     } catch (error) {
       toast.error("Failed to update expense", {
+        id: toastId,
         description:
           error instanceof Error && error.message.trim()
             ? error.message

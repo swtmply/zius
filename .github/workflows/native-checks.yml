@@ -27,18 +27,10 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Typecheck
-        run: bun run typecheck
+        run: bun run check-types
 
-      - name: Lint
-        run: bun run lint
-
-      - name: Expo Doctor
-        working-directory: apps/native
-        run: bunx expo-doctor
-
-      - name: Check Expo dependencies
-        working-directory: apps/native
-        run: bunx expo install --check
+      - name: Oxlint check
+        run: bun run check
 
       - name: Verify Android bundle
         working-directory: apps/native
@@ -73,16 +65,15 @@ jobs:
         id: fingerprint
         shell: bash
         run: |
-          HEAD_FINGERPRINT=$(
+          HEAD_HASH=$(
             cd apps/native
             eas fingerprint:generate \
               --platform android \
               --environment preview \
               --json \
-              --non-interactive
+              --non-interactive \
+              | sed -n '/^{/,$p' | jq -r '.hash'
           )
-
-          HEAD_HASH=$(echo "$HEAD_FINGERPRINT" | jq -r '.hash')
 
           git worktree add \
             --detach \
@@ -92,16 +83,15 @@ jobs:
           cd /tmp/zius-base
           bun install --frozen-lockfile
 
-          BASE_FINGERPRINT=$(
+          BASE_HASH=$(
             cd apps/native
             eas fingerprint:generate \
               --platform android \
               --environment preview \
               --json \
-              --non-interactive
+              --non-interactive \
+              | sed -n '/^{/,$p' | jq -r '.hash'
           )
-
-          BASE_HASH=$(echo "$BASE_FINGERPRINT" | jq -r '.hash')
 
           if [ "$HEAD_HASH" = "$BASE_HASH" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"

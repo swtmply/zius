@@ -1,11 +1,14 @@
+import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@/utils/navigation";
-import { Typography } from "heroui-native";
+import { Typography, useToast } from "heroui-native";
 import { useRef, useState, type RefObject } from "react";
 import { ActivityIndicator, Pressable, TextInput, View, type TextInputProps } from "react-native";
 import { useCSSVariable } from "uniwind";
 import { z } from "zod";
 
+import { Icon } from "@/components/icon";
+import { showPendingToast } from "@/components/layout/expense-creation-toast";
 import { authClient } from "@/lib/auth-client";
 
 const signInSchema = z.object({
@@ -24,7 +27,9 @@ type AuthFieldProps = TextInputProps & {
   label: string;
 };
 
-function AuthField({ inputRef, label, style, ...inputProps }: AuthFieldProps) {
+function AuthField({ inputRef, label, style, secureTextEntry, ...inputProps }: AuthFieldProps) {
+  const [visible, setVisible] = useState(false);
+
   return (
     <View
       className="bg-panel"
@@ -41,12 +46,29 @@ function AuthField({ inputRef, label, style, ...inputProps }: AuthFieldProps) {
       <Typography className="w-[82px] text-sm text-ink">{label}</Typography>
       <TextInput
         {...inputProps}
+        secureTextEntry={secureTextEntry && !visible}
         accessibilityLabel={inputProps.accessibilityLabel ?? label}
         ref={inputRef}
         placeholderTextColorClassName="accent-muted"
         className="h-full flex-1 text-sm text-ink"
         style={[{ flex: 1, height: "100%" }, style]}
       />
+      {secureTextEntry ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={visible ? "Hide password" : "Show password"}
+          accessibilityState={{ selected: visible }}
+          hitSlop={12}
+          onPress={() => setVisible((v) => !v)}
+          style={({ pressed }) => ({ paddingLeft: 12, opacity: pressed ? 0.6 : 1 })}
+        >
+          <Icon
+            icon={visible ? ViewOffSlashIcon : ViewIcon}
+            size={18}
+            colorClassName="accent-muted"
+          />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -58,6 +80,7 @@ export function SignIn() {
   const passwordInputRef = useRef<TextInput>(null);
   const [mode, setMode] = useState<AuthMode>("sign-in");
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
 
   const form = useForm({
@@ -77,39 +100,49 @@ export function SignIn() {
         return;
       }
 
-      if (mode === "sign-up") {
-        await authClient.signUp.email(
+      showPendingToast(
+        toast,
+        mode === "sign-up" ? "Creating your account" : "Signing you in",
+        "This only takes a moment.",
+      );
+
+      try {
+        if (mode === "sign-up") {
+          await authClient.signUp.email(
+            {
+              name: value.name.trim(),
+              email: value.email.trim(),
+              password: value.password,
+            },
+            {
+              onError(error) {
+                setSubmissionError(error.error.message ?? "Unable to create your account");
+              },
+              onSuccess() {
+                router.replace("/home");
+              },
+            },
+          );
+          return;
+        }
+
+        await authClient.signIn.email(
           {
-            name: value.name.trim(),
             email: value.email.trim(),
             password: value.password,
           },
           {
             onError(error) {
-              setSubmissionError(error.error.message ?? "Unable to create your account");
+              setSubmissionError(error.error.message ?? "Unable to log in");
             },
             onSuccess() {
               router.replace("/home");
             },
           },
         );
-        return;
+      } finally {
+        toast.hide("all");
       }
-
-      await authClient.signIn.email(
-        {
-          email: value.email.trim(),
-          password: value.password,
-        },
-        {
-          onError(error) {
-            setSubmissionError(error.error.message ?? "Unable to log in");
-          },
-          onSuccess() {
-            router.replace("/home");
-          },
-        },
-      );
     },
   });
 

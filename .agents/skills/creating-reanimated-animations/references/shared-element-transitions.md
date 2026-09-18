@@ -5,6 +5,7 @@ Smoothly animate components between screens during navigation.
 > **Experimental:** This feature requires a [feature flag](https://docs.swmansion.com/react-native-reanimated/docs/guides/feature-flags#enable_shared_element_transitions) and is not recommended for production yet.
 
 ## Table of Contents
+
 - [Setup](#setup)
 - [Basic Usage](#basic-usage)
 - [Custom Animations](#custom-animations)
@@ -33,7 +34,7 @@ Smoothly animate components between screens during navigation.
 Or for bare React Native, in your entry file:
 
 ```tsx
-import { enableLayoutAnimations } from 'react-native-reanimated';
+import { enableLayoutAnimations } from "react-native-reanimated";
 enableLayoutAnimations(true);
 ```
 
@@ -42,7 +43,7 @@ enableLayoutAnimations(true);
 Shared Element Transitions only work with `@react-navigation/native-stack`:
 
 ```tsx
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 const Stack = createNativeStackNavigator();
 ```
@@ -56,11 +57,11 @@ Assign the same `sharedTransitionTag` to matching components on different screen
 **Screen A (List)**
 
 ```tsx
-import Animated from 'react-native-reanimated';
+import Animated from "react-native-reanimated";
 
 function ListScreen({ navigation }) {
   return (
-    <Pressable onPress={() => navigation.navigate('Detail', { id: item.id })}>
+    <Pressable onPress={() => navigation.navigate("Detail", { id: item.id })}>
       <Animated.Image
         source={{ uri: item.image }}
         sharedTransitionTag={`image-${item.id}`}
@@ -100,7 +101,7 @@ When navigating between screens, the image will smoothly transform from thumbnai
 Customize the transition using `SharedTransition` builder:
 
 ```tsx
-import Animated, { SharedTransition } from 'react-native-reanimated';
+import Animated, { SharedTransition } from "react-native-reanimated";
 
 // Timing-based
 const customTransition = SharedTransition.duration(800);
@@ -109,10 +110,7 @@ const customTransition = SharedTransition.duration(800);
 const springTransition = SharedTransition.duration(500).springify();
 
 // With damping
-const bouncyTransition = SharedTransition
-  .duration(600)
-  .springify()
-  .damping(12);
+const bouncyTransition = SharedTransition.duration(600).springify().damping(12);
 
 function Screen() {
   return (
@@ -127,13 +125,13 @@ function Screen() {
 
 ### Available Modifiers
 
-| Modifier | Description |
-|----------|-------------|
+| Modifier        | Description                       |
+| --------------- | --------------------------------- |
 | `.duration(ms)` | Animation duration (default: 500) |
-| `.springify()` | Use spring physics |
-| `.damping(n)` | Spring damping |
-| `.stiffness(n)` | Spring stiffness |
-| `.mass(n)` | Spring mass |
+| `.springify()`  | Use spring physics                |
+| `.damping(n)`   | Spring damping                    |
+| `.stiffness(n)` | Spring stiffness                  |
+| `.mass(n)`      | Spring mass                       |
 
 ---
 
@@ -174,16 +172,16 @@ Both image and title will animate together.
 ## Complete Example
 
 ```tsx
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import Animated, { SharedTransition } from 'react-native-reanimated';
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import Animated, { SharedTransition } from "react-native-reanimated";
 
 const Stack = createNativeStackNavigator();
 const transition = SharedTransition.duration(400).springify();
 
 const items = [
-  { id: '1', title: 'Mountains', image: 'https://...' },
-  { id: '2', title: 'Beach', image: 'https://...' },
+  { id: "1", title: "Mountains", image: "https://..." },
+  { id: "2", title: "Beach", image: "https://..." },
 ];
 
 function ListScreen({ navigation }) {
@@ -192,7 +190,7 @@ function ListScreen({ navigation }) {
       {items.map((item) => (
         <Pressable
           key={item.id}
-          onPress={() => navigation.navigate('Detail', { item })}
+          onPress={() => navigation.navigate("Detail", { item })}
           style={styles.card}
         >
           <Animated.Image
@@ -236,11 +234,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', padding: 16 },
+  card: { flexDirection: "row", padding: 16 },
   thumbnail: { width: 80, height: 80, borderRadius: 8 },
   cardTitle: { marginLeft: 16, fontSize: 18 },
   detail: { flex: 1 },
-  hero: { width: '100%', height: 300 },
+  hero: { width: "100%", height: 300 },
   detailTitle: { fontSize: 24, padding: 16 },
 });
 ```
@@ -250,6 +248,7 @@ const styles = StyleSheet.create({
 ## Animated Properties
 
 The following properties are automatically animated during transitions:
+
 - `width`, `height`
 - `originX`, `originY`
 - `transform`
@@ -260,19 +259,20 @@ The following properties are automatically animated during transitions:
 
 ## Limitations
 
-| Limitation | Description |
-|------------|-------------|
-| Navigator | Only `@react-navigation/native-stack` supported |
-| Tab Navigator | Not supported on path with shared transitions |
-| Modals | `transparentModal` doesn't work properly on iOS |
-| Custom functions | Can't define fully custom animation functions |
-| Progress-based | `backgroundColor` not supported in progress transitions |
-| iOS positioning | Some vertical positioning issues with headers |
-| Performance | Transforms recalculated too eagerly |
+| Limitation       | Description                                             |
+| ---------------- | ------------------------------------------------------- |
+| Navigator        | Only `@react-navigation/native-stack` supported         |
+| Tab Navigator    | Not supported on path with shared transitions           |
+| Modals           | `transparentModal` doesn't work properly on iOS         |
+| Custom functions | Can't define fully custom animation functions           |
+| Progress-based   | `backgroundColor` not supported in progress transitions |
+| iOS positioning  | Some vertical positioning issues with headers           |
+| Performance      | Transforms recalculated too eagerly                     |
 
 ### Swipe-back Behavior (iOS)
 
 On iOS, when triggered by swipe gesture or back button, the transition is progress-based (follows finger position). This allows for:
+
 - Transition that follows gesture
 - Cancellation if swipe is incomplete
 
@@ -281,7 +281,7 @@ On iOS, when triggered by swipe gesture or back button, the transition is progre
 ## Platform Compatibility
 
 | Platform | Support |
-|----------|---------|
-| Android | Yes |
-| iOS | Yes |
-| Web | No |
+| -------- | ------- |
+| Android  | Yes     |
+| iOS      | Yes     |
+| Web      | No      |

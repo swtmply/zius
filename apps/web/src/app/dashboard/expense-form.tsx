@@ -146,7 +146,18 @@ function ExpenseFormFields({ initialGroup }: { initialGroup?: Group }) {
           event.preventDefault();
           if (createExpense.isPending || isLoadingGroup) return;
           setError("");
+
+          if (participants.length < 2) {
+            toast.error("Add another participant", {
+              description: "An expense needs at least two participants.",
+            });
+            return;
+          }
+
           const form = new FormData(event.currentTarget);
+          const toastId = toast.loading("Creating expense", {
+            description: "Saving your expense, hang tight.",
+          });
 
           try {
             const result = await createExpense.mutateAsync({
@@ -177,11 +188,14 @@ function ExpenseFormFields({ initialGroup }: { initialGroup?: Group }) {
             });
             await refreshDashboard();
             toast.success("Expense created successfully", {
+              id: toastId,
               description: "Your expense has been created.",
             });
             router.push(dashboardRoutes.expense(result.id));
           } catch (error) {
-            setError(error instanceof Error ? error.message : "Could not create expense.");
+            const message = error instanceof Error ? error.message : "Could not create expense.";
+            setError(message);
+            toast.error("Failed to create expense", { id: toastId, description: message });
           }
         }}
       >

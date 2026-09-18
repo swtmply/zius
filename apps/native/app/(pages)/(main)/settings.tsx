@@ -5,7 +5,7 @@ import { Button, Typography, Switch, useToast } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "@/components/icon";
-import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
+import { ExpenseCreationToast, showPendingToast } from "@/components/layout/expense-creation-toast";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "@/utils/navigation";
 import {
@@ -98,21 +98,45 @@ export default function Settings() {
 
     setErrorMessage(null);
     setIsSaving(true);
+    showPendingToast(toast, "Updating profile", "Saving your name.");
     const result = await authClient.updateUser({ name }).catch((error: unknown) => ({
       error: {
         message: error instanceof Error ? error.message : "Unable to update your name.",
       },
     }));
     setIsSaving(false);
+    toast.hide("all");
 
     if (result.error) {
-      setErrorMessage(result.error.message || "Unable to update your name.");
+      const description = result.error.message || "Unable to update your name.";
+      setErrorMessage(description);
+      toast.show({
+        duration: 6000,
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="danger"
+            title="Failed to update profile"
+            description={description}
+          />
+        ),
+      });
       return;
     }
 
     setDraftName(name);
     setIsEditing(false);
     Keyboard.dismiss();
+    toast.show({
+      component: (props) => (
+        <ExpenseCreationToast
+          {...props}
+          variant="success"
+          title="Profile updated"
+          description="Your name has been updated."
+        />
+      ),
+    });
   };
 
   const signOut = async () => {

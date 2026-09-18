@@ -4,7 +4,11 @@ import { PressableFeedback } from "heroui-native";
 import { useState } from "react";
 import { View } from "react-native";
 import { GroupPickerSelect } from "@/components/groups/group-form/group-picker-dialog";
-import { splitMethods, type FormParticipant, type SplitMethod } from "@/utils/expenses/expense-form";
+import {
+  splitMethods,
+  type FormParticipant,
+  type SplitMethod,
+} from "@/utils/expenses/expense-form";
 import { ExpenseSelectionSheet, type ExpenseSelectionOption } from "./expense-selection-sheet";
 import { ExpenseActionTileContent } from "./expense-action-tile-content";
 

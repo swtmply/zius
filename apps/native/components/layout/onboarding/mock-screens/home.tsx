@@ -191,15 +191,7 @@ function isStep(value: string | null): value is Step {
   return value !== null && STEPS.includes(value as Step);
 }
 
-function OnboardingHint({
-  step,
-  stepIndex,
-  onContinue,
-}: {
-  step: Step;
-  stepIndex: number;
-  onContinue: () => void;
-}) {
+function OnboardingHint({ step, stepIndex }: { step: Step; stepIndex: number }) {
   const reducedMotion = useReducedMotion();
   const previousStepIndex = useRef(stepIndex);
   const contentProgress = useSharedValue(1);
@@ -356,7 +348,7 @@ function MockContent({ onComplete }: MockHomeProps) {
           style={{ minHeight: 80 }}
           accessibilityRole="summary"
         >
-          <OnboardingHint step={step} stepIndex={stepIndex} onContinue={nextTarget} />
+          <OnboardingHint step={step} stepIndex={stepIndex} />
         </SpotlightContainer>
       </View>
     </GestureDetector>

@@ -12,23 +12,21 @@ import * as SecureStore from "expo-secure-store";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
-const CREATE_EXPENSE_ONBOARDING_STORAGE_KEY =
-  "create-expense-onboarding-completed";
+const CREATE_EXPENSE_ONBOARDING_STORAGE_KEY = "create-expense-onboarding-completed";
 const CREATE_EXPENSE_ONBOARDING_COMPLETED_VALUE = "true";
 
 export default function CreateExpenseForm() {
   const router = useRouter();
-  const { groupId: groupIdParam, receipt: receiptParam } =
-    useLocalSearchParams<{
-      groupId?: string;
-      receipt?: string;
-    }>();
+  const { groupId: groupIdParam, receipt: receiptParam } = useLocalSearchParams<{
+    groupId?: string;
+    receipt?: string;
+  }>();
   const groupId = typeof groupIdParam === "string" ? groupIdParam : undefined;
   const initialReceipt = parseReceiptParam(receiptParam);
   const showCreateExpenseOnboarding = !groupId && !initialReceipt;
-  const [isOnboardingVisible, setIsOnboardingVisible] = useState<
-    boolean | null
-  >(showCreateExpenseOnboarding ? null : false);
+  const [isOnboardingVisible, setIsOnboardingVisible] = useState<boolean | null>(
+    showCreateExpenseOnboarding ? null : false,
+  );
   const {
     data: currentParticipant,
     error: participantError,
@@ -90,9 +88,7 @@ export default function CreateExpenseForm() {
       <View className="bg-page flex-1 items-center justify-center px-4">
         <View className="w-full items-center gap-4 rounded-2xl bg-panel p-4">
           <Typography selectable className="text-sm text-danger">
-            {groupError
-              ? "Unable to load this group."
-              : "Unable to load your participant details."}
+            {groupError ? "Unable to load this group." : "Unable to load your participant details."}
           </Typography>
           <View className="flex-row gap-2">
             <Button
@@ -108,11 +104,7 @@ export default function CreateExpenseForm() {
             <Button
               size="sm"
               variant="ghost"
-              onPress={() =>
-                router.canGoBack()
-                  ? router.back()
-                  : router.replace("/home")
-              }
+              onPress={() => (router.canGoBack() ? router.back() : router.replace("/home"))}
             >
               <Button.Label>Go back</Button.Label>
             </Button>

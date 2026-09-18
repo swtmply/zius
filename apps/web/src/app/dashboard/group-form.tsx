@@ -11,8 +11,10 @@ import { refreshDashboard } from "./mutations";
 import { Participants, type ParticipantDraft } from "./participants";
 import { dashboardRoutes } from "./routes";
 import { ScreenHeader } from "./screen-header";
+import { useUser } from "./user-context";
 
 export function GroupForm() {
+  const user = useUser();
   const router = useRouter();
   const [participants, setParticipants] = useState<ParticipantDraft[]>([]);
   const [error, setError] = useState("");
@@ -26,7 +28,23 @@ export function GroupForm() {
         onSubmit={async (event) => {
           event.preventDefault();
           setError("");
+
+          const members = new Set([
+            user.email.toLowerCase(),
+            ...participants.map((person) => person.email.trim().toLowerCase()),
+          ]);
+
+          if (members.size < 2) {
+            toast.error("Add another participant", {
+              description: "A group needs at least two participants.",
+            });
+            return;
+          }
+
           const form = new FormData(event.currentTarget);
+          const toastId = toast.loading("Creating group", {
+            description: "Saving your group, hang tight.",
+          });
 
           try {
             const result = await createGroup.mutateAsync({
@@ -38,11 +56,14 @@ export function GroupForm() {
             });
             await refreshDashboard();
             toast.success("Group created successfully", {
+              id: toastId,
               description: "Your group has been created.",
             });
             router.push(dashboardRoutes.group(result.id));
           } catch (error) {
-            setError(error instanceof Error ? error.message : "Could not create group.");
+            const message = error instanceof Error ? error.message : "Could not create group.";
+            setError(message);
+            toast.error("Failed to create group", { id: toastId, description: message });
           }
         }}
       >

@@ -9,7 +9,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useState } from "react";
 
 import { SectionHeader } from "@/components/layout/section-header";
-import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
+import { ExpenseCreationToast, showPendingToast } from "@/components/layout/expense-creation-toast";
 import { trpc } from "@/utils/trpc";
 
 import { GuestDialog } from "@/components/expenses/expense-form/expense-guest-dialog";
@@ -56,6 +56,22 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
     onSubmit: async ({ value }) => {
       Keyboard.dismiss();
 
+      if (value.participants.length < 2) {
+        toast.show({
+          component: (props) => (
+            <ExpenseCreationToast
+              {...props}
+              variant="danger"
+              title="Add another participant"
+              description="A group needs at least two participants."
+            />
+          ),
+        });
+        return;
+      }
+
+      showPendingToast(toast, "Creating group", "Saving your group, hang tight.");
+
       try {
         await createGroup.mutateAsync({
           name: value.name.trim(),
@@ -70,6 +86,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
           queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
         ]);
       } catch (error) {
+        toast.hide("all");
         const description =
           error instanceof Error && error.message.trim()
             ? error.message
@@ -91,6 +108,7 @@ export function GroupForm({ currentParticipant }: GroupFormProps) {
       form.reset();
       setSourceGroupError(undefined);
       setParticipantError(undefined);
+      toast.hide("all");
       toast.show({
         component: (props) => (
           <ExpenseCreationToast
