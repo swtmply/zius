@@ -1,6 +1,6 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
-import { Add, ShoppingBasket01Icon } from "@hugeicons/core-free-icons";
+import { Add, ShoppingBasket01Icon, X } from "@hugeicons/core-free-icons";
 import { Button, PressableFeedback, Separator, Typography } from "heroui-native";
 import { View } from "react-native";
 import { useRouter } from "@/utils/navigation";
@@ -13,9 +13,13 @@ type Group = inferRouterOutputs<AppRouter>["group"]["get"];
 export function GroupParticipants({
   participants,
   folded,
+  onRemove,
+  isRemovePending = false,
 }: {
   participants: Group["participants"];
   folded: boolean;
+  onRemove?: (person: Group["participants"][number]) => void;
+  isRemovePending?: boolean;
 }) {
   return (
     <View className="rounded-2xl bg-panel p-4">
@@ -34,6 +38,18 @@ export function GroupParticipants({
                   <Typography className="text-[10px] text-supporting">Guest</Typography>
                 </View>
               )}
+              {onRemove && person.role !== "owner" ? (
+                <Button
+                  isIconOnly
+                  variant="secondary"
+                  className="ml-auto size-8 rounded-full bg-page"
+                  isDisabled={isRemovePending}
+                  accessibilityLabel={`Remove ${person.name}`}
+                  onPress={() => onRemove(person)}
+                >
+                  <Icon icon={X} size={16} colorClassName="accent-muted" />
+                </Button>
+              ) : null}
             </View>
           ),
         )}
