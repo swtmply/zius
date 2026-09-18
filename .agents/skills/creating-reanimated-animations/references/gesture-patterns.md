@@ -9,23 +9,20 @@ npm install react-native-gesture-handler
 ```
 
 Wrap app root:
+
 ```tsx
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 export default function App() {
-  return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      {children}
-    </GestureHandlerRootView>
-  );
+  return <GestureHandlerRootView style={{ flex: 1 }}>{children}</GestureHandlerRootView>;
 }
 ```
 
 ## Pattern: Draggable Element
 
 ```tsx
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 
 function Draggable() {
   const x = useSharedValue(0);
@@ -95,7 +92,7 @@ function PinchableImage() {
 ## Pattern: Swipe to Dismiss
 
 ```tsx
-import { withDecay } from 'react-native-reanimated';
+import { withDecay } from "react-native-reanimated";
 
 function SwipeToDismiss({ onDismiss, children }) {
   const translateX = useSharedValue(0);
@@ -122,7 +119,7 @@ function SwipeToDismiss({ onDismiss, children }) {
       Math.abs(translateX.value),
       [0, SCREEN_WIDTH],
       [1, 0.3],
-      Extrapolation.CLAMP
+      Extrapolation.CLAMP,
     ),
   }));
 
@@ -207,13 +204,13 @@ const composed = Gesture.Race(swipe, longPress);
 
 ## Available Gesture Types
 
-| Gesture | Events | Common use |
-|---|---|---|
-| `Gesture.Pan()` | onStart, onUpdate, onEnd | Drag, swipe, slide |
-| `Gesture.Pinch()` | onStart, onUpdate, onEnd | Zoom, scale |
-| `Gesture.Rotation()` | onStart, onUpdate, onEnd | Rotate elements |
-| `Gesture.Tap()` | onBegin, onEnd, onFinalize | Tap feedback |
-| `Gesture.LongPress()` | onStart, onEnd | Press-and-hold |
-| `Gesture.Fling()` | onStart, onEnd | Quick directional swipes |
+| Gesture               | Events                     | Common use               |
+| --------------------- | -------------------------- | ------------------------ |
+| `Gesture.Pan()`       | onStart, onUpdate, onEnd   | Drag, swipe, slide       |
+| `Gesture.Pinch()`     | onStart, onUpdate, onEnd   | Zoom, scale              |
+| `Gesture.Rotation()`  | onStart, onUpdate, onEnd   | Rotate elements          |
+| `Gesture.Tap()`       | onBegin, onEnd, onFinalize | Tap feedback             |
+| `Gesture.LongPress()` | onStart, onEnd             | Press-and-hold           |
+| `Gesture.Fling()`     | onStart, onEnd             | Quick directional swipes |
 
 All gestures support: `.enabled(bool)`, `.shouldCancelWhenOutside(bool)`, `.hitSlop(n)`, `.minDistance(n)`.

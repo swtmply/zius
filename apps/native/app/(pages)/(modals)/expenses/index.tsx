@@ -7,7 +7,10 @@ import { ExpensesEmptyState } from "@/components/expenses/expense-dashboard-list
 import { ExpenseCard } from "@/components/expenses/expense-card";
 import { type ExpenseSort, type ExpenseStatus } from "@/components/expenses/expense-filters";
 import { ExpensesHeader } from "@/components/expenses/expenses-header";
-import { ExpensesLoading, ExpensesQueryFooter } from "@/components/expenses/skeletons/expenses-skeleton";
+import {
+  ExpensesLoading,
+  ExpensesQueryFooter,
+} from "@/components/expenses/skeletons/expenses-skeleton";
 import { trpc } from "@/utils/trpc";
 
 export default function ExpensesPage() {
