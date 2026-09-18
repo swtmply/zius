@@ -1,9 +1,23 @@
 import { useState } from "react";
-import { Keyboard, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
+import {
+  Keyboard,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  TextInput,
+  View,
+} from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useRouter } from "@/utils/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BottomSheet, Button, Menu, Skeleton, Typography, useToast } from "heroui-native";
+import {
+  BottomSheet,
+  Button,
+  Menu,
+  Skeleton,
+  Typography,
+  useToast,
+} from "heroui-native";
 import {
   Archive02Icon,
   Check,
@@ -16,8 +30,15 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
 import { trpc } from "@/utils/trpc";
-import { ExpenseCreationToast, showPendingToast } from "@/components/layout/expense-creation-toast";
-import { GroupExpensesSection, GroupParticipants } from "@/components/groups/group-details";
+import {
+  ExpenseCreationToast,
+  showPendingToast,
+} from "@/components/layout/expense-creation-toast";
+import { GuestDialog } from "@/components/expenses/expense-form/expense-guest-dialog";
+import {
+  GroupExpensesSection,
+  GroupParticipants,
+} from "@/components/groups/group-details";
 import {
   GroupParticipantsLoading,
   GroupExpensesSectionLoading,
@@ -34,19 +55,25 @@ export default function GroupDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const query = useQuery(trpc.group.get.queryOptions({ id: groupId }));
-  const currentParticipantQuery = useQuery(trpc.participant.current.queryOptions());
+  const currentParticipantQuery = useQuery(
+    trpc.participant.current.queryOptions(),
+  );
   const group = query.data;
   const currentParticipant = currentParticipantQuery.data;
-  const unsettledExpenses = group?.expenses.filter((expense) => expense.status === "active") ?? [];
-  const settledExpenses = group?.expenses.filter((expense) => expense.status !== "active") ?? [];
+  const unsettledExpenses =
+    group?.expenses.filter((expense) => expense.status === "active") ?? [];
+  const settledExpenses =
+    group?.expenses.filter((expense) => expense.status !== "active") ?? [];
   const isOwner =
     !!group &&
     !!currentParticipant &&
-    group.participants.find((participant) => participant.id === currentParticipant.id)?.role ===
-      "owner";
+    group.participants.find(
+      (participant) => participant.id === currentParticipant.id,
+    )?.role === "owner";
   const isArchived = !!group?.archivedAt;
   const canRename = isOwner && !isArchived;
   const canManageArchive = isOwner;
+  const canManageMembers = isOwner && !isArchived;
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
   const updateGroup = useMutation(
     trpc.group.update.mutationOptions({
@@ -70,8 +97,12 @@ export default function GroupDetailsPage() {
           ),
         });
         void queryClient.invalidateQueries({ queryKey: trpc.group.pathKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() });
-        void queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.expense.pathKey(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: trpc.dashboard.pathKey(),
+        });
       },
       onError: (error) => {
         toast.hide("all");
@@ -90,17 +121,82 @@ export default function GroupDetailsPage() {
     }),
   );
 
+  const addMembers = useMutation(trpc.group.addMembers.mutationOptions());
+  const removeMember = useMutation(trpc.group.removeMember.mutationOptions());
+
   const archiveGroup = useMutation(trpc.group.archive.mutationOptions());
   const restoreGroup = useMutation(trpc.group.restore.mutationOptions());
   const archiveActionPending = archiveGroup.isPending || restoreGroup.isPending;
 
   const invalidateGroupState = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: trpc.group.get.queryKey({ id: groupId }) }),
+      queryClient.invalidateQueries({
+        queryKey: trpc.group.get.queryKey({ id: groupId }),
+      }),
       queryClient.invalidateQueries({ queryKey: trpc.group.list.pathKey() }),
       queryClient.invalidateQueries({ queryKey: trpc.expense.pathKey() }),
       queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() }),
     ]);
+  };
+
+  const showMemberError = (title: string, error: unknown) => {
+    toast.show({
+      duration: 6000,
+      component: (props) => (
+        <ExpenseCreationToast
+          {...props}
+          variant="danger"
+          title={title}
+          description={
+            error instanceof Error && error.message.trim()
+              ? error.message
+              : "Something went wrong. Please try again."
+          }
+        />
+      ),
+    });
+  };
+
+  const submitAddMember = async (guest: { name: string; email: string }) => {
+    if (!canManageMembers || addMembers.isPending) return;
+
+    try {
+      await addMembers.mutateAsync({ id: groupId, participants: [guest] });
+      await invalidateGroupState();
+      toast.show({
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="success"
+            title="Participant added"
+            description="They can now share this group."
+          />
+        ),
+      });
+    } catch (error) {
+      showMemberError("Failed to add participant", error);
+    }
+  };
+
+  const submitRemoveMember = async (participantId: string, name: string) => {
+    if (!canManageMembers || removeMember.isPending) return;
+
+    try {
+      await removeMember.mutateAsync({ id: groupId, participantId });
+      await invalidateGroupState();
+      toast.show({
+        component: (props) => (
+          <ExpenseCreationToast
+            {...props}
+            variant="success"
+            title="Participant removed"
+            description={`${name} left this group.`}
+          />
+        ),
+      });
+    } catch (error) {
+      showMemberError("Failed to remove participant", error);
+    }
   };
 
   const submitArchiveAction = async () => {
@@ -137,7 +233,9 @@ export default function GroupDetailsPage() {
           <ExpenseCreationToast
             {...props}
             variant="danger"
-            title={isArchived ? "Failed to restore group" : "Failed to archive group"}
+            title={
+              isArchived ? "Failed to restore group" : "Failed to archive group"
+            }
             description={
               error instanceof Error && error.message.trim()
                 ? error.message
@@ -193,7 +291,9 @@ export default function GroupDetailsPage() {
               isIconOnly
               variant="ghost"
               isDisabled={isEditing && updateGroup.isPending}
-              accessibilityLabel={isEditing ? "Cancel editing group name" : "Go back"}
+              accessibilityLabel={
+                isEditing ? "Cancel editing group name" : "Go back"
+              }
               onPress={() => {
                 if (isEditing) {
                   setIsEditing(false);
@@ -254,7 +354,10 @@ export default function GroupDetailsPage() {
               </Button>
             ) : group && canManageArchive && !isArchived ? (
               <Menu>
-                <Menu.Trigger asChild isDisabled={updateGroup.isPending || archiveActionPending}>
+                <Menu.Trigger
+                  asChild
+                  isDisabled={updateGroup.isPending || archiveActionPending}
+                >
                   <Button
                     isIconOnly
                     variant="ghost"
@@ -264,12 +367,20 @@ export default function GroupDetailsPage() {
                       disabled: updateGroup.isPending || archiveActionPending,
                     }}
                   >
-                    <Icon icon={MoreHorizontalIcon} size={24} colorClassName="accent-ink" />
+                    <Icon
+                      icon={MoreHorizontalIcon}
+                      size={24}
+                      colorClassName="accent-ink"
+                    />
                   </Button>
                 </Menu.Trigger>
                 <Menu.Portal>
                   <Menu.Overlay />
-                  <Menu.Content presentation="popover" width={120} className="p-2">
+                  <Menu.Content
+                    presentation="popover"
+                    width={120}
+                    className="p-2"
+                  >
                     <Menu.Item
                       className="gap-2 rounded-xl px-2 py-1.5"
                       isDisabled={updateGroup.isPending || archiveActionPending}
@@ -278,12 +389,24 @@ export default function GroupDetailsPage() {
                         setIsEditing(true);
                       }}
                     >
-                      <Icon icon={Edit02Icon} size={18} colorClassName="accent-ink" />
-                      <Menu.ItemTitle className="text-sm font-normal">Edit</Menu.ItemTitle>
+                      <Icon
+                        icon={Edit02Icon}
+                        size={18}
+                        colorClassName="accent-ink"
+                      />
+                      <Menu.ItemTitle className="text-sm font-normal">
+                        Edit
+                      </Menu.ItemTitle>
                     </Menu.Item>
-                    <Menu.Item className="gap-2 rounded-xl px-2 py-1.5" isDisabled variant="danger">
+                    <Menu.Item
+                      className="gap-2 rounded-xl px-2 py-1.5"
+                      isDisabled
+                      variant="danger"
+                    >
                       <Icon icon={Delete02Icon} size={18} color="#FF3B30" />
-                      <Menu.ItemTitle className="text-sm font-normal">Delete</Menu.ItemTitle>
+                      <Menu.ItemTitle className="text-sm font-normal">
+                        Delete
+                      </Menu.ItemTitle>
                     </Menu.Item>
                     <Menu.Item
                       className="gap-2 rounded-xl px-2 py-1.5"
@@ -292,7 +415,9 @@ export default function GroupDetailsPage() {
                       onPress={() => setIsArchiveDialogOpen(true)}
                     >
                       <Icon icon={Archive02Icon} size={18} color="#FF3B30" />
-                      <Menu.ItemTitle className="text-sm font-normal">Archive</Menu.ItemTitle>
+                      <Menu.ItemTitle className="text-sm font-normal">
+                        Archive
+                      </Menu.ItemTitle>
                     </Menu.Item>
                   </Menu.Content>
                 </Menu.Portal>
@@ -306,7 +431,11 @@ export default function GroupDetailsPage() {
                 accessibilityState={{ busy: archiveActionPending }}
                 onPress={() => setIsArchiveDialogOpen(true)}
               >
-                <Icon icon={RestoreBinIcon} size={24} colorClassName="accent-ink" />
+                <Icon
+                  icon={RestoreBinIcon}
+                  size={24}
+                  colorClassName="accent-ink"
+                />
               </Button>
             ) : (
               <View className="size-12" />
@@ -319,10 +448,12 @@ export default function GroupDetailsPage() {
               accessible
               accessibilityLabel="Archived group. New expenses and name changes are disabled. Existing payments and expense cancellation remain available."
             >
-              <Typography className="text-sm font-semibold text-muted">Archived group</Typography>
+              <Typography className="text-sm font-semibold text-muted">
+                Archived group
+              </Typography>
               <Typography className="text-xs text-muted">
-                New expenses and name changes are disabled. Existing payments and expense
-                cancellation remain available.
+                New expenses and name changes are disabled. Existing payments
+                and expense cancellation remain available.
               </Typography>
             </View>
           ) : null}
@@ -331,23 +462,49 @@ export default function GroupDetailsPage() {
             <>
               <View className="gap-2">
                 <View className="flex-row items-center justify-between gap-4">
-                  <Typography className="text-sm text-ink">Participants</Typography>
-                  <Pressable
-                    hitSlop={12}
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      folded ? "Show participant names" : "Hide participant names"
-                    }
-                    accessibilityState={{ expanded: !folded }}
-                    onPress={() => setFolded((value) => !value)}
-                  >
-                    <Typography className="text-xs text-supporting">
-                      {folded ? "Show Names" : "Hide Names"}
-                    </Typography>
-                  </Pressable>
+                  <Typography className="text-sm text-ink">
+                    Participants
+                  </Typography>
+                  <View className="flex-row items-center gap-4">
+                    <Pressable
+                      hitSlop={12}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        folded
+                          ? "Show participant names"
+                          : "Hide participant names"
+                      }
+                      accessibilityState={{ expanded: !folded }}
+                      onPress={() => setFolded((value) => !value)}
+                    >
+                      <Typography className="text-xs text-supporting">
+                        {folded ? "Show Names" : "Hide Names"}
+                      </Typography>
+                    </Pressable>
+                    {canManageMembers ? (
+                      <GuestDialog
+                        title="Add Participant"
+                        triggerLabel="Add Participant"
+                        submitLabel="Submit"
+                        namePlaceholder="Participant Name"
+                        emailPlaceholder="Participant Email"
+                        onSubmit={(guest) => void submitAddMember(guest)}
+                      />
+                    ) : null}
+                  </View>
                 </View>
                 {group ? (
-                  <GroupParticipants participants={group.participants} folded={folded} />
+                  <GroupParticipants
+                    participants={group.participants}
+                    folded={folded}
+                    isRemovePending={removeMember.isPending}
+                    onRemove={
+                      canManageMembers
+                        ? (person) =>
+                            void submitRemoveMember(person.id, person.name)
+                        : undefined
+                    }
+                  />
                 ) : (
                   <GroupParticipantsLoading folded={folded} />
                 )}
@@ -355,7 +512,10 @@ export default function GroupDetailsPage() {
 
               {query.isPending ? (
                 <>
-                  <GroupExpensesSectionLoading title="Unsettled Expenses" showAction />
+                  <GroupExpensesSectionLoading
+                    title="Unsettled Expenses"
+                    showAction
+                  />
                   <GroupExpensesSectionLoading title="Settled Expenses" />
                 </>
               ) : group ? (
@@ -367,7 +527,11 @@ export default function GroupDetailsPage() {
                     onAddExpense={
                       isArchived
                         ? undefined
-                        : () => router.push({ pathname: "/expenses/create", params: { groupId } })
+                        : () =>
+                            router.push({
+                              pathname: "/expenses/create",
+                              params: { groupId },
+                            })
                     }
                   />
                   <GroupExpensesSection

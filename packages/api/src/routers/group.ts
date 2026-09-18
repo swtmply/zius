@@ -1,3 +1,4 @@
+import type { Database } from "@zius/db";
 import { user } from "@zius/db/schema/auth";
 import {
   expense,
@@ -7,11 +8,11 @@ import {
   participant,
 } from "@zius/db/schema/expense";
 import { TRPCError } from "@trpc/server";
-import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNotNull, isNull, lt, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { participantProcedure, requireParticipant, router } from "../index";
-import { assertGroupIsActive } from "./helpers";
+import { assertGroupIsActive, requireGroupOwner, resolveParticipantIdsByEmail } from "./helpers";
 
 const groupParticipantInputSchema = z.object({
   id: z.string().optional(),
@@ -57,6 +58,16 @@ const groupIdInputSchema = z.object({
   id: z.string().min(1),
 });
 
+const addMembersSchema = z.object({
+  id: z.string().min(1),
+  participants: z.array(groupParticipantInputSchema).min(1),
+});
+
+const removeMemberSchema = z.object({
+  id: z.string().min(1),
+  participantId: z.string().min(1),
+});
+
 const updateSchema = z
   .object({
     id: z.string().min(1),
@@ -77,6 +88,11 @@ const groupParticipantSchema = z.object({
   image: z.string().nullable(),
   userId: z.string().nullable(),
   role: z.enum(["owner", "member"]),
+});
+
+const groupMembersOutputSchema = z.object({
+  id: z.string(),
+  participants: z.array(groupParticipantSchema),
 });
 
 const groupListParticipantSchema = z.object({
@@ -136,6 +152,22 @@ const groupGetOutputSchema = z.object({
   ),
 });
 
+function selectGroupParticipants(db: Pick<Database, "select">, groupId: string) {
+  return db
+    .select({
+      id: participant.id,
+      name: participant.name,
+      email: participant.email,
+      image: user.image,
+      userId: participant.userId,
+      role: groupMember.role,
+    })
+    .from(groupMember)
+    .innerJoin(participant, eq(participant.id, groupMember.participantId))
+    .leftJoin(user, eq(user.id, participant.userId))
+    .where(eq(groupMember.groupId, groupId));
+}
+
 export const groupRouter = router({
   create: participantProcedure
     .meta({
@@ -154,42 +186,7 @@ export const groupRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const emails = input.participants.map((entry) => entry.email);
-        const existingParticipants =
-          emails.length === 0
-            ? []
-            : await tx
-                .select({ id: participant.id, email: participant.email })
-                .from(participant)
-                .where(inArray(sql<string>`lower(${participant.email})`, emails));
-        const participantIdsByEmail = new Map(
-          existingParticipants.map((entry) => [entry.email.toLowerCase(), entry.id]),
-        );
-        const newParticipants = input.participants.filter(
-          (entry) => !participantIdsByEmail.has(entry.email),
-        );
-
-        if (newParticipants.length > 0) {
-          await tx
-            .insert(participant)
-            .values(
-              newParticipants.map((entry) => ({
-                id: crypto.randomUUID(),
-                name: entry.name,
-                email: entry.email,
-              })),
-            )
-            .onConflictDoNothing({ target: participant.email });
-
-          const createdParticipants = await tx
-            .select({ id: participant.id, email: participant.email })
-            .from(participant)
-            .where(inArray(sql<string>`lower(${participant.email})`, emails));
-
-          for (const entry of createdParticipants) {
-            participantIdsByEmail.set(entry.email.toLowerCase(), entry.id);
-          }
-        }
+        const participantIdsByEmail = await resolveParticipantIdsByEmail(tx, input.participants);
 
         const id = crypto.randomUUID();
         await tx.insert(group).values({
@@ -352,19 +349,7 @@ export const groupRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
       }
 
-      const participantRows = await ctx.db
-        .select({
-          id: participant.id,
-          name: participant.name,
-          email: participant.email,
-          image: user.image,
-          userId: participant.userId,
-          role: groupMember.role,
-        })
-        .from(groupMember)
-        .innerJoin(participant, eq(participant.id, groupMember.participantId))
-        .leftJoin(user, eq(user.id, participant.userId))
-        .where(eq(groupMember.groupId, currentGroup.id));
+      const participantRows = await selectGroupParticipants(ctx.db, currentGroup.id);
 
       const expenses = await ctx.db
         .select({
@@ -476,23 +461,11 @@ export const groupRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const [membership] = await tx
-          .select({ id: group.id, role: groupMember.role })
-          .from(group)
-          .innerJoin(groupMember, eq(groupMember.groupId, group.id))
-          .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
-          .limit(1);
-
-        if (!membership) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
-        }
-
-        if (membership.role !== "owner") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only the group owner can update it",
-          });
-        }
+        const membership = await requireGroupOwner(tx, {
+          groupId: input.id,
+          participantId: currentParticipant.id,
+          action: "update it",
+        });
 
         await assertGroupIsActive(tx, membership.id);
         await tx
@@ -535,23 +508,11 @@ export const groupRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const [membership] = await tx
-          .select({ id: group.id, name: group.name, role: groupMember.role })
-          .from(group)
-          .innerJoin(groupMember, eq(groupMember.groupId, group.id))
-          .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
-          .limit(1);
-
-        if (!membership) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
-        }
-
-        if (membership.role !== "owner") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only the group owner can archive it",
-          });
-        }
+        const membership = await requireGroupOwner(tx, {
+          groupId: input.id,
+          participantId: currentParticipant.id,
+          action: "archive it",
+        });
 
         await tx
           .update(group)
@@ -593,23 +554,11 @@ export const groupRouter = router({
       const currentParticipant = requireParticipant(ctx.participant);
 
       return ctx.db.transaction(async (tx) => {
-        const [membership] = await tx
-          .select({ id: group.id, name: group.name, role: groupMember.role })
-          .from(group)
-          .innerJoin(groupMember, eq(groupMember.groupId, group.id))
-          .where(and(eq(group.id, input.id), eq(groupMember.participantId, currentParticipant.id)))
-          .limit(1);
-
-        if (!membership) {
-          throw new TRPCError({ code: "NOT_FOUND", message: "Group not found" });
-        }
-
-        if (membership.role !== "owner") {
-          throw new TRPCError({
-            code: "FORBIDDEN",
-            message: "Only the group owner can restore it",
-          });
-        }
+        const membership = await requireGroupOwner(tx, {
+          groupId: input.id,
+          participantId: currentParticipant.id,
+          action: "restore it",
+        });
 
         await tx
           .update(group)
@@ -630,6 +579,137 @@ export const groupRouter = router({
           id: restoredGroup.id,
           name: restoredGroup.name,
           archivedAt: restoredGroup.archivedAt?.toISOString() ?? null,
+        };
+      });
+    }),
+  addMembers: participantProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/groups/{id}/members",
+        protect: true,
+        tags: ["Groups"],
+        summary: "Add members to a group",
+        errorResponses: [400, 401, 403, 404, 409, 500],
+      },
+    })
+    .input(addMembersSchema)
+    .output(groupMembersOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const currentParticipant = requireParticipant(ctx.participant);
+
+      return ctx.db.transaction(async (tx) => {
+        const membership = await requireGroupOwner(tx, {
+          groupId: input.id,
+          participantId: currentParticipant.id,
+          action: "add members",
+        });
+
+        await assertGroupIsActive(tx, membership.id);
+
+        const participantIdsByEmail = await resolveParticipantIdsByEmail(tx, input.participants);
+
+        await tx
+          .insert(groupMember)
+          .values(
+            [...new Set(participantIdsByEmail.values())].map((participantId) => ({
+              groupId: membership.id,
+              participantId,
+              role: "member" as const,
+            })),
+          )
+          .onConflictDoNothing();
+
+        return {
+          id: membership.id,
+          participants: await selectGroupParticipants(tx, membership.id),
+        };
+      });
+    }),
+
+  removeMember: participantProcedure
+    .meta({
+      openapi: {
+        method: "POST",
+        path: "/groups/{id}/members/remove",
+        protect: true,
+        tags: ["Groups"],
+        summary: "Remove a member from a group",
+        errorResponses: [400, 401, 403, 404, 409, 500],
+      },
+    })
+    .input(removeMemberSchema)
+    .output(groupMembersOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      const currentParticipant = requireParticipant(ctx.participant);
+
+      return ctx.db.transaction(async (tx) => {
+        const membership = await requireGroupOwner(tx, {
+          groupId: input.id,
+          participantId: currentParticipant.id,
+          action: "remove members",
+        });
+
+        await assertGroupIsActive(tx, membership.id);
+
+        const [target] = await tx
+          .select({ role: groupMember.role })
+          .from(groupMember)
+          .where(
+            and(
+              eq(groupMember.groupId, membership.id),
+              eq(groupMember.participantId, input.participantId),
+            ),
+          )
+          .limit(1);
+
+        if (!target) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Member not found" });
+        }
+
+        if (target.role === "owner") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "The group owner cannot be removed",
+          });
+        }
+
+        // Leaving the group must not hide money that is still owed.
+        const [openExpense] = await tx
+          .select({ id: expense.id })
+          .from(expense)
+          .leftJoin(expenseParticipant, eq(expenseParticipant.expenseId, expense.id))
+          .where(
+            and(
+              eq(expense.groupId, membership.id),
+              eq(expense.status, "active"),
+              or(
+                eq(expense.payerId, input.participantId),
+                eq(expenseParticipant.participantId, input.participantId),
+              ),
+            ),
+          )
+          .limit(1);
+
+        if (openExpense) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Settle or cancel this member's expenses before removing them",
+          });
+        }
+
+        await tx
+          .delete(groupMember)
+          .where(
+            and(
+              eq(groupMember.groupId, membership.id),
+              eq(groupMember.participantId, input.participantId),
+            ),
+          );
+
+        return {
+          id: membership.id,
+          participants: await selectGroupParticipants(tx, membership.id),
         };
       });
     }),

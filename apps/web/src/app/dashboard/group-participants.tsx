@@ -1,5 +1,7 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Delete02Icon } from "@hugeicons/core-free-icons";
 
 import { Avatar } from "./avatar";
 
@@ -8,9 +10,13 @@ type GroupParticipant = inferRouterOutputs<AppRouter>["group"]["get"]["participa
 export function GroupParticipants({
   participants,
   folded,
+  onRemove,
+  isRemovePending = false,
 }: {
   participants: GroupParticipant[];
   folded: boolean;
+  onRemove?: (person: GroupParticipant) => void;
+  isRemovePending?: boolean;
 }) {
   return (
     <div className="panel">
@@ -28,6 +34,17 @@ export function GroupParticipants({
                 </span>
               )}
               <span className="ml-auto text-xs text-supporting capitalize">{person.role}</span>
+              {onRemove && person.role !== "owner" ? (
+                <button
+                  type="button"
+                  aria-label={`Remove ${person.name}`}
+                  className="icon-button size-9 bg-page"
+                  disabled={isRemovePending}
+                  onClick={() => onRemove(person)}
+                >
+                  <HugeiconsIcon icon={Delete02Icon} size={16} />
+                </button>
+              ) : null}
             </div>
           ),
         )}

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  Add,
   Archive02Icon,
   Check,
   ChevronLeftFreeIcons,
@@ -33,7 +34,10 @@ export function GroupDetails({ id }: { id: string }) {
   const updateGroup = useMutation(trpc.group.update.mutationOptions());
   const archiveGroup = useMutation(trpc.group.archive.mutationOptions());
   const restoreGroup = useMutation(trpc.group.restore.mutationOptions());
+  const addMembers = useMutation(trpc.group.addMembers.mutationOptions());
+  const removeMember = useMutation(trpc.group.removeMember.mutationOptions());
   const [folded, setFolded] = useState(false);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
@@ -45,8 +49,54 @@ export function GroupDetails({ id }: { id: string }) {
     group?.participants.find((participant) => participant.userId === user.id)?.role === "owner";
   const isArchived = !!group?.archivedAt;
   const canRename = isOwner && !isArchived;
+  const canManageMembers = isOwner && !isArchived;
   const isArchivePending = archiveGroup.isPending || restoreGroup.isPending;
   const isBusy = updateGroup.isPending || isArchivePending;
+
+  async function submitAddMember(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canManageMembers || addMembers.isPending) return;
+
+    // The sheet stays mounted, so the inputs keep their values unless reset.
+    const element = event.currentTarget;
+    const form = new FormData(element);
+
+    try {
+      await addMembers.mutateAsync({
+        id,
+        participants: [
+          {
+            name: String(form.get("name")).trim(),
+            email: String(form.get("email")).trim().toLowerCase(),
+          },
+        ],
+      });
+      await refreshDashboard();
+      element.reset();
+      setIsAddMemberOpen(false);
+      toast.success("Participant added", { description: "They can now share this group." });
+    } catch (error) {
+      toast.error("Failed to add participant", {
+        description:
+          error instanceof Error && error.message.trim() ? error.message : "Please try again.",
+      });
+    }
+  }
+
+  async function submitRemoveMember(participantId: string, name: string) {
+    if (!canManageMembers || removeMember.isPending) return;
+
+    try {
+      await removeMember.mutateAsync({ id, participantId });
+      await refreshDashboard();
+      toast.success("Participant removed", { description: `${name} left this group.` });
+    } catch (error) {
+      toast.error("Failed to remove participant", {
+        description:
+          error instanceof Error && error.message.trim() ? error.message : "Please try again.",
+      });
+    }
+  }
 
   async function submitName() {
     if (!group || !isEditing || !canRename || updateGroup.isPending) return;
@@ -201,17 +251,39 @@ export function GroupDetails({ id }: { id: string }) {
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-sm text-ink">Participants</h2>
-              <button
-                type="button"
-                aria-expanded={!folded}
-                className="flex min-h-11 items-center text-xs text-supporting"
-                onClick={() => setFolded((value) => !value)}
-              >
-                {folded ? "Show Names" : "Hide Names"}
-              </button>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  aria-expanded={!folded}
+                  className="flex min-h-11 items-center text-xs text-supporting"
+                  onClick={() => setFolded((value) => !value)}
+                >
+                  {folded ? "Show Names" : "Hide Names"}
+                </button>
+                {canManageMembers ? (
+                  <button
+                    type="button"
+                    className="inline-flex h-8 items-center gap-2 rounded-full bg-ink px-3 text-xs font-medium text-on-ink"
+                    disabled={addMembers.isPending}
+                    onClick={() => setIsAddMemberOpen(true)}
+                  >
+                    <HugeiconsIcon icon={Add} size={16} />
+                    Add person
+                  </button>
+                ) : null}
+              </div>
             </div>
             {group ? (
-              <GroupParticipants participants={group.participants} folded={folded} />
+              <GroupParticipants
+                participants={group.participants}
+                folded={folded}
+                isRemovePending={removeMember.isPending}
+                onRemove={
+                  canManageMembers
+                    ? (person) => void submitRemoveMember(person.id, person.name)
+                    : undefined
+                }
+              />
             ) : (
               <GroupParticipantsLoading folded={folded} />
             )}
@@ -260,6 +332,31 @@ export function GroupDetails({ id }: { id: string }) {
           </button>
         </div>
       ) : null}
+
+      <Sheet
+        isOpen={isAddMemberOpen}
+        onOpenChange={(isOpen) => {
+          if (!addMembers.isPending) setIsAddMemberOpen(isOpen);
+        }}
+        title="Add participant"
+        description="They join as a member and can share this group's expenses."
+      >
+        <form className="space-y-4" onSubmit={submitAddMember}>
+          <fieldset className="space-y-2" disabled={addMembers.isPending}>
+            <label className="field">
+              Name
+              <input name="name" required autoFocus placeholder="Alex Cruz" />
+            </label>
+            <label className="field">
+              Email
+              <input name="email" type="email" required placeholder="alex@example.com" />
+            </label>
+          </fieldset>
+          <button type="submit" className="action w-full" disabled={addMembers.isPending}>
+            {addMembers.isPending ? "Adding..." : "Add participant"}
+          </button>
+        </form>
+      </Sheet>
 
       <Sheet
         isOpen={isArchiveDialogOpen}
