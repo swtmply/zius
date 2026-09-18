@@ -35,6 +35,11 @@ jobs:
 
       - name: Build Android AAB
         working-directory: apps/native
+        env:
+          GRADLE_OPTS: >-
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+            -Dorg.gradle.parallel=false
+            -Dorg.gradle.daemon=false
         run: |
           mkdir -p ../../artifacts
 
