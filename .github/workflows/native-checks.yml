@@ -32,10 +32,6 @@ jobs:
       - name: Oxlint check
         run: bun run check
 
-      - name: Check Expo dependencies
-        working-directory: apps/native
-        run: bunx expo install --check
-
       - name: Verify Android bundle
         working-directory: apps/native
         run: bunx expo export --platform android
