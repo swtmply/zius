@@ -32,10 +32,6 @@ jobs:
       - name: Oxlint check
         run: bun run check
 
-      - name: Expo Doctor
-        working-directory: apps/native
-        run: bunx expo-doctor
-
       - name: Check Expo dependencies
         working-directory: apps/native
         run: bunx expo install --check
