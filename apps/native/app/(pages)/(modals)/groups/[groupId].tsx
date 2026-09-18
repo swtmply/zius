@@ -16,7 +16,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
 import { trpc } from "@/utils/trpc";
-import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
+import { ExpenseCreationToast, showPendingToast } from "@/components/layout/expense-creation-toast";
 import { GroupExpensesSection, GroupParticipants } from "@/components/groups/group-details";
 import {
   GroupParticipantsLoading,
@@ -51,6 +51,7 @@ export default function GroupDetailsPage() {
   const updateGroup = useMutation(
     trpc.group.update.mutationOptions({
       onSuccess: async (updated) => {
+        toast.hide("all");
         const queryKey = trpc.group.get.queryKey({ id: updated.id });
         await queryClient.cancelQueries({ queryKey });
         queryClient.setQueryData(queryKey, (current) =>
@@ -73,6 +74,7 @@ export default function GroupDetailsPage() {
         void queryClient.invalidateQueries({ queryKey: trpc.dashboard.pathKey() });
       },
       onError: (error) => {
+        toast.hide("all");
         toast.show({
           duration: 6000,
           component: (props) => (
@@ -163,6 +165,7 @@ export default function GroupDetailsPage() {
       });
       return;
     }
+    showPendingToast(toast, "Renaming group", "Saving your group name.");
     updateGroup.mutate({ id: groupId, name: trimmedName });
   };
 

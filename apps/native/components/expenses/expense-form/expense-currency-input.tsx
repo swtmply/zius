@@ -27,6 +27,7 @@ export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: Cu
   const inputRef = useRef<TextInput>(null);
   const divisor = 10 ** currencyFractionDigits;
   const formattedValue = currencyAmountFormatter.format(Number(value) / divisor);
+  const isEmpty = !value;
 
   const handleChangeText = (text: string) => {
     const digits = text.replace(/\D/g, "");
@@ -52,7 +53,11 @@ export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: Cu
         onPress={() => inputRef.current?.focus()}
       >
         <Typography
-          className={cn("text-2xl font-semibold text-ink", errorMessage && "text-danger")}
+          className={cn(
+            "text-2xl font-semibold",
+            isEmpty ? "text-muted" : "text-ink",
+            errorMessage && "text-danger",
+          )}
           style={{ fontVariant: ["tabular-nums"] }}
           selectable
         >

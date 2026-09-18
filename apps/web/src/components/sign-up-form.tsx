@@ -21,6 +21,10 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
       name: "",
     },
     onSubmit: async ({ value }) => {
+      const toastId = toast.loading("Creating your account", {
+        description: "This only takes a moment.",
+      });
+
       await authClient.signUp.email(
         {
           email: value.email,
@@ -30,10 +34,10 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
         {
           onSuccess: () => {
             router.push("/dashboard");
-            toast.success("Sign up successful");
+            toast.success("Sign up successful", { id: toastId });
           },
           onError: (error) => {
-            toast.error(error.error.message || error.error.statusText);
+            toast.error(error.error.message || error.error.statusText, { id: toastId });
           },
         },
       );

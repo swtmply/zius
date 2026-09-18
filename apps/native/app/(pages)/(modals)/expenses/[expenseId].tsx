@@ -16,7 +16,7 @@ import {
 import { Icon } from "@/components/icon";
 import { trpc } from "@/utils/trpc";
 import { formatDate } from "@/utils";
-import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
+import { ExpenseCreationToast, showPendingToast } from "@/components/layout/expense-creation-toast";
 import { ExpenseDetailsLoading } from "@/components/expenses/skeletons/expense-details-skeleton";
 import { ExpenseOverview, ExpenseSummary } from "@/components/expenses/expense-summary";
 
@@ -67,9 +67,12 @@ export default function ExpenseDetails() {
       return;
     }
 
+    showPendingToast(toast, "Updating expense", "Saving your payment statuses.");
+
     try {
       await updateExpense.mutateAsync({ id: expenseId, participants });
     } catch (error) {
+      toast.hide("all");
       toast.show({
         duration: 6000,
         component: (props) => (
@@ -90,6 +93,7 @@ export default function ExpenseDetails() {
 
     setIsSettling(false);
     setParticipantStatuses({});
+    toast.hide("all");
     toast.show({
       component: (props) => (
         <ExpenseCreationToast

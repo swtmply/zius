@@ -43,14 +43,17 @@ export function Settings() {
 
     setErrorMessage("");
     setIsSaving(true);
+    const toastId = toast.loading("Updating profile", { description: "Saving your name." });
     try {
       const result = await authClient.updateUser({ name });
       if (result.error) throw new Error(result.error.message);
       setIsEditing(false);
-      toast.success("Profile updated", { description: "Your name has been updated." });
+      toast.success("Profile updated", { id: toastId, description: "Your name has been updated." });
       router.refresh();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Unable to update your name.");
+      const message = error instanceof Error ? error.message : "Unable to update your name.";
+      setErrorMessage(message);
+      toast.error("Failed to update profile", { id: toastId, description: message });
     } finally {
       setIsSaving(false);
     }

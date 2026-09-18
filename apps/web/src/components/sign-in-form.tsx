@@ -20,6 +20,10 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
       password: "",
     },
     onSubmit: async ({ value }) => {
+      const toastId = toast.loading("Signing you in", {
+        description: "This only takes a moment.",
+      });
+
       await authClient.signIn.email(
         {
           email: value.email,
@@ -28,10 +32,10 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         {
           onSuccess: () => {
             router.push("/dashboard");
-            toast.success("Sign in successful");
+            toast.success("Sign in successful", { id: toastId });
           },
           onError: (error) => {
-            toast.error(error.error.message || error.error.statusText);
+            toast.error(error.error.message || error.error.statusText, { id: toastId });
           },
         },
       );
