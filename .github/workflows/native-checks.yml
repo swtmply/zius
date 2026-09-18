@@ -1,0 +1,129 @@
+name: Native PR Checks
+
+on:
+  pull_request:
+    paths:
+      - "apps/native/**"
+      - "packages/**"
+      - "bun.lock"
+      - "package.json"
+      - "turbo.json"
+
+jobs:
+  validate:
+    name: Validate Native
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Expo Doctor
+        working-directory: apps/native
+        run: bunx expo-doctor
+
+      - name: Check Expo dependencies
+        working-directory: apps/native
+        run: bunx expo install --check
+
+      - name: Verify Android bundle
+        working-directory: apps/native
+        run: bunx expo export --platform android
+
+  fingerprint:
+    name: Native Fingerprint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Compare native fingerprints
+        id: fingerprint
+        shell: bash
+        run: |
+          HEAD_FINGERPRINT=$(
+            cd apps/native
+            eas fingerprint:generate \
+              --platform android \
+              --environment preview \
+              --json \
+              --non-interactive
+          )
+
+          HEAD_HASH=$(echo "$HEAD_FINGERPRINT" | jq -r '.hash')
+
+          git worktree add \
+            --detach \
+            /tmp/zius-base \
+            "${{ github.event.pull_request.base.sha }}"
+
+          cd /tmp/zius-base
+          bun install --frozen-lockfile
+
+          BASE_FINGERPRINT=$(
+            cd apps/native
+            eas fingerprint:generate \
+              --platform android \
+              --environment preview \
+              --json \
+              --non-interactive
+          )
+
+          BASE_HASH=$(echo "$BASE_FINGERPRINT" | jq -r '.hash')
+
+          if [ "$HEAD_HASH" = "$BASE_HASH" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+
+            {
+              echo "## ✅ Native runtime unchanged"
+              echo ""
+              echo "This PR is compatible with the existing Android native runtime."
+              echo ""
+              echo "Fingerprint: \`$HEAD_HASH\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+
+            {
+              echo "## ⚠️ Native runtime changed"
+              echo ""
+              echo "A new Android build may be required."
+              echo ""
+              echo "| Version | Fingerprint |"
+              echo "|---|---|"
+              echo "| Base | \`$BASE_HASH\` |"
+              echo "| PR | \`$HEAD_HASH\` |"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
