@@ -1,0 +1,72 @@
+name: Development Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Development Client
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check fingerprint against existing builds
+        id: fingerprint
+        working-directory: apps/native
+        shell: bash
+        run: |
+          HASH=$(
+            eas fingerprint:generate \
+              --platform android \
+              --json \
+              --non-interactive \
+              | sed -n '/^{/,$p' | jq -r '.hash'
+          )
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+
+          EXISTING=$(
+            eas build:list \
+              --platform android \
+              --build-profile development \
+              --status finished \
+              --fingerprint-hash "$HASH" \
+              --limit 1 \
+              --json \
+              --non-interactive \
+              | sed -n '/^\[/,$p' | jq 'length'
+          )
+
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "## ⏭️ Build skipped — fingerprint \`$HASH\` already built" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+            echo "## 🏗️ Native changed — building fingerprint \`$HASH\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Build development client
+        if: steps.fingerprint.outputs.needed == 'true'
+        working-directory: apps/native
+        run: |
+          eas build \
+            --platform android \
+            --profile development \
+            --non-interactive \
+            --no-wait

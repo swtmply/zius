@@ -1,0 +1,63 @@
+name: EAS Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Channel to publish the update to
+        type: choice
+        required: true
+        default: development
+        options:
+          - development
+          - development-preview
+          - staging
+          - production
+      platform:
+        description: Platform to publish for
+        type: choice
+        required: true
+        default: all
+        options:
+          - all
+          - android
+          - ios
+      message:
+        description: Update message
+        type: string
+        required: false
+
+jobs:
+  update:
+    name: Publish Update
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Publish update
+        working-directory: apps/native
+        env:
+          MESSAGE: ${{ inputs.message || github.sha }}
+        run: |
+          eas update \
+            --channel "${{ inputs.channel }}" \
+            --platform "${{ inputs.platform }}" \
+            --message "$MESSAGE" \
+            --non-interactive
