@@ -39,11 +39,17 @@ bun run db:local
 
 2. Update your `.env` file in the `apps/server` directory with the appropriate connection details if needed.
 
-3. Apply the schema to your database:
+3. Generate and apply a migration to your development database:
 
 ```bash
-bun run db:push
+bun run db:generate
+bun run db:migrate
 ```
+
+Do not use `db:push` against production. Test the generated migration on a Turso development
+branch, then preview, and run that same migration against production before deploying code that
+depends on it. Make breaking changes in two releases: first add/backfill the new schema while the
+old API still works, then remove the old schema only after old clients are no longer supported.
 
 Then, run the development server:
 
@@ -112,6 +118,20 @@ Generate the bypass secret under Vercel Project Settings > Deployment Protection
 The bypass value is embedded in the app and can be extracted even with EAS Sensitive visibility. Do not commit it or include it in public releases. A preview app pointing at the production domain uses production data.
 
 From `apps/native`, run `eas build --profile preview --platform android`, or use `ios`. Changing a bundled environment value requires a new build or a compatible EAS Update; it does not change an already installed bundle.
+
+## API and mobile app compatibility
+
+- Current clients use `/api/v1/trpc`. `/api/trpc` remains the legacy v1 route for mobile builds
+  released before API versioning was added.
+- Before making a breaking v2 payload or response, keep v1 deployed and mount the new router at a
+  new versioned path.
+- The mobile app checks `/api/mobile-compatibility` at launch. Set these Vercel variables only after
+  the corresponding store release is available:
+  - `MOBILE_MINIMUM_IOS_VERSION` and `MOBILE_IOS_STORE_URL`
+  - `MOBILE_MINIMUM_ANDROID_VERSION` and `MOBILE_ANDROID_STORE_URL`
+- Minimum versions default to `0.0.0`, so releases are not blocked until you explicitly raise them.
+- Existing installs from before this compatibility check cannot be prompted by the server. Release
+  this bridge version and allow time for adoption before making v1 or its database schema incompatible.
 
 ## Git Hooks and Formatting
 
