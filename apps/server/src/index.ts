@@ -1,26 +1,40 @@
 import { trpcServer } from "@hono/trpc-server";
 import { Scalar } from "@scalar/hono-api-reference";
 import { createContext } from "@zius/api/context";
+import { logProcedureError } from "@zius/api/log";
 import { createOpenApiDocument, handleOpenApiRequest, OPENAPI_ENDPOINT } from "@zius/api/openapi";
 import { appRouter } from "@zius/api/routers/index";
 import { auth } from "@zius/auth";
 import { env } from "@zius/env/server";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { secureHeaders } from "hono/secure-headers";
+import { timeout } from "hono/timeout";
 
 const app = new Hono().basePath("/api");
 
-app.use(logger());
+app.use(secureHeaders());
+// Vercel already records method, path, status and duration per invocation, so
+// in production this would only duplicate it at your own log volume.
+if (env.NODE_ENV !== "production") app.use(logger());
 app.use(
   "/*",
   cors({
     origin: env.CORS_ORIGIN,
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PATCH", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
+    maxAge: 86400,
   }),
 );
+
+// Caps the two things a request can spend without authenticating: bytes and
+// function seconds. Both are per-request, so they hold on serverless where an
+// in-process rate limiter would not.
+app.use("/*", bodyLimit({ maxSize: 100 * 1024 }));
+app.use("/*", timeout(15_000));
 
 app.on(["POST", "GET"], "/auth/*", (c) => auth.handler(c.req.raw));
 
@@ -31,6 +45,7 @@ app.use(
     createContext: (_opts, context) => {
       return createContext({ context });
     },
+    onError: logProcedureError,
   }),
 );
 

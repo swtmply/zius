@@ -54,13 +54,24 @@ export function createAuth() {
     },
     trustedOrigins: [
       env.CORS_ORIGIN,
-
       "zius://",
-      "exp://",
-      "http://localhost:8081",
+      // Expo dev client origins, kept out of production
+      ...(env.NODE_ENV === "production" ? [] : ["exp://", "http://localhost:8081"]),
     ],
     emailAndPassword: {
       enabled: true,
+    },
+    // On top of better-auth's production default (100 req / 10s per IP across
+    // all auth paths), throttle the credential endpoints a brute force targets.
+    // ponytail: memory store, so the limit is per serverless instance — move to
+    // `storage: "database"` (adds a rateLimit table) if that proves too leaky.
+    rateLimit: {
+      customRules: {
+        "/sign-in/email": { window: 60, max: 5 },
+        "/sign-up/email": { window: 60, max: 3 },
+        "/forget-password": { window: 60, max: 3 },
+        "/reset-password": { window: 60, max: 5 },
+      },
     },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,

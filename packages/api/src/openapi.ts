@@ -1,6 +1,7 @@
 import { createOpenApiFetchHandler, generateOpenApiDocument } from "trpc-to-openapi";
 
 import type { Context } from "./context";
+import { logProcedureError } from "./log";
 import { appRouter } from "./routers/index";
 
 export const OPENAPI_ENDPOINT = "/v1";
@@ -14,6 +15,7 @@ export function handleOpenApiRequest(
     createContext,
     endpoint: OPENAPI_ENDPOINT,
     req: request,
+    onError: logProcedureError,
   });
 }
 
