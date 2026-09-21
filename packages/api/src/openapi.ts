@@ -2,7 +2,7 @@ import { createOpenApiFetchHandler, generateOpenApiDocument } from "trpc-to-open
 
 import type { Context } from "./context";
 import { logProcedureError } from "./log";
-import { appRouter } from "./routers/index";
+import { v1Router } from "./routers/index";
 
 export const OPENAPI_ENDPOINT = "/v1";
 
@@ -11,7 +11,7 @@ export function handleOpenApiRequest(
   createContext: () => Context | Promise<Context>,
 ) {
   return createOpenApiFetchHandler({
-    router: appRouter,
+    router: v1Router,
     createContext,
     endpoint: OPENAPI_ENDPOINT,
     req: request,
@@ -20,7 +20,7 @@ export function handleOpenApiRequest(
 }
 
 export function createOpenApiDocument(baseUrl: string) {
-  return generateOpenApiDocument(appRouter, {
+  return generateOpenApiDocument(v1Router, {
     title: "Zius API",
     description: "REST endpoints backed by the same procedures as the Zius tRPC API.",
     version: "1.0.0",

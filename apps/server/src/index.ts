@@ -3,7 +3,7 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { createContext } from "@zius/api/context";
 import { logProcedureError } from "@zius/api/log";
 import { createOpenApiDocument, handleOpenApiRequest, OPENAPI_ENDPOINT } from "@zius/api/openapi";
-import { appRouter } from "@zius/api/routers/index";
+import { v1Router } from "@zius/api/routers/index";
 import { auth } from "@zius/auth";
 import { env } from "@zius/env/server";
 import { Hono } from "hono";
@@ -38,16 +38,33 @@ app.use("/*", timeout(15_000));
 
 app.on(["POST", "GET"], "/auth/*", (c) => auth.handler(c.req.raw));
 
-app.use(
-  "/trpc/*",
-  trpcServer({
-    router: appRouter,
-    createContext: (_opts, context) => {
-      return createContext({ context });
+const trpcMiddleware = trpcServer({
+  router: v1Router,
+  createContext: (_opts, context) => {
+    return createContext({ context });
+  },
+  onError: logProcedureError,
+});
+
+app.use("/v1/trpc/*", trpcMiddleware);
+
+// Legacy v1 route for app versions released before API paths were versioned.
+app.use("/trpc/*", trpcMiddleware);
+
+// Deliberately unversioned so every future app/API version can check compatibility first.
+app.get("/mobile-compatibility", (c) => {
+  c.header("Cache-Control", "no-store");
+  return c.json({
+    ios: {
+      minimumVersion: env.MOBILE_MINIMUM_IOS_VERSION,
+      storeUrl: env.MOBILE_IOS_STORE_URL ?? null,
     },
-    onError: logProcedureError,
-  }),
-);
+    android: {
+      minimumVersion: env.MOBILE_MINIMUM_ANDROID_VERSION,
+      storeUrl: env.MOBILE_ANDROID_STORE_URL ?? null,
+    },
+  });
+});
 
 app.all(`${OPENAPI_ENDPOINT}/*`, (c) => {
   return handleOpenApiRequest(c.req.raw, () => createContext({ context: c }));

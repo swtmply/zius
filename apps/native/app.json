@@ -2,7 +2,7 @@
   "expo": {
     "name": "zius",
     "slug": "zius",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -92,6 +92,7 @@
     },
     "owner": "allenwhun",
     "updates": {
+      "fallbackToCacheTimeout": 10000,
       "url": "https://u.expo.dev/1cd3d173-ac50-4baa-b475-a9163ddaf71b"
     }
   }
