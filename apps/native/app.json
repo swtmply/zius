@@ -92,6 +92,7 @@
     },
     "owner": "allenwhun",
     "updates": {
+      "fallbackToCacheTimeout": 10000,
       "url": "https://u.expo.dev/1cd3d173-ac50-4baa-b475-a9163ddaf71b"
     }
   }
