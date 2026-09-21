@@ -12,6 +12,7 @@ function getVercelOrigin() {
 }
 
 const vercelOrigin = getVercelOrigin();
+const appVersionSchema = z.string().regex(/^\d+\.\d+\.\d+$/, "Use a version like 1.2.3");
 
 const runtimeEnv = {
   ...process.env,
@@ -32,6 +33,10 @@ export const env = createEnv({
     BETTER_AUTH_URL: z.url(),
     CORS_ORIGIN: z.url(),
     SERVER_PUBLIC_URL: z.url().optional(),
+    MOBILE_MINIMUM_IOS_VERSION: appVersionSchema.default("0.0.0"),
+    MOBILE_MINIMUM_ANDROID_VERSION: appVersionSchema.default("0.0.0"),
+    MOBILE_IOS_STORE_URL: z.url().optional(),
+    MOBILE_ANDROID_STORE_URL: z.url().optional(),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   },
   runtimeEnv: runtimeEnv,

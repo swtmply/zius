@@ -7,7 +7,7 @@ import { expenseRouter } from "./expense";
 import { participantRouter } from "./participant";
 import { groupRouter } from "./group";
 
-export const appRouter = router({
+export const v1Router = router({
   healthCheck: publicProcedure
     .meta({
       openapi: {
@@ -32,4 +32,4 @@ export const appRouter = router({
   group: groupRouter,
   todo: todoRouter,
 });
-export type AppRouter = typeof appRouter;
+export type AppRouter = typeof v1Router;
