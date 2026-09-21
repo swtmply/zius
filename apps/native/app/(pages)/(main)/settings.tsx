@@ -14,7 +14,7 @@ import {
   setAlwaysShowOnboardingPages,
   setAlwaysShowSpotlights,
 } from "@/utils/spotlights";
-import { queryClient } from "@/utils/trpc";
+import { clearPersistedQueryCache } from "@/utils/trpc";
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
@@ -155,7 +155,7 @@ export default function Settings() {
       return;
     }
 
-    queryClient.clear();
+    await clearPersistedQueryCache();
   };
 
   return (

@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Icon } from "@/components/icon";
 import { showPendingToast } from "@/components/layout/expense-creation-toast";
 import { authClient } from "@/lib/auth-client";
+import { clearPersistedQueryCache } from "@/utils/trpc";
 
 const signInSchema = z.object({
   email: z.email("Enter a valid email address"),
@@ -118,7 +119,8 @@ export function SignIn() {
               onError(error) {
                 setSubmissionError(error.error.message ?? "Unable to create your account");
               },
-              onSuccess() {
+              async onSuccess() {
+                await clearPersistedQueryCache();
                 router.replace("/home");
               },
             },
@@ -135,7 +137,8 @@ export function SignIn() {
             onError(error) {
               setSubmissionError(error.error.message ?? "Unable to log in");
             },
-            onSuccess() {
+            async onSuccess() {
+              await clearPersistedQueryCache();
               router.replace("/home");
             },
           },
