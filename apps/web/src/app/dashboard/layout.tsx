@@ -14,7 +14,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     },
   });
 
-  if (!session?.user) {
+  if (!session?.user.emailVerified) {
     redirect("/login");
   }
 

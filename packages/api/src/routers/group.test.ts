@@ -33,7 +33,7 @@ async function seed() {
   const caller = (userId: string) =>
     createCallerFactory(groupRouter)({
       db,
-      session: { user: { id: userId } },
+      session: { user: { id: userId, emailVerified: true } },
     } as unknown as Context);
 
   return { db, caller, cleanup: () => rmSync(file, { force: true }) };

@@ -23,6 +23,8 @@ const signUpSchema = signInSchema.extend({
 
 type AuthMode = "sign-in" | "sign-up";
 
+const EMAIL_VERIFICATION_CALLBACK = "/email-verified";
+
 type AuthFieldProps = TextInputProps & {
   inputRef?: RefObject<TextInput | null>;
   label: string;
@@ -74,12 +76,93 @@ function AuthField({ inputRef, label, style, secureTextEntry, ...inputProps }: A
   );
 }
 
+function VerificationPending({ email, onBack }: { email: string; onBack: () => void }) {
+  const [isSending, setIsSending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
+
+  async function resend() {
+    setIsSending(true);
+    setMessage(null);
+
+    try {
+      const result = await authClient.sendVerificationEmail({
+        email,
+        callbackURL: EMAIL_VERIFICATION_CALLBACK,
+      });
+      setMessage(result.error?.message ?? "Verification email sent");
+    } catch {
+      setMessage("Unable to resend the verification email");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  return (
+    <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
+      <View className="items-center gap-1">
+        <Typography className="text-center text-2xl font-semibold text-ink">
+          Check your inbox
+        </Typography>
+        <Typography selectable className="text-center text-xs text-muted">
+          We sent a verification link to {email}. Open it on this device before signing in.
+        </Typography>
+      </View>
+
+      {message ? (
+        <Typography selectable className="text-center text-xs text-muted">
+          {message}
+        </Typography>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isSending}
+        onPress={() => void resend()}
+        style={({ pressed }) => ({
+          height: 54,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 16,
+          borderCurve: "continuous",
+          backgroundColor: ink,
+          opacity: pressed || isSending ? 0.72 : 1,
+        })}
+      >
+        {isSending ? (
+          <ActivityIndicator colorClassName="accent-on-ink" />
+        ) : (
+          <Typography className="text-sm text-on-ink">Resend email</Typography>
+        )}
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isSending}
+        onPress={onBack}
+        style={({ pressed }) => ({
+          height: 52,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 15,
+          borderCurve: "continuous",
+          backgroundColor: panel,
+          opacity: pressed || isSending ? 0.72 : 1,
+        })}
+      >
+        <Typography className="text-sm text-ink">Back to login</Typography>
+      </Pressable>
+    </View>
+  );
+}
+
 export function SignIn() {
   const router = useRouter();
   const nameInputRef = useRef<TextInput>(null);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const [mode, setMode] = useState<AuthMode>("sign-in");
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const { toast } = useToast();
   const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
@@ -114,14 +197,14 @@ export function SignIn() {
               name: value.name.trim(),
               email: value.email.trim(),
               password: value.password,
+              callbackURL: EMAIL_VERIFICATION_CALLBACK,
             },
             {
               onError(error) {
                 setSubmissionError(error.error.message ?? "Unable to create your account");
               },
-              async onSuccess() {
-                await clearPersistedQueryCache();
-                router.replace("/home");
+              onSuccess() {
+                setPendingEmail(value.email.trim());
               },
             },
           );
@@ -132,9 +215,14 @@ export function SignIn() {
           {
             email: value.email.trim(),
             password: value.password,
+            callbackURL: EMAIL_VERIFICATION_CALLBACK,
           },
           {
             onError(error) {
+              if (error.error.code === "EMAIL_NOT_VERIFIED") {
+                setPendingEmail(value.email.trim());
+                return;
+              }
               setSubmissionError(error.error.message ?? "Unable to log in");
             },
             async onSuccess() {
@@ -155,6 +243,19 @@ export function SignIn() {
     setMode(isSignUp ? "sign-in" : "sign-up");
     setSubmissionError(null);
     form.reset();
+  }
+
+  if (pendingEmail) {
+    return (
+      <VerificationPending
+        email={pendingEmail}
+        onBack={() => {
+          setPendingEmail(null);
+          setMode("sign-in");
+          form.reset();
+        }}
+      />
+    );
   }
 
   return (

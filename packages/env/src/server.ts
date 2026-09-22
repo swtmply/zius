@@ -31,6 +31,7 @@ export const env = createEnv({
     DATABASE_AUTH_TOKEN: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    RESEND_API_KEY: z.string().min(1),
     CORS_ORIGIN: z.url(),
     SERVER_PUBLIC_URL: z.url().optional(),
     MOBILE_MINIMUM_IOS_VERSION: appVersionSchema.default("0.0.0"),

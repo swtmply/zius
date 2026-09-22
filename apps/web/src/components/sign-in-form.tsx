@@ -28,6 +28,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         {
           email: value.email,
           password: value.password,
+          callbackURL: "/login",
         },
         {
           onSuccess: () => {
@@ -35,6 +36,13 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
             toast.success("Sign in successful", { id: toastId });
           },
           onError: (error) => {
+            if (error.error.code === "EMAIL_NOT_VERIFIED") {
+              toast.error("Check your email", {
+                id: toastId,
+                description: "We sent you a new verification link.",
+              });
+              return;
+            }
             toast.error(error.error.message || error.error.statusText, { id: toastId });
           },
         },
