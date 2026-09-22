@@ -5,12 +5,12 @@ import Link from "next/link";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { mobileScreens } from "@/components/marketing/features";
+import { EarlyAccessButton } from "@/components/marketing/early-access-dialog";
 import {
   primaryButton,
   secondaryButton,
   sectionHeading,
   sectionShell,
-  waitlistHref,
 } from "@/components/marketing/styles";
 
 export const metadata: Metadata = {
@@ -55,8 +55,8 @@ export default function HowItWorksPage() {
           <span>How it works</span>
           <h2>Every screen, end to end.</h2>
           <p>
-            Scan the receipt, pick how it splits, tap who was there. Here is the whole mobile app
-            scrolling past. Hover to stop on one.
+            Scan the receipt, pick how it splits, tap who was there. Here is the whole app scrolling
+            past. Hover to stop on one.
           </p>
         </div>
       </section>
@@ -68,11 +68,11 @@ export default function HowItWorksPage() {
 
       <section className={`${sectionShell} flex flex-col items-center gap-6 pb-24 max-sm:pb-16`}>
         <div className="flex items-center gap-4 max-sm:w-full max-sm:flex-col">
-          <a className={`${primaryButton} max-sm:w-full`} href={waitlistHref}>
-            Get the mobile app
-          </a>
+          <EarlyAccessButton className={`${primaryButton} max-sm:w-full`}>
+            Get the app
+          </EarlyAccessButton>
           <Link className={`${secondaryButton} max-sm:w-full`} href="/features">
-            Compare mobile and web
+            See all the features
           </Link>
         </div>
       </section>
