@@ -10,8 +10,6 @@ export const sectionHeading =
 export const sectionShell =
   "mx-auto w-[min(calc(100%-2rem),1080px)] sm:w-[min(calc(100%-2.5rem),1080px)]";
 
-export const waitlistHref = "mailto:hello@zius.app?subject=Zius%20early%20access";
-
 export const fieldLabel = "text-xs font-semibold tracking-[0.04em] text-black/60 uppercase";
 
 export const fieldInput =

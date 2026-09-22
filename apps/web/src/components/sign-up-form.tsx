@@ -69,7 +69,7 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           Create your Zius account
         </h1>
         <p className="m-0 text-sm leading-5 text-black/60">
-          One account for the web app and the mobile app. No limits on expenses, groups, or people.
+          One account for every group you split with. No limits on expenses, groups, or people.
         </p>
       </div>
 
