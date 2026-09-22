@@ -75,7 +75,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
           Sign in to Zius
         </h1>
         <p className="m-0 text-sm leading-5 text-black/60">
-          Same account as the mobile app. Every group and expense is already waiting.
+          Same account as the app. Every group and expense is already waiting.
         </p>
       </div>
 

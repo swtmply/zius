@@ -204,8 +204,10 @@ export function SignIn() {
               onError(error) {
                 setSubmissionError(error.error.message ?? "Unable to create your account");
               },
-              onSuccess() {
+              async onSuccess() {
                 setPendingEmail(value.email.trim());
+                await clearPersistedQueryCache();
+                router.replace("/home");
               },
             },
           );

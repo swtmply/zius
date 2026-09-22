@@ -4,24 +4,19 @@ import Link from "next/link";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import {
-  comparison,
-  mobileFeatures,
-  sharedFeatures,
-  webFeatures,
-} from "@/components/marketing/features";
+import { mobileFeatures, sharedFeatures } from "@/components/marketing/features";
+import { EarlyAccessButton } from "@/components/marketing/early-access-dialog";
 import {
   primaryButton,
   secondaryButton,
   sectionHeading,
   sectionShell,
-  waitlistHref,
 } from "@/components/marketing/styles";
 
 export const metadata: Metadata = {
   title: "Features | Zius",
   description:
-    "What Zius does on mobile, what it does on the web, and the receipt scanning that only the phone can do.",
+    "What Zius does at the table: receipt scanning, four ways to split, and centavo-exact balances for every group.",
 };
 
 export default function FeaturesPage() {
@@ -34,18 +29,18 @@ export default function FeaturesPage() {
       >
         <div className={sectionHeading}>
           <span>Features</span>
-          <h2>Phone at the table. Browser the morning after.</h2>
+          <h2>A phone at the table is all it takes.</h2>
           <p>
-            Zius is one ledger with two front doors. The mobile app is where expenses get captured;
-            the web app is where they get reviewed.
+            Zius captures the bill where it happens and keeps the balances straight long after
+            everyone has gone home.
           </p>
         </div>
         <div className="flex items-center gap-4 max-sm:w-full max-sm:flex-col">
-          <a className={`${primaryButton} max-sm:w-full`} href={waitlistHref}>
-            Get the mobile app
-          </a>
-          <Link className={`${secondaryButton} max-sm:w-full`} href="/login">
-            Open the web app
+          <EarlyAccessButton className={`${primaryButton} max-sm:w-full`}>
+            Get the app
+          </EarlyAccessButton>
+          <Link className={`${secondaryButton} max-sm:w-full`} href="/how-it-works">
+            See it screen by screen
           </Link>
         </div>
       </section>
@@ -57,10 +52,10 @@ export default function FeaturesPage() {
           <div className="flex flex-col gap-8">
             <div className="flex flex-col gap-2.5">
               <span className="text-xs font-semibold tracking-[0.06em] text-white/50 uppercase">
-                Mobile only
+                At the table
               </span>
               <h2 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.045em] max-sm:text-[28px]">
-                Things a browser cannot do
+                The camera does the typing
               </h2>
             </div>
             <ul className="m-0 flex list-none flex-col gap-6 p-0">
@@ -87,9 +82,9 @@ export default function FeaturesPage() {
 
       <section className={`${sectionShell} flex flex-col gap-12 py-24 max-sm:py-16`}>
         <div className={sectionHeading}>
-          <span>On every screen</span>
-          <h2>The splitting engine, everywhere</h2>
-          <p>Same expenses, same groups, same math, whichever app you happen to have open.</p>
+          <span>The splitting engine</span>
+          <h2>Math that always adds back up</h2>
+          <p>Same expenses, same groups, same centavo-exact totals, every time.</p>
         </div>
         <ul className="m-0 grid list-none grid-cols-3 gap-6 p-0 max-md:grid-cols-2 max-sm:grid-cols-1">
           {sharedFeatures.map((feature) => (
@@ -114,70 +109,17 @@ export default function FeaturesPage() {
           src="/images/features/group-details-expenses.png"
           width={430}
         />
-        <div className="flex flex-col gap-8">
-          <div className="flex flex-col gap-2.5">
-            <span className="text-xs font-semibold tracking-[0.06em] text-black/60 uppercase">
-              On the web
-            </span>
-            <h2 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.045em] max-sm:text-[28px]">
-              Room to see the whole picture
-            </h2>
-          </div>
-          <ul className="m-0 flex list-none flex-col gap-6 p-0">
-            {webFeatures.map((feature) => (
-              <li
-                className="reveal flex flex-col gap-2 border-l border-black/10 pl-5"
-                key={feature.title}
-              >
-                <h3 className="m-0 text-xl font-bold tracking-[-0.03em]">{feature.title}</h3>
-                <p className="m-0 text-sm leading-5 text-black/60">{feature.description}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section className={`${sectionShell} flex flex-col gap-8 pb-24 max-sm:pb-16`}>
-        <div className={sectionHeading}>
-          <span>Side by side</span>
-          <h2>Where each app wins</h2>
-        </div>
-        <div className="overflow-hidden rounded-3xl border border-[#e6e6e6]">
-          <table className="w-full border-collapse text-left text-sm">
-            <caption className="sr-only">Feature availability on mobile and web</caption>
-            <thead className="bg-[#f2f2f7] text-xs tracking-[0.04em] text-black/60 uppercase">
-              <tr>
-                <th className="px-5 py-3 font-semibold" scope="col">
-                  Feature
-                </th>
-                <th className="w-24 px-5 py-3 text-center font-semibold" scope="col">
-                  Mobile
-                </th>
-                <th className="w-24 px-5 py-3 text-center font-semibold" scope="col">
-                  Web
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {comparison.map((row) => (
-                <tr className="border-t border-[#e6e6e6]" key={row.feature}>
-                  <th className="px-5 py-3.5 font-normal" scope="row">
-                    {row.feature}
-                  </th>
-                  <td className="px-5 py-3.5 text-center">
-                    <span className={row.mobile ? "font-semibold" : "text-black/30"}>
-                      {row.mobile ? "Yes" : "—"}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-center">
-                    <span className={row.web ? "font-semibold" : "text-black/30"}>
-                      {row.web ? "Yes" : "—"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex flex-col gap-4">
+          <span className="text-xs font-semibold tracking-[0.06em] text-black/60 uppercase">
+            After the dinner
+          </span>
+          <h2 className="m-0 text-[32px] leading-[1.1] font-bold tracking-[-0.045em] max-sm:text-[28px]">
+            Every group keeps its own two piles
+          </h2>
+          <p className="m-0 text-[15px] leading-6 text-black/60">
+            Settled and unsettled, side by side. Filter a month of dinners, see who still owes whom,
+            and cancel what should not have been there without losing the record.
+          </p>
         </div>
       </section>
 
@@ -187,15 +129,11 @@ export default function FeaturesPage() {
             Start where the receipts are
           </h2>
           <p className="m-0 max-w-160 text-base leading-6 text-[#f2f2f7]">
-            Get on the early access list for iOS and Android. The web app is already open if you
-            want to look around first.
+            Zius is in early access on Android. Send me a message and I will get you a build.
           </p>
-          <a
-            className="inline-flex min-h-11.5 items-center justify-center rounded-2xl bg-white px-6 text-[15px] font-semibold text-black no-underline transition hover:-translate-y-px hover:opacity-85 motion-reduce:transition-none"
-            href={waitlistHref}
-          >
+          <EarlyAccessButton className="inline-flex min-h-11.5 items-center justify-center rounded-2xl bg-white px-6 text-[15px] font-semibold text-black transition hover:-translate-y-px hover:opacity-85 motion-reduce:transition-none max-sm:w-full">
             Get early access
-          </a>
+          </EarlyAccessButton>
         </div>
       </section>
 

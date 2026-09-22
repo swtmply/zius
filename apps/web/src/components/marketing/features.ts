@@ -3,19 +3,19 @@ export const mobileFeatures = [
     title: "Scan the receipt",
     description:
       "Point the camera at the bill or pick a photo. Zius reads the text on-device and you tap the total to drop it straight into an expense.",
-    tag: "Mobile only",
+    tag: "Camera",
   },
   {
     title: "Recognized on your phone, not a server",
     description:
       "Receipt text recognition runs locally. The picture of your dinner never leaves your device.",
-    tag: "Mobile only",
+    tag: "On device",
   },
   {
     title: "Built for one thumb",
     description:
       "Native sheets, gesture navigation, and big touch targets. Splitting takes a few taps while you are still standing at the counter.",
-    tag: "Mobile only",
+    tag: "One thumb",
   },
 ] as const;
 
@@ -45,37 +45,9 @@ export const sharedFeatures = [
       "A cancelled expense stays on the record as history instead of vanishing from the math.",
   },
   {
-    title: "One account, both apps",
-    description: "Everything you add on your phone is already there when you open the web app.",
+    title: "Your history stays put",
+    description: "Every expense you have been part of stays searchable, months after the dinner.",
   },
-] as const;
-
-export const webFeatures = [
-  {
-    title: "The whole history on one screen",
-    description:
-      "Months of dinners, rent, and trips laid out without scrolling a thumb raw. Filter by group, person, or state.",
-  },
-  {
-    title: "Keyboard-speed entry",
-    description:
-      "Catching up on a backlog of expenses is faster with a real keyboard and a mouse than with a phone.",
-  },
-  {
-    title: "Nothing to install",
-    description:
-      "Open a browser, sign in, and you are in the same ledger your group has been adding to all week.",
-  },
-] as const;
-
-export const comparison = [
-  { feature: "Receipt scanning with on-device text recognition", mobile: true, web: false },
-  { feature: "Camera and photo library capture", mobile: true, web: false },
-  { feature: "Create expenses, groups, and participants", mobile: true, web: true },
-  { feature: "Equal, percentage, fixed, and per-item splits", mobile: true, web: true },
-  { feature: "Filter and review the full expense history", mobile: true, web: true },
-  { feature: "Wide screen for long group histories", mobile: false, web: true },
-  { feature: "Keyboard-speed entry on a laptop", mobile: false, web: true },
 ] as const;
 
 /** Mobile app screenshots, in the order a first split actually happens. */
