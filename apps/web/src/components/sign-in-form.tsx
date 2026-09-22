@@ -7,6 +7,7 @@ import z from "zod";
 import { authClient } from "@/lib/auth-client";
 
 import { AuthField } from "./auth-field";
+import { GoogleSignIn } from "./google-sign-in";
 import Loader from "./loader";
 import { authCard, primaryButton } from "./marketing/styles";
 
@@ -28,6 +29,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
         {
           email: value.email,
           password: value.password,
+          callbackURL: "/login",
         },
         {
           onSuccess: () => {
@@ -35,6 +37,13 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
             toast.success("Sign in successful", { id: toastId });
           },
           onError: (error) => {
+            if (error.error.code === "EMAIL_NOT_VERIFIED") {
+              toast.error("Check your email", {
+                id: toastId,
+                description: "We sent you a new verification link.",
+              });
+              return;
+            }
             toast.error(error.error.message || error.error.statusText, { id: toastId });
           },
         },
@@ -66,12 +75,14 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
           Sign in to Zius
         </h1>
         <p className="m-0 text-sm leading-5 text-black/60">
-          Same account as the mobile app. Every group and expense is already waiting.
+          Same account as the app. Every group and expense is already waiting.
         </p>
       </div>
 
+      <GoogleSignIn />
+
       <form
-        className="mt-7 flex flex-col gap-5"
+        className="mt-5 flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();

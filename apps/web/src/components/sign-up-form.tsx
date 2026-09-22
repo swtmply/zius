@@ -1,17 +1,16 @@
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@zius/ui/components/button";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
 import { AuthField } from "./auth-field";
+import { GoogleSignIn } from "./google-sign-in";
 import Loader from "./loader";
 import { authCard, primaryButton } from "./marketing/styles";
 
 export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
-  const router = useRouter();
   const { isPending } = authClient.useSession();
 
   const form = useForm({
@@ -30,11 +29,15 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           email: value.email,
           password: value.password,
           name: value.name,
+          callbackURL: "/login",
         },
         {
           onSuccess: () => {
-            router.push("/dashboard");
-            toast.success("Sign up successful", { id: toastId });
+            onSwitchToSignIn();
+            toast.success("Check your email", {
+              id: toastId,
+              description: "Verify your address before signing in.",
+            });
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText, { id: toastId });
@@ -69,12 +72,14 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           Create your Zius account
         </h1>
         <p className="m-0 text-sm leading-5 text-black/60">
-          One account for the web app and the mobile app. No limits on expenses, groups, or people.
+          One account for every group you split with. No limits on expenses, groups, or people.
         </p>
       </div>
 
+      <GoogleSignIn />
+
       <form
-        className="mt-7 flex flex-col gap-5"
+        className="mt-5 flex flex-col gap-5"
         onSubmit={(e) => {
           e.preventDefault();
           e.stopPropagation();

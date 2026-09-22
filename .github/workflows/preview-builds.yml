@@ -1,0 +1,68 @@
+name: Preview Builds
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Android ${{ matrix.format }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - format: AAB
+            profile: preview-aab
+            file: zius-preview.aab
+          - format: APK
+            profile: preview
+            file: zius-preview.apk
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Setup Java
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Expo
+        uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+          packager: bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Android ${{ matrix.format }}
+        working-directory: apps/native
+        env:
+          GRADLE_OPTS: >-
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+            -Dorg.gradle.parallel=false
+            -Dorg.gradle.daemon=false
+        run: |
+          mkdir -p ../../artifacts
+
+          eas build \
+            --platform android \
+            --profile "${{ matrix.profile }}" \
+            --local \
+            --non-interactive \
+            --output "../../artifacts/${{ matrix.file }}"
+
+      - name: Upload ${{ matrix.format }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: zius-android-preview-${{ matrix.format }}
+          path: artifacts/${{ matrix.file }}
+          if-no-files-found: error

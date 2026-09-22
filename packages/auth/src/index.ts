@@ -8,6 +8,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { openAPI } from "better-auth/plugins";
 import { eq } from "drizzle-orm";
 
+import { sendVerificationEmail } from "./email";
+
 export function createAuth() {
   const db = createDb();
 
@@ -56,10 +58,30 @@ export function createAuth() {
       env.CORS_ORIGIN,
       "zius://",
       // Expo dev client origins, kept out of production
-      ...(env.NODE_ENV === "production" ? [] : ["exp://", "http://localhost:8081"]),
+      ...(env.NODE_ENV === "production"
+        ? []
+        : ["exp://", "http://localhost:8081"]),
     ],
     emailAndPassword: {
       enabled: true,
+      requireEmailVerification: true,
+    },
+    socialProviders: {
+      google: {
+        clientId: [env.GOOGLE_CLIENT_ID, env.GOOGLE_ANDROID_CLIENT_ID],
+        clientSecret: env.GOOGLE_CLIENT_SECRET,
+      },
+    },
+    emailVerification: {
+      autoSignInAfterVerification: true,
+      expiresIn: 60 * 60,
+      sendOnSignIn: true,
+      sendVerificationEmail: ({ user, url }) =>
+        sendVerificationEmail({
+          apiKey: env.RESEND_API_KEY,
+          email: user.email,
+          url,
+        }),
     },
     // On top of better-auth's production default (100 req / 10s per IP across
     // all auth paths), throttle the credential endpoints a brute force targets.
@@ -69,6 +91,7 @@ export function createAuth() {
       customRules: {
         "/sign-in/email": { window: 60, max: 5 },
         "/sign-up/email": { window: 60, max: 3 },
+        "/send-verification-email": { window: 60, max: 3 },
         "/forget-password": { window: 60, max: 3 },
         "/reset-password": { window: 60, max: 5 },
       },
