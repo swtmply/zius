@@ -13,7 +13,17 @@
       "autoIncrement": true,
       "distribution": "internal",
       "environment": "preview",
-      "channel": "staging"
+      "channel": "staging",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-aab": {
+      "extends": "preview",
+      "distribution": "store",
+      "android": {
+        "buildType": "app-bundle"
+      }
     },
     "development-preview": {
       "developmentClient": true,
