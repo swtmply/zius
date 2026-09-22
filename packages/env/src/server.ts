@@ -12,17 +12,21 @@ function getVercelOrigin() {
 }
 
 const vercelOrigin = getVercelOrigin();
-const appVersionSchema = z.string().regex(/^\d+\.\d+\.\d+$/, "Use a version like 1.2.3");
+const appVersionSchema = z
+  .string()
+  .regex(/^\d+\.\d+\.\d+$/, "Use a version like 1.2.3");
 
 const runtimeEnv = {
   ...process.env,
   // Public auth base: /api/auth bypasses the rewrite's path strip, so the
   // same URL works for incoming matching and generated callbacks
   BETTER_AUTH_URL:
-    process.env.BETTER_AUTH_URL ?? (vercelOrigin ? `${vercelOrigin}/api/auth` : undefined),
+    process.env.BETTER_AUTH_URL ??
+    (vercelOrigin ? `${vercelOrigin}/api/auth` : undefined),
   CORS_ORIGIN: process.env.CORS_ORIGIN ?? vercelOrigin,
   SERVER_PUBLIC_URL:
-    process.env.SERVER_PUBLIC_URL ?? (vercelOrigin ? `${vercelOrigin}/api` : undefined),
+    process.env.SERVER_PUBLIC_URL ??
+    (vercelOrigin ? `${vercelOrigin}/api` : undefined),
 };
 
 export const env = createEnv({
@@ -31,6 +35,9 @@ export const env = createEnv({
     DATABASE_AUTH_TOKEN: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
+    GOOGLE_CLIENT_ID: z.string().min(1),
+    GOOGLE_CLIENT_SECRET: z.string().min(1),
+    GOOGLE_ANDROID_CLIENT_ID: z.string().min(1),
     RESEND_API_KEY: z.string().min(1),
     CORS_ORIGIN: z.url(),
     SERVER_PUBLIC_URL: z.url().optional(),
@@ -38,7 +45,9 @@ export const env = createEnv({
     MOBILE_MINIMUM_ANDROID_VERSION: appVersionSchema.default("0.0.0"),
     MOBILE_IOS_STORE_URL: z.url().optional(),
     MOBILE_ANDROID_STORE_URL: z.url().optional(),
-    NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
   },
   runtimeEnv: runtimeEnv,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
