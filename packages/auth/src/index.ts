@@ -65,6 +65,7 @@ export function createAuth() {
       requireEmailVerification: true,
     },
     emailVerification: {
+      autoSignInAfterVerification: true,
       expiresIn: 60 * 60,
       sendOnSignIn: true,
       sendVerificationEmail: ({ user, url }) =>

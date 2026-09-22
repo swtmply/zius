@@ -105,7 +105,7 @@ function VerificationPending({ email, onBack }: { email: string; onBack: () => v
           Check your inbox
         </Typography>
         <Typography selectable className="text-center text-xs text-muted">
-          We sent a verification link to {email}. Open it on this device before signing in.
+          We sent a verification link to {email}. Open it on this device to continue automatically.
         </Typography>
       </View>
 
