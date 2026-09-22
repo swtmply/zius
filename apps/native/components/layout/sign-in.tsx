@@ -1,4 +1,4 @@
-import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
+import { GoogleIcon, ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@/utils/navigation";
 import { Typography, useToast } from "heroui-native";
@@ -22,6 +22,8 @@ const signUpSchema = signInSchema.extend({
 });
 
 type AuthMode = "sign-in" | "sign-up";
+
+const EMAIL_VERIFICATION_CALLBACK = "/email-verified";
 
 type AuthFieldProps = TextInputProps & {
   inputRef?: RefObject<TextInput | null>;
@@ -74,13 +76,95 @@ function AuthField({ inputRef, label, style, secureTextEntry, ...inputProps }: A
   );
 }
 
+function VerificationPending({ email, onBack }: { email: string; onBack: () => void }) {
+  const [isSending, setIsSending] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
+
+  async function resend() {
+    setIsSending(true);
+    setMessage(null);
+
+    try {
+      const result = await authClient.sendVerificationEmail({
+        email,
+        callbackURL: EMAIL_VERIFICATION_CALLBACK,
+      });
+      setMessage(result.error?.message ?? "Verification email sent");
+    } catch {
+      setMessage("Unable to resend the verification email");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  return (
+    <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
+      <View className="items-center gap-1">
+        <Typography className="text-center text-2xl font-semibold text-ink">
+          Check your inbox
+        </Typography>
+        <Typography selectable className="text-center text-xs text-muted">
+          We sent a verification link to {email}. Open it on this device to continue automatically.
+        </Typography>
+      </View>
+
+      {message ? (
+        <Typography selectable className="text-center text-xs text-muted">
+          {message}
+        </Typography>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isSending}
+        onPress={() => void resend()}
+        style={({ pressed }) => ({
+          height: 54,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 16,
+          borderCurve: "continuous",
+          backgroundColor: ink,
+          opacity: pressed || isSending ? 0.72 : 1,
+        })}
+      >
+        {isSending ? (
+          <ActivityIndicator colorClassName="accent-on-ink" />
+        ) : (
+          <Typography className="text-sm text-on-ink">Resend email</Typography>
+        )}
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        disabled={isSending}
+        onPress={onBack}
+        style={({ pressed }) => ({
+          height: 52,
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 15,
+          borderCurve: "continuous",
+          backgroundColor: panel,
+          opacity: pressed || isSending ? 0.72 : 1,
+        })}
+      >
+        <Typography className="text-sm text-ink">Back to login</Typography>
+      </Pressable>
+    </View>
+  );
+}
+
 export function SignIn() {
   const router = useRouter();
   const nameInputRef = useRef<TextInput>(null);
   const emailInputRef = useRef<TextInput>(null);
   const passwordInputRef = useRef<TextInput>(null);
   const [mode, setMode] = useState<AuthMode>("sign-in");
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isGooglePending, setIsGooglePending] = useState(false);
   const { toast } = useToast();
   const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
 
@@ -114,12 +198,14 @@ export function SignIn() {
               name: value.name.trim(),
               email: value.email.trim(),
               password: value.password,
+              callbackURL: EMAIL_VERIFICATION_CALLBACK,
             },
             {
               onError(error) {
                 setSubmissionError(error.error.message ?? "Unable to create your account");
               },
               async onSuccess() {
+                setPendingEmail(value.email.trim());
                 await clearPersistedQueryCache();
                 router.replace("/home");
               },
@@ -132,9 +218,14 @@ export function SignIn() {
           {
             email: value.email.trim(),
             password: value.password,
+            callbackURL: EMAIL_VERIFICATION_CALLBACK,
           },
           {
             onError(error) {
+              if (error.error.code === "EMAIL_NOT_VERIFIED") {
+                setPendingEmail(value.email.trim());
+                return;
+              }
               setSubmissionError(error.error.message ?? "Unable to log in");
             },
             async onSuccess() {
@@ -157,6 +248,48 @@ export function SignIn() {
     form.reset();
   }
 
+  async function signInWithGoogle() {
+    setIsGooglePending(true);
+    setSubmissionError(null);
+    showPendingToast(toast, "Opening Google", "Choose the account you want to use.");
+
+    try {
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/home",
+      });
+
+      if (result.error) {
+        setSubmissionError(result.error.message ?? "Unable to sign in with Google");
+        return;
+      }
+
+      const { data: session } = await authClient.getSession();
+      if (session?.user.emailVerified) {
+        await clearPersistedQueryCache();
+        router.replace("/home");
+      }
+    } catch {
+      setSubmissionError("Unable to sign in with Google");
+    } finally {
+      setIsGooglePending(false);
+      toast.hide("all");
+    }
+  }
+
+  if (pendingEmail) {
+    return (
+      <VerificationPending
+        email={pendingEmail}
+        onBack={() => {
+          setPendingEmail(null);
+          setMode("sign-in");
+          form.reset();
+        }}
+      />
+    );
+  }
+
   return (
     <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
       <Typography
@@ -167,6 +300,38 @@ export function SignIn() {
       </Typography>
 
       <View style={{ gap: 16 }}>
+        <Pressable
+          accessibilityRole="button"
+          disabled={isGooglePending}
+          onPress={() => void signInWithGoogle()}
+          style={({ pressed }) => ({
+            height: 54,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            borderRadius: 16,
+            borderCurve: "continuous",
+            backgroundColor: panel,
+            opacity: pressed || isGooglePending ? 0.72 : 1,
+          })}
+        >
+          {isGooglePending ? (
+            <ActivityIndicator colorClassName="accent-ink" />
+          ) : (
+            <Icon icon={GoogleIcon} size={18} colorClassName="accent-ink" />
+          )}
+          <Typography className="text-sm text-ink">
+            {isGooglePending ? "Opening Google..." : "Continue with Google"}
+          </Typography>
+        </Pressable>
+
+        <View className="flex-row items-center gap-3" accessible={false}>
+          <View className="h-px flex-1 bg-border" />
+          <Typography className="text-xs text-muted">or continue with email</Typography>
+          <View className="h-px flex-1 bg-border" />
+        </View>
+
         {isSignUp ? (
           <form.Field name="name">
             {(field) => (
@@ -239,7 +404,7 @@ export function SignIn() {
               <Pressable
                 testID={isSignUp ? "auth-sign-up" : "auth-login"}
                 accessibilityRole="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isGooglePending}
                 onPress={() => void form.handleSubmit()}
                 style={({ pressed }) => ({
                   height: 54,
@@ -248,7 +413,7 @@ export function SignIn() {
                   borderRadius: 16,
                   borderCurve: "continuous",
                   backgroundColor: ink,
-                  opacity: pressed || isSubmitting ? 0.72 : 1,
+                  opacity: pressed || isSubmitting || isGooglePending ? 0.72 : 1,
                 })}
               >
                 {isSubmitting ? (
@@ -262,7 +427,7 @@ export function SignIn() {
 
               <Pressable
                 accessibilityRole="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isGooglePending}
                 onPress={switchMode}
                 style={({ pressed }) => ({
                   height: 52,
@@ -271,7 +436,7 @@ export function SignIn() {
                   borderRadius: 15,
                   borderCurve: "continuous",
                   backgroundColor: panel,
-                  opacity: pressed || isSubmitting ? 0.72 : 1,
+                  opacity: pressed || isSubmitting || isGooglePending ? 0.72 : 1,
                 })}
               >
                 <Typography className="text-sm text-ink">

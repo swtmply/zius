@@ -73,7 +73,7 @@ export default function LoginScreen() {
     );
   }
 
-  if (session?.user) {
+  if (session?.user.emailVerified) {
     return <Redirect href="/home" />;
   }
 

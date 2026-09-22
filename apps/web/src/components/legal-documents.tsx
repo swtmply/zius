@@ -30,7 +30,7 @@ const privacySections: readonly LegalSection[] = [
         "Zius currently uses Better Auth as part of its authentication system. Authentication-related information may be processed to create sessions, verify your identity, protect your account, and provide access to the Service.",
       ),
       paragraph(
-        "Zius does not currently offer Google Sign-In or Sign in with Apple. If third-party authentication methods are introduced, this Privacy Policy will be updated as appropriate before or when they become available.",
+        "Zius offers Google Sign-In. When you use it, Google provides the account information you authorize, such as your name, email address, profile image, and provider-specific identifier.",
       ),
       paragraph(
         "When a user creates a participant or guest record, we may store a name, email address, and participant identifier. A guest may later be associated with a registered account where appropriate, such as when email addresses correspond.",
@@ -103,10 +103,10 @@ const privacySections: readonly LegalSection[] = [
     title: "5. Social and Third-Party Sign-In",
     blocks: [
       paragraph(
-        "Zius does not currently provide authentication through Google, Apple, or another social login provider.",
+        "Zius provides Google Sign-In through Google's OAuth service. Google verifies the email address associated with the Google account before Zius marks it as verified.",
       ),
       paragraph(
-        "If those options become available and you choose to use one, Zius may receive information you authorize the provider to share, such as your name, email address, provider-specific identifier, and profile information. Each provider independently processes information under its own privacy policy.",
+        "Google independently processes information under its own privacy policy. Zius does not receive your Google password.",
       ),
     ],
   },
@@ -518,7 +518,7 @@ function LegalDocument({ eyebrow, id, introduction, sections, title }: LegalDocu
         >
           {title}
         </h2>
-        <p className="m-0 text-sm text-black/60">Effective September 5, 2026</p>
+        <p className="m-0 text-sm text-black/60">Effective September 22, 2026</p>
       </header>
 
       <article className="mx-auto max-w-190 rounded-[40px] bg-[#f2f2f7] px-10 py-12 max-sm:rounded-[28px] max-sm:px-6 max-sm:py-9">
