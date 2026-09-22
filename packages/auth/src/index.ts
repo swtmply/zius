@@ -56,6 +56,8 @@ export function createAuth() {
     },
     trustedOrigins: [
       env.CORS_ORIGIN,
+      "https://www.tryzius.com",
+      "https://preview.tryzius.com",
       "zius://",
       // Expo dev client origins, kept out of production
       ...(env.NODE_ENV === "production"
