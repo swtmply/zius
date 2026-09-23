@@ -9,11 +9,15 @@ import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { StatusBar } from "expo-status-bar";
 import { AppUpdateGate } from "@/components/layout/app-update-gate";
 import { authClient } from "@/lib/auth-client";
-import { useState } from "react";
+import { ensureRevenueCat } from "@/utils/revenuecat";
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 
 function RootNavigator() {
   const { data: session, isPending } = authClient.useSession();
+  useEffect(() => {
+    if (session?.user.emailVerified) void ensureRevenueCat(session.user.id).catch(() => {});
+  }, [session?.user.id, session?.user.emailVerified]);
   // better-auth flips isPending back to true on every refetch while signed out.
   // Only block on the first load so refetches never unmount the navigator.
   const [loaded, setLoaded] = useState(false);
@@ -33,6 +37,7 @@ function RootNavigator() {
         <Stack.Screen name="(pages)/(modals)/groups/index" />
         <Stack.Screen name="(pages)/(modals)/groups/create" />
         <Stack.Screen name="(pages)/(modals)/groups/[groupId]" />
+        <Stack.Screen name="(pages)/(modals)/scan-credits" />
       </Stack.Protected>
     </Stack>
   );

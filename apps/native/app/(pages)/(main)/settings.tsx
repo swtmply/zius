@@ -286,6 +286,14 @@ export default function Settings() {
           <Typography selectable className="text-sm text-ink">
             Account Settings
           </Typography>
+          <PressableFeedback
+            accessibilityRole="button"
+            accessibilityLabel="AI scan credits"
+            onPress={() => router.push("/scan-credits")}
+            className="min-h-[50px] justify-center rounded-2xl border border-border bg-panel px-4"
+          >
+            <Typography className="text-sm text-ink">AI scan credits and subscription</Typography>
+          </PressableFeedback>
           <View className="min-h-[50px] justify-center rounded-2xl border border-border bg-panel px-4">
             <View className="min-h-[50px] flex-row items-center gap-4">
               <Typography selectable className="text-sm text-ink">

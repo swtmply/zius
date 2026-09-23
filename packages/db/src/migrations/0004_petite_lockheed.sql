@@ -1,0 +1,1 @@
+CREATE INDEX `receipt_scan_user_id_idx` ON `receipt_scan` (`user_id`);

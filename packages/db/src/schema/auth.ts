@@ -8,6 +8,7 @@ export const user = sqliteTable("user", {
   emailVerified: integer("email_verified", { mode: "boolean" }).default(false).notNull(),
   image: text("image"),
   deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
+  freeAiScansUsed: integer("free_ai_scans_used").default(0).notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),

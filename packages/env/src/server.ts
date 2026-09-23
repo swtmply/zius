@@ -48,6 +48,8 @@ export const env = createEnv({
     RESEND_API_KEY: z.string().min(1),
     // Optional so deploys without receipt AI still boot; receipt.parse fails without it.
     OPENAI_API_KEY: z.string().min(1).optional(),
+    REVENUECAT_PROJECT_ID: z.string().min(1).optional(),
+    REVENUECAT_SECRET_KEY: z.string().min(1).optional(),
     CORS_ORIGIN: z.url(),
     SERVER_PUBLIC_URL: z.url().optional(),
     MOBILE_MINIMUM_IOS_VERSION: appVersionSchema.default("0.0.0"),

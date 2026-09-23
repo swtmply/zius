@@ -22,6 +22,20 @@
       "when": 1789264638182,
       "tag": "0002_third_the_watchers",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790185469578,
+      "tag": "0003_confused_shotgun",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790185939216,
+      "tag": "0004_petite_lockheed",
+      "breakpoints": true
     }
   ]
 }

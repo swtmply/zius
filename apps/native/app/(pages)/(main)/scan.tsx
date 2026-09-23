@@ -3,6 +3,7 @@ import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast
 import { encodeReceiptImage, groupReceiptLines, parseReceiptLines } from "@/utils/scan-utils";
 import { trpc } from "@/utils/trpc";
 import { useMutation } from "@tanstack/react-query";
+import { TRPCClientError } from "@trpc/client";
 import { Check, ChevronLeft, ImageIcon, XIcon } from "@hugeicons/core-free-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
@@ -53,6 +54,7 @@ export default function Scan() {
   const [state, setState] = useState<ScanState>({ status: "camera" });
   const insets = useSafeAreaInsets();
   const parseReceipt = useMutation(trpc.receipt.parse.mutationOptions());
+  const scanRequestId = useRef("");
   const hasOcrText = ocrResult?.blocks.some((block) => block.text.trim().length > 0) ?? false;
 
   useFocusEffect(
@@ -104,6 +106,7 @@ export default function Scan() {
         setOcrResult(undefined);
         setSelectedBlock(undefined);
         setParsingMethod("ocr");
+        scanRequestId.current = `${Date.now()}-${Math.random()}`;
         setState({ status: "processing", uri });
         await processImage(uri);
       }
@@ -157,13 +160,31 @@ export default function Scan() {
     try {
       if (parsingMethod === "ai") {
         const imageBase64 = await encodeReceiptImage({ uri: state.uri, width: imageSize.width });
-        receipt = await parseReceipt.mutateAsync({ imageBase64 });
+        receipt = await parseReceipt.mutateAsync({ imageBase64, requestId: scanRequestId.current });
       } else {
         receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
       }
-    } catch {
-      // AI Vision is best-effort: the on-device OCR rows are still a usable draft.
-      receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
+    } catch (error) {
+      if (parsingMethod === "ai") {
+        if (error instanceof TRPCClientError && error.data?.code === "PAYMENT_REQUIRED") {
+          if (active.current) router.push("/scan-credits");
+        } else if (active.current) {
+          showError(
+            "AI scan was not completed",
+            "Try again or use the OCR results. Your balance will be checked before another scan.",
+          );
+        }
+        if (
+          error instanceof TRPCClientError &&
+          error.data?.code &&
+          error.data.code !== "CONFLICT"
+        ) {
+          scanRequestId.current = `${Date.now()}-${Math.random()}`;
+        }
+        return;
+      }
+      showError("Unable to read receipt", "Try another picture with the receipt in focus.");
+      return;
     } finally {
       busy.current = false;
       setState({ status: "preview", uri: state.uri });
@@ -181,6 +202,7 @@ export default function Scan() {
     setCameraReady(false);
     setImageSize(undefined);
     setOcrResult(undefined);
+    scanRequestId.current = "";
     setSelectedBlock(undefined);
     setState({ status: "camera" });
   };
@@ -361,7 +383,8 @@ export default function Scan() {
                 >
                   <Typography className="font-medium">Use AI for more accurate results</Typography>
                   <Typography className="text-muted leading-6">
-                    Let AI analyze the receipt to improve item and total detection.
+                    Let AI analyze the receipt to improve item and total detection. First 5 scans
+                    are free, then 0.50 credits each.
                   </Typography>
                 </PressableFeedback>
               </View>
