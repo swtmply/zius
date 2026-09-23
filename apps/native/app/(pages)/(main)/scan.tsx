@@ -187,10 +187,8 @@ export default function Scan() {
         <ScrollView
           className="flex-1"
           contentInsetAdjustmentBehavior="never"
+          contentContainerClassName="flex-grow justify-center px-7"
           contentContainerStyle={{
-            flexGrow: 1,
-            justifyContent: "center",
-            paddingHorizontal: 28,
             paddingBottom: Math.max(insets.bottom, 24) + 12,
           }}
         >
@@ -203,8 +201,8 @@ export default function Scan() {
                 onLayout={({ nativeEvent: { layout } }) => {
                   setPreviewSize({ width: layout.width, height: layout.height });
                 }}
+                className="w-full"
                 style={{
-                  width: "100%",
                   aspectRatio: imageSize ? imageSize.width / imageSize.height : 3 / 4,
                 }}
                 accessibilityLabel="Selected receipt"

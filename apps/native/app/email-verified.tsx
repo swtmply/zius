@@ -1,3 +1,4 @@
+import { useLinkingURL } from "expo-linking";
 import { useLocalSearchParams } from "expo-router";
 import { Button, Typography } from "heroui-native";
 import { useEffect, useState } from "react";
@@ -8,32 +9,36 @@ import { useRouter } from "@/utils/navigation";
 import { clearPersistedQueryCache } from "@/utils/trpc";
 
 export default function EmailVerified() {
-  const params = useLocalSearchParams<{
-    cookie?: string | string[];
-    error?: string | string[];
-  }>();
-  const { data: session, error: sessionError, refetch } = authClient.useSession();
+  const params = useLocalSearchParams<{ error?: string | string[] }>();
+  const linkingURL = useLinkingURL();
+  const { data: session, error: sessionError, isRefetching, refetch } = authClient.useSession();
   const router = useRouter();
   const [failure, setFailure] = useState<string | null>(null);
-  const cookie = Array.isArray(params.cookie) ? params.cookie[0] : params.cookie;
+  const [cookieStored, setCookieStored] = useState(false);
+  // Read the cookie from the raw deep link: expo-router's params decode it one
+  // extra time, turning the signed token's `+` into a space and breaking it.
+  const cookie = linkingURL ? new URL(linkingURL).searchParams.get("cookie") : null;
   const verificationError = Array.isArray(params.error) ? params.error[0] : params.error;
+  const verified = session?.user.emailVerified === true;
 
   useEffect(() => {
     if (verificationError) {
       setFailure("The verification link is invalid or expired.");
       return;
     }
-    if (!cookie) {
-      setFailure("The verification succeeded, but the app could not create your session.");
-      return;
-    }
 
     let active = true;
-    void persistAuthCookie(cookie)
-      .then(() => refetch())
-      .catch(() => {
+    void (async () => {
+      try {
+        if (cookie) await persistAuthCookie(cookie);
+        // Refresh the shared session atom with the stored cookie, so the route
+        // guard and tRPC both see the verified session before we navigate.
+        await refetch();
+        if (active) setCookieStored(true);
+      } catch {
         if (active) setFailure("The app could not finish signing you in.");
-      });
+      }
+    })();
 
     return () => {
       active = false;
@@ -41,7 +46,7 @@ export default function EmailVerified() {
   }, [cookie, refetch, verificationError]);
 
   useEffect(() => {
-    if (!session?.user.emailVerified) return;
+    if (!cookieStored || !verified) return;
 
     let active = true;
     void clearPersistedQueryCache().then(() => {
@@ -51,9 +56,13 @@ export default function EmailVerified() {
     return () => {
       active = false;
     };
-  }, [router, session?.user.emailVerified]);
+  }, [cookieStored, router, verified]);
 
-  const failed = failure ?? (sessionError ? "The app could not finish signing you in." : null);
+  const failed =
+    failure ??
+    (sessionError || (cookieStored && !isRefetching && !verified)
+      ? "The app could not finish signing you in. Please log in again."
+      : null);
 
   return (
     <ScrollView

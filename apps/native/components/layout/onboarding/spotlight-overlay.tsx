@@ -99,7 +99,7 @@ export function SpotlightOverlay({
       accessibilityLabel={accessibilityLabel}
       accessibilityRole="button"
       onPress={onPress}
-      style={StyleSheet.absoluteFill}
+      className="absolute inset-0"
     >
       {overlay}
     </Pressable>

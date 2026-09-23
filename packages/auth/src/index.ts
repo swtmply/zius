@@ -52,10 +52,20 @@ export function createAuth() {
             });
           },
         },
+        update: {
+          after: async (user) => {
+            await db
+              .update(participant)
+              .set({ name: user.name })
+              .where(eq(participant.userId, user.id));
+          },
+        },
       },
     },
     trustedOrigins: [
       env.CORS_ORIGIN,
+      "https://www.tryzius.com",
+      "https://preview.tryzius.com",
       "zius://",
       // Expo dev client origins, kept out of production
       ...(env.NODE_ENV === "production"
@@ -64,7 +74,7 @@ export function createAuth() {
     ],
     emailAndPassword: {
       enabled: true,
-      requireEmailVerification: true,
+      requireEmailVerification: false,
     },
     socialProviders: {
       google: {
@@ -75,7 +85,7 @@ export function createAuth() {
     emailVerification: {
       autoSignInAfterVerification: true,
       expiresIn: 60 * 60,
-      sendOnSignIn: true,
+      sendOnSignUp: true,
       sendVerificationEmail: ({ user, url }) =>
         sendVerificationEmail({
           apiKey: env.RESEND_API_KEY,

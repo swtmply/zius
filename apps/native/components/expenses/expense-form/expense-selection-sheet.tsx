@@ -129,7 +129,7 @@ export function ExpenseSelectionSheet({
 
             <BottomSheetScrollView
               className="flex-1"
-              contentContainerStyle={{ gap: 4, paddingVertical: listPadding }}
+              contentContainerClassName="gap-1 py-2"
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
             >
@@ -144,11 +144,7 @@ export function ExpenseSelectionSheet({
                 >
                   {({ isSelected }) => (
                     <View
-                      className="min-h-12 flex-1 flex-row items-center gap-3 rounded-xl border-ink px-2"
-                      style={{
-                        borderRadius: 12,
-                        borderWidth: isSelected ? 1 : 0,
-                      }}
+                      className={`min-h-12 flex-1 flex-row items-center gap-3 rounded-xl border-ink px-2 ${isSelected ? "border" : "border-0"}`}
                     >
                       {option.participant ? (
                         <Avatar className="size-10 bg-page" size="sm" alt={option.participant.name}>

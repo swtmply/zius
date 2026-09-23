@@ -23,10 +23,9 @@ function ExpenseMetric({ label, amount }: ExpenseMetricProps) {
       <Typography className="text-sm text-on-ink-supporting">{label}</Typography>
       <Typography
         selectable
-        className="text-2xl font-semibold text-on-ink"
+        className="text-2xl font-semibold tabular-nums text-on-ink"
         adjustsFontSizeToFit
         numberOfLines={1}
-        style={{ fontVariant: ["tabular-nums"] }}
       >
         {formatCurrency(amount)}
       </Typography>
@@ -205,11 +204,7 @@ export function ExpenseSummary({
                 </View>
 
                 <View className="shrink-0 flex-row items-center gap-2">
-                  <Typography
-                    selectable
-                    className="text-sm font-semibold text-ink"
-                    style={{ fontVariant: ["tabular-nums"] }}
-                  >
+                  <Typography selectable className="text-sm font-semibold tabular-nums text-ink">
                     {formatCurrency(participant.owedMinor)}
                   </Typography>
                   {isSettling ? (

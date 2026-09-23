@@ -1,10 +1,21 @@
-import { GoogleIcon, ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
+import { ViewIcon, ViewOffSlashIcon } from "@hugeicons/core-free-icons";
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@/utils/navigation";
-import { Typography, useToast } from "heroui-native";
+import {
+  Button,
+  InputGroup,
+  PressableFeedback,
+  Typography,
+  useToast,
+} from "heroui-native";
 import { useRef, useState, type RefObject } from "react";
-import { ActivityIndicator, Pressable, TextInput, View, type TextInputProps } from "react-native";
-import { useCSSVariable } from "uniwind";
+import {
+  ActivityIndicator,
+  Image,
+  TextInput,
+  View,
+  type TextInputProps,
+} from "react-native";
 import { z } from "zod";
 
 import { Icon } from "@/components/icon";
@@ -30,56 +41,61 @@ type AuthFieldProps = TextInputProps & {
   label: string;
 };
 
-function AuthField({ inputRef, label, style, secureTextEntry, ...inputProps }: AuthFieldProps) {
+function AuthField({
+  inputRef,
+  label,
+  style,
+  secureTextEntry,
+  ...inputProps
+}: AuthFieldProps) {
   const [visible, setVisible] = useState(false);
 
   return (
-    <View
-      className="bg-panel"
-      style={{
-        height: 54,
-        flexDirection: "row",
-        alignItems: "center",
-        borderRadius: 16,
-        borderCurve: "continuous",
-        paddingHorizontal: 16,
-        boxShadow: "0 9px 26px rgba(0, 0, 0, 0.12)",
-      }}
-    >
-      <Typography className="w-[82px] text-sm text-ink">{label}</Typography>
-      <TextInput
+    <InputGroup className="h-[54px] rounded-2xl bg-panel shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+      <InputGroup.Prefix isDecorative className="pl-4 pr-0">
+        <Typography className="w-[82px] text-sm text-ink">{label}</Typography>
+      </InputGroup.Prefix>
+      <InputGroup.Input
         {...inputProps}
         secureTextEntry={secureTextEntry && !visible}
         accessibilityLabel={inputProps.accessibilityLabel ?? label}
         ref={inputRef}
-        placeholderTextColorClassName="accent-muted"
-        className="h-full flex-1 text-sm text-ink"
-        style={[{ flex: 1, height: "100%" }, style]}
+        placeholderColorClassName="accent-muted"
+        background={null}
+        className="h-full rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+        style={style}
       />
       {secureTextEntry ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={visible ? "Hide password" : "Show password"}
-          accessibilityState={{ selected: visible }}
-          hitSlop={12}
-          onPress={() => setVisible((v) => !v)}
-          style={({ pressed }) => ({ paddingLeft: 12, opacity: pressed ? 0.6 : 1 })}
-        >
-          <Icon
-            icon={visible ? ViewOffSlashIcon : ViewIcon}
-            size={18}
-            colorClassName="accent-muted"
-          />
-        </Pressable>
+        <InputGroup.Suffix className="pl-0 pr-4">
+          <PressableFeedback
+            accessibilityRole="button"
+            accessibilityLabel={visible ? "Hide password" : "Show password"}
+            accessibilityState={{ selected: visible }}
+            hitSlop={12}
+            onPress={() => setVisible((v) => !v)}
+            className="pl-3"
+          >
+            <Icon
+              icon={visible ? ViewOffSlashIcon : ViewIcon}
+              size={18}
+              colorClassName="accent-muted"
+            />
+          </PressableFeedback>
+        </InputGroup.Suffix>
       ) : null}
-    </View>
+    </InputGroup>
   );
 }
 
-function VerificationPending({ email, onBack }: { email: string; onBack: () => void }) {
+function VerificationPending({
+  email,
+  onBack,
+}: {
+  email: string;
+  onBack: () => void;
+}) {
   const [isSending, setIsSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
 
   async function resend() {
     setIsSending(true);
@@ -99,13 +115,14 @@ function VerificationPending({ email, onBack }: { email: string; onBack: () => v
   }
 
   return (
-    <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
+    <View className="w-full max-w-[420px] gap-4">
       <View className="items-center gap-1">
         <Typography className="text-center text-2xl font-semibold text-ink">
           Check your inbox
         </Typography>
         <Typography selectable className="text-center text-xs text-muted">
-          We sent a verification link to {email}. Open it on this device to continue automatically.
+          We sent a verification link to {email}. Open it on this device to
+          continue automatically.
         </Typography>
       </View>
 
@@ -115,43 +132,28 @@ function VerificationPending({ email, onBack }: { email: string; onBack: () => v
         </Typography>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={isSending}
+      <Button
+        isDisabled={isSending}
         onPress={() => void resend()}
-        style={({ pressed }) => ({
-          height: 54,
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 16,
-          borderCurve: "continuous",
-          backgroundColor: ink,
-          opacity: pressed || isSending ? 0.72 : 1,
-        })}
+        className="h-[54px] rounded-2xl bg-ink disabled:opacity-72"
       >
         {isSending ? (
           <ActivityIndicator colorClassName="accent-on-ink" />
         ) : (
-          <Typography className="text-sm text-on-ink">Resend email</Typography>
+          <Button.Label className="text-sm text-on-ink">
+            Resend email
+          </Button.Label>
         )}
-      </Pressable>
+      </Button>
 
-      <Pressable
-        accessibilityRole="button"
-        disabled={isSending}
+      <Button
+        variant="secondary"
+        isDisabled={isSending}
         onPress={onBack}
-        style={({ pressed }) => ({
-          height: 52,
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: 15,
-          borderCurve: "continuous",
-          backgroundColor: panel,
-          opacity: pressed || isSending ? 0.72 : 1,
-        })}
+        className="h-[52px] rounded-2xl bg-panel disabled:opacity-72"
       >
-        <Typography className="text-sm text-ink">Back to login</Typography>
-      </Pressable>
+        <Button.Label className="text-sm text-ink">Back to login</Button.Label>
+      </Button>
     </View>
   );
 }
@@ -166,7 +168,6 @@ export function SignIn() {
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [isGooglePending, setIsGooglePending] = useState(false);
   const { toast } = useToast();
-  const [ink, panel] = useCSSVariable(["--ink", "--panel"]) as Array<string>;
 
   const form = useForm({
     defaultValues: {
@@ -178,10 +179,14 @@ export function SignIn() {
       setSubmissionError(null);
 
       const result =
-        mode === "sign-up" ? signUpSchema.safeParse(value) : signInSchema.safeParse(value);
+        mode === "sign-up"
+          ? signUpSchema.safeParse(value)
+          : signInSchema.safeParse(value);
 
       if (!result.success) {
-        setSubmissionError(result.error.issues[0]?.message ?? "Check your details and try again");
+        setSubmissionError(
+          result.error.issues[0]?.message ?? "Check your details and try again",
+        );
         return;
       }
 
@@ -202,12 +207,13 @@ export function SignIn() {
             },
             {
               onError(error) {
-                setSubmissionError(error.error.message ?? "Unable to create your account");
+                setSubmissionError(
+                  error.error.message ?? "Unable to create your account",
+                );
               },
               async onSuccess() {
                 setPendingEmail(value.email.trim());
                 await clearPersistedQueryCache();
-                router.replace("/home");
               },
             },
           );
@@ -218,17 +224,32 @@ export function SignIn() {
           {
             email: value.email.trim(),
             password: value.password,
-            callbackURL: EMAIL_VERIFICATION_CALLBACK,
           },
           {
             onError(error) {
-              if (error.error.code === "EMAIL_NOT_VERIFIED") {
-                setPendingEmail(value.email.trim());
-                return;
-              }
               setSubmissionError(error.error.message ?? "Unable to log in");
             },
-            async onSuccess() {
+            async onSuccess({ data }) {
+              if (!data?.user.emailVerified) {
+                try {
+                  const result = await authClient.sendVerificationEmail({
+                    email: value.email.trim(),
+                    callbackURL: EMAIL_VERIFICATION_CALLBACK,
+                  });
+                  if (result.error) {
+                    setSubmissionError(
+                      result.error.message ?? "Unable to send verification email",
+                    );
+                    return;
+                  }
+                  await clearPersistedQueryCache();
+                  setPendingEmail(value.email.trim());
+                } catch {
+                  setSubmissionError("Unable to send verification email");
+                }
+                return;
+              }
+
               await clearPersistedQueryCache();
               router.replace("/home");
             },
@@ -251,7 +272,11 @@ export function SignIn() {
   async function signInWithGoogle() {
     setIsGooglePending(true);
     setSubmissionError(null);
-    showPendingToast(toast, "Opening Google", "Choose the account you want to use.");
+    showPendingToast(
+      toast,
+      "Opening Google",
+      "Choose the account you want to use.",
+    );
 
     try {
       const result = await authClient.signIn.social({
@@ -260,7 +285,9 @@ export function SignIn() {
       });
 
       if (result.error) {
-        setSubmissionError(result.error.message ?? "Unable to sign in with Google");
+        setSubmissionError(
+          result.error.message ?? "Unable to sign in with Google",
+        );
         return;
       }
 
@@ -291,7 +318,7 @@ export function SignIn() {
   }
 
   return (
-    <View style={{ width: "100%", maxWidth: 420, gap: 16 }}>
+    <View className="w-full max-w-[420px] gap-4">
       <Typography
         selectable
         className="text-center text-2xl font-semibold tracking-[-0.5px] text-ink"
@@ -299,36 +326,32 @@ export function SignIn() {
         Zius
       </Typography>
 
-      <View style={{ gap: 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          disabled={isGooglePending}
+      <View className="gap-4">
+        <Button
+          variant="secondary"
+          isDisabled={isGooglePending}
           onPress={() => void signInWithGoogle()}
-          style={({ pressed }) => ({
-            height: 54,
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            borderRadius: 16,
-            borderCurve: "continuous",
-            backgroundColor: panel,
-            opacity: pressed || isGooglePending ? 0.72 : 1,
-          })}
+          className="h-[54px] flex-row gap-0 rounded-2xl bg-panel disabled:opacity-72"
         >
           {isGooglePending ? (
             <ActivityIndicator colorClassName="accent-ink" />
           ) : (
-            <Icon icon={GoogleIcon} size={18} colorClassName="accent-ink" />
+            <Image
+              accessible={false}
+              source={require("../../assets/images/google-icon.png")}
+              className="size-[52px]"
+            />
           )}
-          <Typography className="text-sm text-ink">
+          <Button.Label className="text-sm text-ink">
             {isGooglePending ? "Opening Google..." : "Continue with Google"}
-          </Typography>
-        </Pressable>
+          </Button.Label>
+        </Button>
 
         <View className="flex-row items-center gap-3" accessible={false}>
           <View className="h-px flex-1 bg-border" />
-          <Typography className="text-xs text-muted">or continue with email</Typography>
+          <Typography className="text-xs text-muted">
+            or continue with email
+          </Typography>
           <View className="h-px flex-1 bg-border" />
         </View>
 
@@ -401,48 +424,31 @@ export function SignIn() {
                 </Typography>
               ) : null}
 
-              <Pressable
+              <Button
                 testID={isSignUp ? "auth-sign-up" : "auth-login"}
-                accessibilityRole="button"
-                disabled={isSubmitting || isGooglePending}
+                isDisabled={isSubmitting || isGooglePending}
                 onPress={() => void form.handleSubmit()}
-                style={({ pressed }) => ({
-                  height: 54,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 16,
-                  borderCurve: "continuous",
-                  backgroundColor: ink,
-                  opacity: pressed || isSubmitting || isGooglePending ? 0.72 : 1,
-                })}
+                className="h-[54px] rounded-2xl bg-ink disabled:opacity-72"
               >
                 {isSubmitting ? (
                   <ActivityIndicator colorClassName="accent-on-ink" />
                 ) : (
-                  <Typography className="text-sm text-on-ink">
+                  <Button.Label className="text-sm text-on-ink">
                     {isSignUp ? "Create Account" : "Login your account"}
-                  </Typography>
+                  </Button.Label>
                 )}
-              </Pressable>
+              </Button>
 
-              <Pressable
-                accessibilityRole="button"
-                disabled={isSubmitting || isGooglePending}
+              <Button
+                variant="secondary"
+                isDisabled={isSubmitting || isGooglePending}
                 onPress={switchMode}
-                style={({ pressed }) => ({
-                  height: 52,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderRadius: 15,
-                  borderCurve: "continuous",
-                  backgroundColor: panel,
-                  opacity: pressed || isSubmitting || isGooglePending ? 0.72 : 1,
-                })}
+                className="h-[52px] rounded-2xl bg-panel disabled:opacity-72"
               >
-                <Typography className="text-sm text-ink">
+                <Button.Label className="text-sm text-ink">
                   {isSignUp ? "Login your account" : "Create account"}
-                </Typography>
-              </Pressable>
+                </Button.Label>
+              </Button>
             </>
           )}
         </form.Subscribe>

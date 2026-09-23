@@ -8,13 +8,18 @@ import { queryClient, queryPersistOptions } from "@/utils/trpc";
 import { AppThemeProvider } from "@/contexts/app-theme-context";
 import { StatusBar } from "expo-status-bar";
 import { AppUpdateGate } from "@/components/layout/app-update-gate";
-import { DashboardLoading } from "@/components/layout/skeletons/dashboard-skeleton";
 import { authClient } from "@/lib/auth-client";
+import { useState } from "react";
+import { View } from "react-native";
 
 function RootNavigator() {
   const { data: session, isPending } = authClient.useSession();
+  // better-auth flips isPending back to true on every refetch while signed out.
+  // Only block on the first load so refetches never unmount the navigator.
+  const [loaded, setLoaded] = useState(false);
+  if (!isPending && !loaded) setLoaded(true);
 
-  if (isPending) return <DashboardLoading showScanButton={false} />;
+  if (!loaded) return <View className="flex-1 bg-page" />;
 
   return (
     <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>

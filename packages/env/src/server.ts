@@ -12,6 +12,18 @@ function getVercelOrigin() {
 }
 
 const vercelOrigin = getVercelOrigin();
+const isVercelProductionOrPreview =
+  process.env.VERCEL_ENV === "production" || process.env.VERCEL_ENV === "preview";
+const appOrigin =
+  process.env.VERCEL_ENV === "production"
+    ? "https://www.tryzius.com"
+    : process.env.VERCEL_ENV === "preview"
+      ? "https://preview.tryzius.com"
+      : (process.env.NODE_ENV ?? "development") === "development"
+        ? "http://localhost:3000"
+        : vercelOrigin;
+// CORS compares an origin; Better Auth needs the endpoint path.
+const authUrl = appOrigin ? `${appOrigin}/api/auth` : undefined;
 const appVersionSchema = z
   .string()
   .regex(/^\d+\.\d+\.\d+$/, "Use a version like 1.2.3");
@@ -21,9 +33,9 @@ const runtimeEnv = {
   // Public auth base: /api/auth bypasses the rewrite's path strip, so the
   // same URL works for incoming matching and generated callbacks
   BETTER_AUTH_URL:
-    process.env.BETTER_AUTH_URL ??
-    (vercelOrigin ? `${vercelOrigin}/api/auth` : undefined),
-  CORS_ORIGIN: process.env.CORS_ORIGIN ?? vercelOrigin,
+    isVercelProductionOrPreview ? authUrl : process.env.BETTER_AUTH_URL ?? authUrl,
+  CORS_ORIGIN:
+    isVercelProductionOrPreview ? appOrigin : process.env.CORS_ORIGIN ?? appOrigin,
   SERVER_PUBLIC_URL:
     process.env.SERVER_PUBLIC_URL ??
     (vercelOrigin ? `${vercelOrigin}/api` : undefined),

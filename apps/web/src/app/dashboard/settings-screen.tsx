@@ -47,6 +47,7 @@ export function Settings() {
     try {
       const result = await authClient.updateUser({ name });
       if (result.error) throw new Error(result.error.message);
+      void queryClient.invalidateQueries();
       setIsEditing(false);
       toast.success("Profile updated", { id: toastId, description: "Your name has been updated." });
       router.refresh();

@@ -1,8 +1,7 @@
 "use client";
 
-import { GoogleIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@zius/ui/components/button";
+import Image from "next/image";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -39,7 +38,7 @@ export function GoogleSignIn() {
         type="button"
         variant="outline"
       >
-        <HugeiconsIcon aria-hidden icon={GoogleIcon} size={18} strokeWidth={1.8} />
+        <Image alt="" aria-hidden height={18} src="/images/google-icon.png" width={18} />
         {isPending ? "Opening Google..." : "Continue with Google"}
       </Button>
 
