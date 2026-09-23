@@ -8,6 +8,7 @@ import { auth } from "@zius/auth";
 import { env } from "@zius/env/server";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { except } from "hono/combine";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
@@ -33,8 +34,12 @@ app.use(
 // Caps the two things a request can spend without authenticating: bytes and
 // function seconds. Both are per-request, so they hold on serverless where an
 // in-process rate limiter would not.
-app.use("/*", bodyLimit({ maxSize: 100 * 1024 }));
-app.use("/*", timeout(15_000));
+// Receipt photos are the one upload that needs more of both; the procedure
+// still requires a session and caps the image itself.
+const RECEIPT_PARSE_PATH = "/api/v1/trpc/receipt.parse";
+app.use(RECEIPT_PARSE_PATH, bodyLimit({ maxSize: 4 * 1024 * 1024 }), timeout(60_000));
+app.use("/*", except(RECEIPT_PARSE_PATH, bodyLimit({ maxSize: 100 * 1024 })));
+app.use("/*", except(RECEIPT_PARSE_PATH, timeout(15_000)));
 
 app.on(["POST", "GET"], "/auth/*", (c) => auth.handler(c.req.raw));
 

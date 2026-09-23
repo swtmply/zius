@@ -1,6 +1,8 @@
 import { Icon } from "@/components/icon";
 import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
-import { groupReceiptLines, parseReceiptLines } from "@/utils/scan-utils";
+import { encodeReceiptImage, groupReceiptLines, parseReceiptLines } from "@/utils/scan-utils";
+import { trpc } from "@/utils/trpc";
+import { useMutation } from "@tanstack/react-query";
 import { Check, ChevronLeft, ImageIcon } from "@hugeicons/core-free-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
@@ -40,6 +42,7 @@ export default function Scan() {
   const [selectedBlock, setSelectedBlock] = useState<number>();
   const [state, setState] = useState<ScanState>({ status: "camera" });
   const insets = useSafeAreaInsets();
+  const parseReceipt = useMutation(trpc.receipt.parse.mutationOptions());
 
   useFocusEffect(
     useCallback(() => {
@@ -132,9 +135,22 @@ export default function Scan() {
     }
   };
 
-  const submit = () => {
-    if (state.status !== "preview" || busy.current || !ocrResult) return;
-    const receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
+  const submit = async () => {
+    if (state.status !== "preview" || busy.current || !ocrResult || !imageSize) return;
+    busy.current = true;
+    setState({ status: "processing", uri: state.uri });
+    let receipt;
+    try {
+      const imageBase64 = await encodeReceiptImage({ uri: state.uri, width: imageSize.width });
+      receipt = await parseReceipt.mutateAsync({ imageBase64 });
+    } catch {
+      // AI Vision is best-effort: the on-device OCR rows are still a usable draft.
+      receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
+    } finally {
+      busy.current = false;
+      setState({ status: "preview", uri: state.uri });
+    }
+    if (!active.current) return;
     router.push({
       pathname: "/expenses/create",
       params: { receipt: JSON.stringify(receipt) },

@@ -6,6 +6,7 @@ import { todoRouter } from "./todo";
 import { expenseRouter } from "./expense";
 import { participantRouter } from "./participant";
 import { groupRouter } from "./group";
+import { receiptRouter } from "./receipt";
 
 export const v1Router = router({
   healthCheck: publicProcedure
@@ -30,6 +31,7 @@ export const v1Router = router({
   expense: expenseRouter,
   participant: participantRouter,
   group: groupRouter,
+  receipt: receiptRouter,
   todo: todoRouter,
 });
 export type AppRouter = typeof v1Router;
