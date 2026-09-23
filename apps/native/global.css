@@ -49,6 +49,7 @@
       --field-foreground: var(--black);
       --field-placeholder: var(--muted);
       --field-border: oklch(82% 0 0);
+      --field-shadow: 0 0 0 0 transparent inset;
 
       --success: var(--black);
       --success-foreground: var(--white);
@@ -100,6 +101,7 @@
       --field-foreground: var(--white);
       --field-placeholder: var(--muted);
       --field-border: oklch(32% 0 0);
+      --field-shadow: 0 0 0 0 transparent inset;
 
       --success: var(--white);
       --success-foreground: var(--black);

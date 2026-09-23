@@ -39,7 +39,7 @@ export function ExpenseTitleInput({
           aria-invalid={Boolean(errorMessage)}
           returnKeyType="none"
           background={null}
-          className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+          className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0 android:shadow-none"
         />
       </InputGroup>
       {errorMessage ? (

@@ -126,10 +126,11 @@ function ExpenseItemRow({
           accessibilityLabel={`Quantity for ${item.name || "item"}`}
           className={`h-8 w-7 rounded-lg border bg-page px-1 py-0 text-center text-xs text-ink ${
             showErrors && errors.quantity ? "border-danger" : "border-border"
-          }`}
+          } android:shadow-none`}
           editable={!isDisabled}
           inputMode="numeric"
           keyboardType="number-pad"
+          underlineColorAndroid="transparent"
           onBlur={() => {
             setIsQuantityFocused(false);
             if (Number.isSafeInteger(item.quantity) && item.quantity >= 0) {
@@ -148,8 +149,9 @@ function ExpenseItemRow({
           accessibilityLabel={`Name for ${item.name || "item"}`}
           className={`h-8 min-w-0 flex-1 rounded-lg border bg-page px-2 py-0 text-xs text-ink ${
             showErrors && errors.name ? "border-danger" : "border-border"
-          }`}
+          } android:shadow-none`}
           editable={!isDisabled}
+          underlineColorAndroid="transparent"
           onChangeText={(name) => onChange({ ...item, name })}
           placeholder="Item name"
           placeholderTextColorClassName="accent-muted"
@@ -160,10 +162,11 @@ function ExpenseItemRow({
           accessibilityLabel={`Price for ${item.name || "item"}`}
           className={`h-8 w-16 rounded-lg border bg-page px-2 py-0 text-right text-xs font-semibold text-ink ${
             showErrors && errors.priceMinor ? "border-danger" : "border-border"
-          }`}
+          } android:shadow-none`}
           editable={!isDisabled}
           inputMode="decimal"
           keyboardType="decimal-pad"
+          underlineColorAndroid="transparent"
           onBlur={() => {
             setIsPriceFocused(false);
             if (Number.isSafeInteger(item.priceMinor) && item.priceMinor >= 0) {

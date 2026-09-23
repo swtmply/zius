@@ -223,7 +223,7 @@ export default function Settings() {
                     placeholderColorClassName="accent-muted"
                     returnKeyType="done"
                     background={null}
-                    className="flex-1 h-[50px] border-0 bg-transparent py-0 text-right text-sm text-ink android:border-0"
+                    className="flex-1 h-[50px] border-0 bg-transparent py-0 text-right text-sm text-ink android:border-0 android:shadow-none"
                     value={draftName}
                   />
                 </View>

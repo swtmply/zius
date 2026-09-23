@@ -326,7 +326,7 @@ export default function GroupDetailsPage() {
                   returnKeyType="done"
                   textAlignVertical="center"
                   background={null}
-                  className="h-10 max-w-full rounded-lg border border-border bg-transparent px-2 py-0 text-center text-2xl font-semibold text-ink android:border-border"
+                  className="h-10 max-w-full rounded-lg border border-border bg-transparent px-2 py-0 text-center text-2xl font-semibold text-ink android:border-border android:shadow-none"
                   style={{
                     width: editingNameWidth,
                     includeFontPadding: false,

@@ -51,7 +51,7 @@ function AuthField({
   const [visible, setVisible] = useState(false);
 
   return (
-    <InputGroup className="h-[54px] rounded-2xl bg-panel shadow-[0_9px_26px_rgba(0,0,0,0.12)]">
+    <InputGroup className="h-[54px] rounded-2xl bg-panel">
       <InputGroup.Prefix isDecorative className="pl-4 pr-0">
         <Typography className="w-[82px] text-sm text-ink">{label}</Typography>
       </InputGroup.Prefix>
@@ -62,7 +62,7 @@ function AuthField({
         ref={inputRef}
         placeholderColorClassName="accent-muted"
         background={null}
-        className="h-full rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+        className="h-full rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0 android:shadow-none"
         style={style}
       />
       {secureTextEntry ? (

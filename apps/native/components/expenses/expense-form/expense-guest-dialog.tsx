@@ -130,7 +130,7 @@ function GuestSheetContent({
                 placeholderColorClassName="accent-muted"
                 returnKeyType="next"
                 background={null}
-                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0 android:shadow-none"
               />
             </InputGroup>
           </TextField>
@@ -168,7 +168,7 @@ function GuestSheetContent({
                 placeholderColorClassName="accent-muted"
                 returnKeyType="done"
                 background={null}
-                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0 android:shadow-none"
               />
             </InputGroup>
           </TextField>
