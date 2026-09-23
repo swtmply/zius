@@ -32,18 +32,27 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
           callbackURL: "/login",
         },
         {
-          onSuccess: () => {
-            router.push("/dashboard");
-            toast.success("Sign in successful", { id: toastId });
-          },
-          onError: (error) => {
-            if (error.error.code === "EMAIL_NOT_VERIFIED") {
-              toast.error("Check your email", {
+          onSuccess: async ({ data }) => {
+            if (!data?.user.emailVerified) {
+              const { error } = await authClient.sendVerificationEmail({
+                email: value.email,
+                callbackURL: "/dashboard",
+              });
+              if (error) {
+                toast.error(error.message || error.statusText, { id: toastId });
+                return;
+              }
+              router.replace(`/verify-email?email=${encodeURIComponent(value.email)}`);
+              toast.success("Check your email", {
                 id: toastId,
                 description: "We sent you a new verification link.",
               });
               return;
             }
+            router.push("/dashboard");
+            toast.success("Sign in successful", { id: toastId });
+          },
+          onError: (error) => {
             toast.error(error.error.message || error.error.statusText, { id: toastId });
           },
         },

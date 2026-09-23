@@ -103,10 +103,9 @@ export function GroupExpenseCard({ expense }: { expense: Group["expenses"][numbe
         </View>
         <Typography
           selectable
-          className={`text-sm font-semibold text-ink${isCancelled ? " text-supporting line-through" : ""}`}
+          className={`text-sm font-semibold tabular-nums text-ink${isCancelled ? " text-supporting line-through" : ""}`}
           adjustsFontSizeToFit
           numberOfLines={1}
-          style={{ fontVariant: ["tabular-nums"] }}
         >
           {amount}
         </Typography>

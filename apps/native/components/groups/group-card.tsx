@@ -1,7 +1,7 @@
 import type { inferRouterOutputs } from "@trpc/server";
 import type { AppRouter } from "@zius/api/routers/index";
-import { Pressable, View } from "react-native";
-import { Typography } from "heroui-native";
+import { View } from "react-native";
+import { PressableFeedback, Typography } from "heroui-native";
 
 import { GroupAvatar } from "@/components/groups/group-avatar";
 
@@ -12,8 +12,7 @@ export function GroupCard({ group, onPress }: { group: GroupListItem; onPress: (
   const remainingParticipants = group.participants.length - visibleParticipants.length;
 
   return (
-    <Pressable
-      className="active:opacity-70"
+    <PressableFeedback
       accessibilityRole="button"
       accessibilityLabel={`Open ${group.name}${group.archivedAt ? ", Archived" : ""}`}
       onPress={onPress}
@@ -48,6 +47,6 @@ export function GroupCard({ group, onPress }: { group: GroupListItem; onPress: (
           </View>
         </View>
       </View>
-    </Pressable>
+    </PressableFeedback>
   );
 }

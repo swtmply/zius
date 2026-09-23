@@ -344,8 +344,7 @@ function MockContent({ onComplete }: MockHomeProps) {
         )}
 
         <SpotlightContainer
-          className="w-72 rounded-2xl bg-panel px-4 py-3 shadow-lg"
-          style={{ minHeight: 80 }}
+          className="min-h-20 w-72 rounded-2xl bg-panel px-4 py-3 shadow-lg"
           accessibilityRole="summary"
         >
           <OnboardingHint step={step} stepIndex={stepIndex} />
