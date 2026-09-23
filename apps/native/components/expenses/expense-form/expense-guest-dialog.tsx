@@ -109,8 +109,8 @@ function GuestSheetContent({
                 errors.name ? "border-danger" : "border-transparent"
               }`}
             >
-              <InputGroup.Prefix isDecorative className="pl-4 pr-1">
-                <Typography className="text-sm text-ink">Name</Typography>
+              <InputGroup.Prefix isDecorative className="pl-4 pr-3">
+                <Typography className="text-sm text-supporting">Name</Typography>
               </InputGroup.Prefix>
               <InputGroup.Input
                 ref={nameInputRef}
@@ -146,8 +146,8 @@ function GuestSheetContent({
                 errors.email ? "border-danger" : "border-transparent"
               }`}
             >
-              <InputGroup.Prefix isDecorative className="pl-4 pr-1">
-                <Typography className="text-sm text-ink">Email</Typography>
+              <InputGroup.Prefix isDecorative className="pl-4 pr-3">
+                <Typography className="text-sm text-supporting">Email</Typography>
               </InputGroup.Prefix>
               <InputGroup.Input
                 ref={emailInputRef}

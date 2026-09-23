@@ -42,7 +42,6 @@ export function useExpenseFormController({
   const { toast } = useToast();
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [groupChoice, setGroupChoice] = useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
   const categoryRef = useRef<ExpenseCategory | undefined>(undefined);
   const [categoryResetKey, setCategoryResetKey] = useState(0);
   const groupParticipants = group?.participants ?? [currentParticipant];
@@ -96,8 +95,6 @@ export function useExpenseFormController({
   const form = useForm({
     defaultValues,
     onSubmitMeta: defaultSubmitMeta,
-    // Cross-field errors from blur can outlive the values that produced them.
-    // Keep the full schema on change and submit so every input order can recover.
     validators: expenseFormValidators,
     onSubmitInvalid: () => {
       setHasSubmitted(true);
@@ -128,7 +125,6 @@ export function useExpenseFormController({
 
       if (needsGroupChoice && !meta.groupChoice) {
         Keyboard.dismiss();
-        setGroupChoice("group");
         setIsGroupDialogOpen(true);
         return;
       }
@@ -289,15 +285,17 @@ export function useExpenseFormController({
   });
 
   const setParticipantSplitValue = (participantId: string, value: number) => {
-    setParticipants(
-      form.state.values.participants.map((participant) =>
-        participant.id === participantId
-          ? {
-              ...participant,
-              splitValue: value,
-              isSplitValueEdited: true,
-            }
-          : participant,
+    const { totalMinor, splitMethod, items } = form.state.values;
+    form.setFieldValue("participants", (participants) =>
+      recalculateParticipants(
+        participants.map((participant) =>
+          participant.id === participantId
+            ? { ...participant, splitValue: value, isSplitValueEdited: true }
+            : participant,
+        ),
+        totalMinor,
+        splitMethod,
+        items ?? [],
       ),
     );
   };
@@ -319,8 +317,6 @@ export function useExpenseFormController({
     hasSubmitted,
     isGroupDialogOpen,
     setIsGroupDialogOpen,
-    groupChoice,
-    setGroupChoice,
     categoryRef,
     categoryResetKey,
     selectGroup,

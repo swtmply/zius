@@ -117,9 +117,22 @@ export const createExpenseSchema = z
   });
 
 export const expenseFormValidators = {
-  onChange: createExpenseSchema,
   onSubmit: createExpenseSchema,
 } as const;
+
+export function parseExpenseAmount(text: string): number | undefined {
+  text = text.replace(/^₱\s?/, "");
+  const isDecimalComma = /^\d+,\d{0,2}$/.test(text);
+  if (text.includes(",") && !isDecimalComma && !/^\d{1,3}(?:,\d{3})+(?:\.\d{0,2})?$/.test(text)) {
+    return undefined;
+  }
+  const normalized = isDecimalComma ? text.replace(",", ".") : text.replace(/,/g, "");
+  if (!/^\d*(?:\.\d{0,2})?$/.test(normalized)) return undefined;
+
+  const [whole = "", fraction = ""] = normalized.split(".");
+  const amount = Number(whole || "0") * 100 + Number(fraction.padEnd(2, "0"));
+  return Number.isSafeInteger(amount) ? amount : undefined;
+}
 
 export type ExpenseFormValues = z.input<typeof createExpenseSchema>;
 export type FormParticipant = ExpenseFormValues["participants"][number];
@@ -255,9 +268,8 @@ export function recalculateParticipants(
   }
 
   const editedParticipants = participants.filter((participant) => participant.isSplitValueEdited);
-  const automaticParticipantIds = participantIds.filter(
-    (id) => !editedParticipants.some((participant) => participant.id === id),
-  );
+  const editedParticipantIds = new Set(editedParticipants.map((participant) => participant.id));
+  const automaticParticipantIds = participantIds.filter((id) => !editedParticipantIds.has(id));
 
   if (splitMethod === "fixed") {
     const editedTotal = editedParticipants.reduce(

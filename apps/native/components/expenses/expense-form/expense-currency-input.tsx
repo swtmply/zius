@@ -1,84 +1,64 @@
+import { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
-import { useRef } from "react";
-import { Button, cn, Typography } from "heroui-native";
+import { cn, Typography } from "heroui-native";
 
-const currencyFormatter = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  currencyDisplay: "symbol",
-});
-const currencyFractionDigits = currencyFormatter.resolvedOptions().maximumFractionDigits ?? 2;
-const currencyAmountFormatter = new Intl.NumberFormat("en-PH", {
-  minimumFractionDigits: currencyFractionDigits,
-  maximumFractionDigits: currencyFractionDigits,
-});
-const currencySymbol = currencyFormatter
-  .formatToParts(0)
-  .find((part) => part.type === "currency")?.value;
+import { formatCurrency } from "@/utils";
+import { parseExpenseAmount } from "@/utils/expenses/expense-form";
+
+function editableAmount(value: number) {
+  const whole = Math.floor(value / 100);
+  const fraction = String(value % 100).padStart(2, "0");
+  return `${whole}.${fraction}`;
+}
 
 type CurrencyInputProps = {
-  value: string;
-  onValueChange: (value: string) => void;
+  value: number;
+  onValueChange: (value: number) => void;
   onBlur?: () => void;
   errorMessage?: string;
 };
 
 export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: CurrencyInputProps) {
-  const inputRef = useRef<TextInput>(null);
-  const divisor = 10 ** currencyFractionDigits;
-  const formattedValue = currencyAmountFormatter.format(Number(value) / divisor);
-  const isEmpty = !value;
+  const [draft, setDraft] = useState(() => formatCurrency(value));
+  const [isFocused, setIsFocused] = useState(false);
 
-  const handleChangeText = (text: string) => {
-    const digits = text.replace(/\D/g, "");
-
-    if (!digits) {
-      onValueChange("");
-      return;
-    }
-
-    const minor = Number(digits);
-
-    if (Number.isSafeInteger(minor)) {
-      onValueChange(digits);
-    }
-  };
+  useEffect(() => {
+    if (!isFocused) setDraft(formatCurrency(value));
+  }, [isFocused, value]);
 
   return (
     <View>
-      <Button
-        variant="ghost"
-        className="w-full h-24"
-        accessibilityLabel="Expense amount"
-        onPress={() => inputRef.current?.focus()}
-      >
-        <Typography
-          className={cn(
-            "text-2xl font-semibold tabular-nums",
-            isEmpty ? "text-muted" : "text-ink",
-            errorMessage && "text-danger",
-          )}
-          selectable
-        >
-          {currencySymbol}
-          {formattedValue}
-        </Typography>
-      </Button>
-
-      <View className="flex-row items-center absolute inset-x-0 top-0 h-24 justify-center opacity-0">
+      <View className="h-24 flex-row items-center rounded-2xl bg-panel px-4">
         <TextInput
-          value={`₱${formattedValue}`}
-          onChangeText={handleChangeText}
-          onBlur={onBlur}
           accessibilityLabel="Expense amount"
           accessibilityHint={errorMessage}
           aria-invalid={Boolean(errorMessage)}
-          ref={inputRef}
-          keyboardType="number-pad"
-          inputMode="numeric"
-          placeholder="0.00"
-          className="text-2xl font-semibold text-center flex-1"
-          returnKeyType="next"
+          className={cn(
+            "h-24 min-w-0 flex-1 text-center text-2xl font-semibold tabular-nums android:shadow-none",
+            errorMessage ? "text-danger" : value === 0 && !isFocused ? "text-muted" : "text-ink",
+          )}
+          inputMode="decimal"
+          keyboardType="decimal-pad"
+          onBlur={() => {
+            setIsFocused(false);
+            setDraft(formatCurrency(value));
+            onBlur?.();
+          }}
+          onChangeText={(text) => {
+            const amount = parseExpenseAmount(text);
+            if (amount === undefined) return;
+            setDraft(text);
+            onValueChange(amount);
+          }}
+          onFocus={() => {
+            setIsFocused(true);
+            setDraft(value === 0 ? "" : editableAmount(value));
+          }}
+          placeholder="₱0.00"
+          returnKeyType="done"
+          selectTextOnFocus
+          underlineColorAndroid="transparent"
+          value={draft}
         />
       </View>
       {errorMessage ? (

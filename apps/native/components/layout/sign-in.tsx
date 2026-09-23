@@ -52,8 +52,8 @@ function AuthField({
 
   return (
     <InputGroup className="h-[54px] rounded-2xl bg-panel">
-      <InputGroup.Prefix isDecorative className="pl-4 pr-0">
-        <Typography className="w-[82px] text-sm text-ink">{label}</Typography>
+      <InputGroup.Prefix isDecorative className="pl-4 pr-3">
+        <Typography className="w-[82px] text-sm text-supporting">{label}</Typography>
       </InputGroup.Prefix>
       <InputGroup.Input
         {...inputProps}
