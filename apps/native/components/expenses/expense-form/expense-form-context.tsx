@@ -4,10 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@zius/api/routers/index";
+import { router as expoRouter } from "expo-router";
 import { useToast } from "heroui-native";
 import { createContext, use, useRef, useState } from "react";
 import { Keyboard } from "react-native";
-import { useRouter } from "@/utils/navigation";
 import { trpc } from "@/utils/trpc";
 import type { ParsedReceipt } from "@/utils/scan-utils";
 import type { ExpenseCategory } from "./expense-form-actions";
@@ -91,8 +91,6 @@ export function useExpenseFormController({
     occurredAt: Date.now(),
     currency: "PHP",
   };
-  const router = useRouter();
-
   const createExpense = useMutation(trpc.expense.create.mutationOptions());
 
   const form = useForm({
@@ -201,7 +199,9 @@ export function useExpenseFormController({
           />
         ),
       });
-      router.replace({
+      // Keep the dashboard directly behind the details screen for both back methods.
+      expoRouter.dismissTo("/home");
+      expoRouter.push({
         pathname: "/expenses/[expenseId]",
         params: { expenseId },
       });
