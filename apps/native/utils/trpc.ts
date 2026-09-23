@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import { focusManager, onlineManager, QueryClient } from "@tanstack/react-query";
-import { createTRPCClient, httpBatchLink } from "@trpc/client";
+import { createTRPCClient, httpBatchLink, httpLink, splitLink } from "@trpc/client";
 import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import type { AppRouter } from "@zius/api/routers/index";
 import { env } from "@zius/env/native";
@@ -70,31 +70,39 @@ if (Platform.OS !== "web") {
   });
 }
 
+const linkOptions = {
+  url: `${env.EXPO_PUBLIC_SERVER_URL}/v1/trpc`,
+  fetch: function (url: string | URL | Request, options?: RequestInit) {
+    return fetch(url, {
+      ...options,
+      // Better Auth Expo forwards the session cookie manually on native.
+      credentials: Platform.OS === "web" ? "include" : "omit",
+    });
+  },
+  async headers() {
+    const headers = new Map<string, string>();
+    if (env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET) {
+      headers.set("x-vercel-protection-bypass", env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET);
+    }
+    if (Platform.OS === "web") {
+      return Object.fromEntries(headers);
+    }
+    const cookies = await authClient.getCookie();
+    if (cookies) {
+      headers.set("Cookie", cookies);
+    }
+    return Object.fromEntries(headers);
+  },
+};
+
 const trpcClient = createTRPCClient<AppRouter>({
   links: [
-    httpBatchLink({
-      url: `${env.EXPO_PUBLIC_SERVER_URL}/v1/trpc`,
-      fetch: function (url, options) {
-        return fetch(url, {
-          ...options,
-          // Better Auth Expo forwards the session cookie manually on native.
-          credentials: Platform.OS === "web" ? "include" : "omit",
-        });
-      },
-      async headers() {
-        const headers = new Map<string, string>();
-        if (env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET) {
-          headers.set("x-vercel-protection-bypass", env.EXPO_PUBLIC_VERCEL_BYPASS_SECRET);
-        }
-        if (Platform.OS === "web") {
-          return Object.fromEntries(headers);
-        }
-        const cookies = await authClient.getCookie();
-        if (cookies) {
-          headers.set("Cookie", cookies);
-        }
-        return Object.fromEntries(headers);
-      },
+    // Receipt photos go unbatched: the server only raises its body limit on
+    // the exact receipt.parse path, which a batched URL would not match.
+    splitLink({
+      condition: (op) => op.path === "receipt.parse",
+      true: httpLink(linkOptions),
+      false: httpBatchLink(linkOptions),
     }),
   ],
 });

@@ -1,19 +1,29 @@
 import { Icon } from "@/components/icon";
 import { ExpenseCreationToast } from "@/components/layout/expense-creation-toast";
-import { groupReceiptLines, parseReceiptLines } from "@/utils/scan-utils";
-import { Check, ChevronLeft, ImageIcon } from "@hugeicons/core-free-icons";
+import { encodeReceiptImage, groupReceiptLines, parseReceiptLines } from "@/utils/scan-utils";
+import { trpc } from "@/utils/trpc";
+import { useMutation } from "@tanstack/react-query";
+import { Check, ChevronLeft, ImageIcon, XIcon } from "@hugeicons/core-free-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { recognizeText, type OcrResult } from "expo-ocr-kit";
 import { useFocusEffect } from "expo-router";
 import { useRouter } from "@/utils/navigation";
-import { Button, PressableFeedback, Skeleton, Typography, useToast } from "heroui-native";
+import {
+  BottomSheet,
+  Button,
+  PressableFeedback,
+  Skeleton,
+  Typography,
+  useToast,
+} from "heroui-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ScanState = { status: "camera" } | { status: "preview" | "processing"; uri: string };
+type ReceiptParsingMethod = "ocr" | "ai";
 
 export async function selectImage() {
   const photo = await ImagePicker.launchImageLibraryAsync({
@@ -38,8 +48,12 @@ export default function Scan() {
   const [previewSize, setPreviewSize] = useState({ width: 0, height: 0 });
   const [ocrResult, setOcrResult] = useState<OcrResult>();
   const [selectedBlock, setSelectedBlock] = useState<number>();
+  const [isParsingMethodDialogOpen, setIsParsingMethodDialogOpen] = useState(false);
+  const [parsingMethod, setParsingMethod] = useState<ReceiptParsingMethod>("ocr");
   const [state, setState] = useState<ScanState>({ status: "camera" });
   const insets = useSafeAreaInsets();
+  const parseReceipt = useMutation(trpc.receipt.parse.mutationOptions());
+  const hasOcrText = ocrResult?.blocks.some((block) => block.text.trim().length > 0) ?? false;
 
   useFocusEffect(
     useCallback(() => {
@@ -89,6 +103,7 @@ export default function Scan() {
         setImageSize({ width, height });
         setOcrResult(undefined);
         setSelectedBlock(undefined);
+        setParsingMethod("ocr");
         setState({ status: "processing", uri });
         await processImage(uri);
       }
@@ -132,9 +147,28 @@ export default function Scan() {
     }
   };
 
-  const submit = () => {
-    if (state.status !== "preview" || busy.current || !ocrResult) return;
-    const receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
+  const submit = async () => {
+    if (state.status !== "preview" || busy.current || !hasOcrText || !ocrResult || !imageSize)
+      return;
+    setIsParsingMethodDialogOpen(false);
+    busy.current = true;
+    setState({ status: "processing", uri: state.uri });
+    let receipt;
+    try {
+      if (parsingMethod === "ai") {
+        const imageBase64 = await encodeReceiptImage({ uri: state.uri, width: imageSize.width });
+        receipt = await parseReceipt.mutateAsync({ imageBase64 });
+      } else {
+        receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
+      }
+    } catch {
+      // AI Vision is best-effort: the on-device OCR rows are still a usable draft.
+      receipt = parseReceiptLines(groupReceiptLines(ocrResult.blocks));
+    } finally {
+      busy.current = false;
+      setState({ status: "preview", uri: state.uri });
+    }
+    if (!active.current) return;
     router.push({
       pathname: "/expenses/create",
       params: { receipt: JSON.stringify(receipt) },
@@ -175,10 +209,10 @@ export default function Scan() {
           <Button
             isIconOnly
             variant="ghost"
-            accessibilityLabel="Submit receipt"
-            isDisabled={processing || !ocrResult}
+            accessibilityLabel="Choose receipt parsing method"
+            isDisabled={processing || !hasOcrText}
             accessibilityState={{ busy: processing }}
-            onPress={() => void submit()}
+            onPress={() => setIsParsingMethodDialogOpen(true)}
           >
             <Icon icon={Check} size={24} colorClassName="accent-ink" />
           </Button>
@@ -232,7 +266,7 @@ export default function Scan() {
                         height: height * scale,
                         borderWidth: selected ? 3 : 2,
                         borderColor: selected ? "#C2410C" : "#2563EB",
-                        backgroundColor: "transparent",
+                        backgroundColor: selected ? "rgba(194, 65, 12, 0.18)" : "transparent",
                         zIndex: selected ? 1 : 0,
                       }}
                     />
@@ -261,11 +295,9 @@ export default function Scan() {
               <Typography className="text-xs text-muted" accessibilityLiveRegion="polite">
                 {!ocrResult
                   ? "Could not read the receipt. Try again or retake the picture."
-                  : ocrResult.blocks.length === 0
+                  : !hasOcrText
                     ? "No text found. Retake the picture with the receipt in focus."
-                    : selectedBlock !== undefined
-                      ? ocrResult.blocks[selectedBlock]?.text
-                      : "Tap an outlined item to highlight it."}
+                    : "Tap an outlined item to highlight it."}
               </Typography>
               {!ocrResult && (
                 <Button variant="secondary" onPress={() => void retryProcessing()}>
@@ -275,6 +307,74 @@ export default function Scan() {
             </View>
           )}
         </ScrollView>
+        <BottomSheet isOpen={isParsingMethodDialogOpen} onOpenChange={setIsParsingMethodDialogOpen}>
+          <BottomSheet.Portal>
+            <BottomSheet.Overlay />
+            <BottomSheet.Content
+              detached
+              bottomInset={insets.bottom + 12}
+              className="mx-4 overflow-hidden"
+              backgroundClassName="rounded-3xl"
+              contentContainerClassName="gap-5 p-5"
+              enableDynamicSizing
+              handleComponent={null}
+            >
+              <View className="flex-row items-start gap-3">
+                <View className="flex-1 gap-1">
+                  <BottomSheet.Title>Review detected items</BottomSheet.Title>
+                  <BottomSheet.Description>
+                    Are you satisfied with the detected items, or would you like AI to improve the
+                    results?
+                  </BottomSheet.Description>
+                </View>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="secondary"
+                  accessibilityLabel="Close receipt review"
+                  onPress={() => setIsParsingMethodDialogOpen(false)}
+                >
+                  <Icon icon={XIcon} colorClassName="accent-ink" />
+                </Button>
+              </View>
+              <View className="gap-4" accessibilityRole="radiogroup">
+                <PressableFeedback
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: parsingMethod === "ocr" }}
+                  onPress={() => setParsingMethod("ocr")}
+                  className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
+                    parsingMethod === "ocr" ? "border-foreground" : "border-transparent"
+                  }`}
+                >
+                  <Typography className="font-medium">Use OCR results</Typography>
+                  <Typography className="text-muted leading-6">
+                    Continue with the items OCR detected on your device.
+                  </Typography>
+                </PressableFeedback>
+                <PressableFeedback
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: parsingMethod === "ai" }}
+                  onPress={() => setParsingMethod("ai")}
+                  className={`gap-3 rounded-3xl border-2 bg-surface-secondary p-5 ${
+                    parsingMethod === "ai" ? "border-foreground" : "border-transparent"
+                  }`}
+                >
+                  <Typography className="font-medium">Use AI for more accurate results</Typography>
+                  <Typography className="text-muted leading-6">
+                    Let AI analyze the receipt to improve item and total detection.
+                  </Typography>
+                </PressableFeedback>
+              </View>
+              <Button
+                className="rounded-2xl bg-foreground"
+                isDisabled={processing}
+                onPress={() => void submit()}
+              >
+                <Button.Label className="text-background">Continue</Button.Label>
+              </Button>
+            </BottomSheet.Content>
+          </BottomSheet.Portal>
+        </BottomSheet>
       </View>
     );
   }

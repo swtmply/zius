@@ -79,9 +79,10 @@ export function ParticipantSplitInput({
     <View className="flex-row items-center gap-1">
       <TextInput
         accessibilityLabel={`${splitMethod} split for ${participantName}`}
-        className="h-7 rounded-md border border-border bg-page px-2 py-0 text-right text-xs font-semibold text-ink"
+        className="h-7 rounded-md border border-border bg-page px-2 py-0 text-right text-xs font-semibold text-ink android:shadow-none"
         inputMode="decimal"
         keyboardType="decimal-pad"
+        underlineColorAndroid="transparent"
         onBlur={() => {
           setIsFocused(false);
           setDraft(formatSplitValue(splitMethod, value));

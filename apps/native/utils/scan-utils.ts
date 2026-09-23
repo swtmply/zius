@@ -1,3 +1,4 @@
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import type { OcrBlock } from "expo-ocr-kit";
 import { z } from "zod";
 
@@ -27,6 +28,22 @@ const parsedReceiptSchema = z.object({
   ),
   totalMinor: z.number().optional(),
 });
+
+// Wide enough for small receipt print, small enough to stay under the upload limit.
+const RECEIPT_UPLOAD_WIDTH = 1600;
+
+export async function encodeReceiptImage({ uri, width }: { uri: string; width: number }) {
+  const context = ImageManipulator.manipulate(uri);
+  if (width > RECEIPT_UPLOAD_WIDTH) context.resize({ width: RECEIPT_UPLOAD_WIDTH });
+  const image = await context.renderAsync();
+  const { base64 } = await image.saveAsync({
+    compress: 0.7,
+    format: SaveFormat.JPEG,
+    base64: true,
+  });
+  if (!base64) throw new Error("Image encoding returned no data");
+  return base64;
+}
 
 export function parseReceiptParam(value: string | string[] | undefined): ParsedReceipt | undefined {
   if (typeof value !== "string") {

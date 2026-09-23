@@ -109,8 +109,8 @@ function GuestSheetContent({
                 errors.name ? "border-danger" : "border-transparent"
               }`}
             >
-              <InputGroup.Prefix isDecorative className="pl-4 pr-1">
-                <Typography className="text-sm text-ink">Name</Typography>
+              <InputGroup.Prefix isDecorative className="pl-4 pr-3">
+                <Typography className="text-sm text-supporting">Name</Typography>
               </InputGroup.Prefix>
               <InputGroup.Input
                 ref={nameInputRef}
@@ -130,7 +130,7 @@ function GuestSheetContent({
                 placeholderColorClassName="accent-muted"
                 returnKeyType="next"
                 background={null}
-                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0 android:shadow-none"
               />
             </InputGroup>
           </TextField>
@@ -146,8 +146,8 @@ function GuestSheetContent({
                 errors.email ? "border-danger" : "border-transparent"
               }`}
             >
-              <InputGroup.Prefix isDecorative className="pl-4 pr-1">
-                <Typography className="text-sm text-ink">Email</Typography>
+              <InputGroup.Prefix isDecorative className="pl-4 pr-3">
+                <Typography className="text-sm text-supporting">Email</Typography>
               </InputGroup.Prefix>
               <InputGroup.Input
                 ref={emailInputRef}
@@ -168,7 +168,7 @@ function GuestSheetContent({
                 placeholderColorClassName="accent-muted"
                 returnKeyType="done"
                 background={null}
-                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0 android:shadow-none"
               />
             </InputGroup>
           </TextField>

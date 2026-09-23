@@ -30,8 +30,8 @@ export function FormLoading() {
         <Skeleton className="size-12 rounded-full" />
       </View>
 
-      <View className="items-center justify-center py-4">
-        <Skeleton className="h-10 w-36 rounded-lg" />
+      <View className="h-24 items-center justify-center rounded-2xl bg-panel px-4">
+        <Skeleton className="h-8 w-36 rounded-lg" />
       </View>
 
       <Skeleton className="h-14 w-full rounded-2xl" />

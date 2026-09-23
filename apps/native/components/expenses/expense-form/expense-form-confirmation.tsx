@@ -2,14 +2,19 @@ import { BottomSheet, Button, PressableFeedback, Typography } from "heroui-nativ
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { XIcon } from "@hugeicons/core-free-icons";
+import { useLayoutEffect, useState } from "react";
 import { useExpenseForm } from "./expense-form-context";
 
 import { Icon } from "@/components/icon";
 
 export function ExpenseFormConfirmation() {
   const insets = useSafeAreaInsets();
-  const { form, isGroupDialogOpen, setIsGroupDialogOpen, groupChoice, setGroupChoice, submit } =
-    useExpenseForm();
+  const { form, isGroupDialogOpen, setIsGroupDialogOpen, submit } = useExpenseForm();
+  const [groupChoice, setGroupChoice] = useState<"group" | "standalone">("group");
+
+  useLayoutEffect(() => {
+    if (isGroupDialogOpen) setGroupChoice("group");
+  }, [isGroupDialogOpen]);
   return (
     <BottomSheet isOpen={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
       <BottomSheet.Portal>

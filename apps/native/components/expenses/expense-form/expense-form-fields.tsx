@@ -10,7 +10,7 @@ export function ExpenseFormFields() {
       <form.Field name="totalMinor">
         {(field) => (
           <CurrencyInput
-            value={field.state.value === 0 ? "" : String(field.state.value)}
+            value={field.state.value}
             onBlur={() => {
               field.handleBlur();
               recalculateParticipantAmounts();
@@ -21,7 +21,7 @@ export function ExpenseFormFields() {
                     ?.message
                 : undefined
             }
-            onValueChange={(value) => field.handleChange(value === "" ? 0 : Number(value))}
+            onValueChange={field.handleChange}
           />
         )}
       </form.Field>

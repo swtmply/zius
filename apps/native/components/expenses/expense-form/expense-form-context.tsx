@@ -4,10 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { inferRouterOutputs } from "@trpc/server";
 import { TRPCClientError } from "@trpc/client";
 import type { AppRouter } from "@zius/api/routers/index";
+import { router as expoRouter } from "expo-router";
 import { useToast } from "heroui-native";
 import { createContext, use, useRef, useState } from "react";
 import { Keyboard } from "react-native";
-import { useRouter } from "@/utils/navigation";
 import { trpc } from "@/utils/trpc";
 import type { ParsedReceipt } from "@/utils/scan-utils";
 import type { ExpenseCategory } from "./expense-form-actions";
@@ -42,7 +42,6 @@ export function useExpenseFormController({
   const { toast } = useToast();
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [groupChoice, setGroupChoice] = useState<NonNullable<SubmitMeta["groupChoice"]>>("group");
   const categoryRef = useRef<ExpenseCategory | undefined>(undefined);
   const [categoryResetKey, setCategoryResetKey] = useState(0);
   const groupParticipants = group?.participants ?? [currentParticipant];
@@ -91,15 +90,11 @@ export function useExpenseFormController({
     occurredAt: Date.now(),
     currency: "PHP",
   };
-  const router = useRouter();
-
   const createExpense = useMutation(trpc.expense.create.mutationOptions());
 
   const form = useForm({
     defaultValues,
     onSubmitMeta: defaultSubmitMeta,
-    // Cross-field errors from blur can outlive the values that produced them.
-    // Keep the full schema on change and submit so every input order can recover.
     validators: expenseFormValidators,
     onSubmitInvalid: () => {
       setHasSubmitted(true);
@@ -130,7 +125,6 @@ export function useExpenseFormController({
 
       if (needsGroupChoice && !meta.groupChoice) {
         Keyboard.dismiss();
-        setGroupChoice("group");
         setIsGroupDialogOpen(true);
         return;
       }
@@ -201,7 +195,9 @@ export function useExpenseFormController({
           />
         ),
       });
-      router.replace({
+      // Keep the dashboard directly behind the details screen for both back methods.
+      expoRouter.dismissTo("/home");
+      expoRouter.push({
         pathname: "/expenses/[expenseId]",
         params: { expenseId },
       });
@@ -289,15 +285,17 @@ export function useExpenseFormController({
   });
 
   const setParticipantSplitValue = (participantId: string, value: number) => {
-    setParticipants(
-      form.state.values.participants.map((participant) =>
-        participant.id === participantId
-          ? {
-              ...participant,
-              splitValue: value,
-              isSplitValueEdited: true,
-            }
-          : participant,
+    const { totalMinor, splitMethod, items } = form.state.values;
+    form.setFieldValue("participants", (participants) =>
+      recalculateParticipants(
+        participants.map((participant) =>
+          participant.id === participantId
+            ? { ...participant, splitValue: value, isSplitValueEdited: true }
+            : participant,
+        ),
+        totalMinor,
+        splitMethod,
+        items ?? [],
       ),
     );
   };
@@ -319,8 +317,6 @@ export function useExpenseFormController({
     hasSubmitted,
     isGroupDialogOpen,
     setIsGroupDialogOpen,
-    groupChoice,
-    setGroupChoice,
     categoryRef,
     categoryResetKey,
     selectGroup,
