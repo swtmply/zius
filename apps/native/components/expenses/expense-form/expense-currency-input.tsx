@@ -54,11 +54,10 @@ export function CurrencyInput({ value, onValueChange, onBlur, errorMessage }: Cu
       >
         <Typography
           className={cn(
-            "text-2xl font-semibold",
+            "text-2xl font-semibold tabular-nums",
             isEmpty ? "text-muted" : "text-ink",
             errorMessage && "text-danger",
           )}
-          style={{ fontVariant: ["tabular-nums"] }}
           selectable
         >
           {currencySymbol}

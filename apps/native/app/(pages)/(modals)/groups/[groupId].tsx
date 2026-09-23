@@ -1,10 +1,8 @@
 import { useState } from "react";
 import {
   Keyboard,
-  Pressable,
   RefreshControl,
   ScrollView,
-  TextInput,
   View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -13,7 +11,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BottomSheet,
   Button,
+  Input,
   Menu,
+  PressableFeedback,
   Skeleton,
   Typography,
   useToast,
@@ -315,17 +315,18 @@ export default function GroupDetailsPage() {
               {query.isPending ? (
                 <Skeleton className="h-8 w-32 rounded-md" />
               ) : isEditing ? (
-                <TextInput
+                <Input
                   autoFocus
                   selectTextOnFocus
                   accessibilityLabel="Group name"
                   value={name}
                   onChangeText={setName}
-                  editable={!updateGroup.isPending}
+                  isDisabled={updateGroup.isPending}
                   onSubmitEditing={submit}
                   returnKeyType="done"
                   textAlignVertical="center"
-                  className="h-10 max-w-full rounded-lg border border-border px-2 py-0 text-center text-2xl font-semibold text-ink"
+                  background={null}
+                  className="h-10 max-w-full rounded-lg border border-border bg-transparent px-2 py-0 text-center text-2xl font-semibold text-ink android:border-border"
                   style={{
                     width: editingNameWidth,
                     includeFontPadding: false,
@@ -466,7 +467,7 @@ export default function GroupDetailsPage() {
                     Participants
                   </Typography>
                   <View className="flex-row items-center gap-4">
-                    <Pressable
+                    <PressableFeedback
                       hitSlop={12}
                       accessibilityRole="button"
                       accessibilityLabel={
@@ -480,7 +481,7 @@ export default function GroupDetailsPage() {
                       <Typography className="text-xs text-supporting">
                         {folded ? "Show Names" : "Hide Names"}
                       </Typography>
-                    </Pressable>
+                    </PressableFeedback>
                     {canManageMembers ? (
                       <GuestDialog
                         title="Add Participant"

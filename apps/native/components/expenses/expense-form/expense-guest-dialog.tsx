@@ -1,5 +1,12 @@
 import { Add, X } from "@hugeicons/core-free-icons";
-import { BottomSheet, Button, Typography, useBottomSheetAwareHandlers } from "heroui-native";
+import {
+  BottomSheet,
+  Button,
+  InputGroup,
+  TextField,
+  Typography,
+  useBottomSheetAwareHandlers,
+} from "heroui-native";
 import { useEffect, useRef, useState } from "react";
 import { Keyboard, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -96,65 +103,75 @@ function GuestSheetContent({
 
       <View className="gap-4">
         <View className="gap-1">
-          <View
-            className={`bg-page h-14 flex-row items-center gap-1 rounded-2xl border px-4 ${
-              errors.name ? "border-danger" : "border-transparent"
-            }`}
-          >
-            <Typography className="text-sm text-ink">Name</Typography>
-            <TextInput
-              ref={nameInputRef}
-              testID="guest-name-input"
-              accessibilityLabel={namePlaceholder}
-              autoCapitalize="words"
-              autoComplete="name"
-              value={name}
-              onBlur={onBlur}
-              onChangeText={(value) => {
-                setName(value);
-                if (errors.name) setErrors((current) => ({ ...current, name: undefined }));
-              }}
-              onFocus={onFocus}
-              onSubmitEditing={() => emailInputRef.current?.focus()}
-              placeholder={namePlaceholder}
-              placeholderTextColorClassName="accent-muted"
-              returnKeyType="next"
-              className="flex-1 text-sm text-ink"
-            />
-          </View>
+          <TextField isInvalid={Boolean(errors.name)}>
+            <InputGroup
+              className={`h-14 rounded-2xl border bg-page ${
+                errors.name ? "border-danger" : "border-transparent"
+              }`}
+            >
+              <InputGroup.Prefix isDecorative className="pl-4 pr-1">
+                <Typography className="text-sm text-ink">Name</Typography>
+              </InputGroup.Prefix>
+              <InputGroup.Input
+                ref={nameInputRef}
+                testID="guest-name-input"
+                accessibilityLabel={namePlaceholder}
+                autoCapitalize="words"
+                autoComplete="name"
+                value={name}
+                onBlur={onBlur}
+                onChangeText={(value) => {
+                  setName(value);
+                  if (errors.name) setErrors((current) => ({ ...current, name: undefined }));
+                }}
+                onFocus={onFocus}
+                onSubmitEditing={() => emailInputRef.current?.focus()}
+                placeholder={namePlaceholder}
+                placeholderColorClassName="accent-muted"
+                returnKeyType="next"
+                background={null}
+                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+              />
+            </InputGroup>
+          </TextField>
           {errors.name ? (
             <Typography className="px-1 text-xs text-danger">{errors.name}</Typography>
           ) : null}
         </View>
 
         <View className="gap-1">
-          <View
-            className={`bg-page h-14 flex-row items-center gap-1 rounded-2xl border px-4 ${
-              errors.email ? "border-danger" : "border-transparent"
-            }`}
-          >
-            <Typography className="text-sm text-ink">Email</Typography>
-            <TextInput
-              ref={emailInputRef}
-              testID="guest-email-input"
-              accessibilityLabel={emailPlaceholder}
-              autoCapitalize="none"
-              autoComplete="email"
-              keyboardType="email-address"
-              value={email}
-              onBlur={onBlur}
-              onChangeText={(value) => {
-                setEmail(value);
-                if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
-              }}
-              onFocus={onFocus}
-              onSubmitEditing={handleSubmit}
-              placeholder={emailPlaceholder}
-              placeholderTextColorClassName="accent-muted"
-              returnKeyType="done"
-              className="flex-1 text-sm text-ink"
-            />
-          </View>
+          <TextField isInvalid={Boolean(errors.email)}>
+            <InputGroup
+              className={`h-14 rounded-2xl border bg-page ${
+                errors.email ? "border-danger" : "border-transparent"
+              }`}
+            >
+              <InputGroup.Prefix isDecorative className="pl-4 pr-1">
+                <Typography className="text-sm text-ink">Email</Typography>
+              </InputGroup.Prefix>
+              <InputGroup.Input
+                ref={emailInputRef}
+                testID="guest-email-input"
+                accessibilityLabel={emailPlaceholder}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                value={email}
+                onBlur={onBlur}
+                onChangeText={(value) => {
+                  setEmail(value);
+                  if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
+                }}
+                onFocus={onFocus}
+                onSubmitEditing={handleSubmit}
+                placeholder={emailPlaceholder}
+                placeholderColorClassName="accent-muted"
+                returnKeyType="done"
+                background={null}
+                className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
+              />
+            </InputGroup>
+          </TextField>
           {errors.email ? (
             <Typography className="px-1 text-xs text-danger">{errors.email}</Typography>
           ) : null}

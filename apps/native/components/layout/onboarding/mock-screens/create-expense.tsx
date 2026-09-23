@@ -318,8 +318,7 @@ function MockCreateExpenseContent({ onComplete }: MockCreateExpenseProps) {
       ) : null}
 
       <SpotlightContainer
-        className="w-72 rounded-2xl bg-panel px-4 py-3 shadow-lg"
-        style={{ minHeight: 80 }}
+        className="min-h-20 w-72 rounded-2xl bg-panel px-4 py-3 shadow-lg"
         accessibilityRole="summary"
       >
         <Typography className="text-sm font-semibold text-ink">{STEP_HINTS[step].title}</Typography>

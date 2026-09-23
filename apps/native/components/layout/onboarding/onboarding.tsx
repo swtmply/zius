@@ -1,6 +1,6 @@
-import { Typography } from "heroui-native";
+import { Button, Typography } from "heroui-native";
 import { useMemo, useState } from "react";
-import { Image, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Image, View, useWindowDimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   Extrapolation,
@@ -75,11 +75,8 @@ function ProgressBar({
   }));
 
   return (
-    <View className="bg-default" style={styles.progressBar}>
-      <Animated.View
-        className="bg-ink"
-        style={[StyleSheet.absoluteFill, styles.progressFill, style]}
-      />
+    <View className="flex-1 h-2 overflow-hidden rounded-full bg-default">
+      <Animated.View className="absolute inset-0 rounded-full bg-ink" style={style} />
     </View>
   );
 }
@@ -158,28 +155,30 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
   }
 
   return (
-    <View className="bg-page" style={styles.container}>
+    <View className="flex-1 bg-page">
       <StatusBar style="auto" />
 
-      <View style={[styles.progressRow, { marginTop: insets.top + 20 }]}>
+      <View className="mx-4 h-2 flex-row gap-1" style={{ marginTop: insets.top + 20 }}>
         {ONBOARDING_PAGES.map((_, index) => (
           <ProgressBar key={index} index={index} translateX={translateX} width={width} />
         ))}
       </View>
 
       <GestureDetector gesture={pan}>
-        <View style={styles.viewport}>
+        <View className="flex-1 overflow-hidden">
           <Animated.View
-            style={[styles.pageTrack, { width: width * ONBOARDING_PAGES.length }, pageTrackStyle]}
+            className="flex-1 flex-row"
+            style={[{ width: width * ONBOARDING_PAGES.length }, pageTrackStyle]}
           >
             {ONBOARDING_PAGES.map((page, index) => (
               <View
                 key={page.title}
-                style={[styles.page, { width }]}
+                className="items-center justify-center px-4 pb-4"
+                style={{ width }}
                 accessibilityElementsHidden={index !== pageIndex}
                 importantForAccessibility={index === pageIndex ? "yes" : "no-hide-descendants"}
               >
-                <View style={styles.pageContent}>
+                <View className="w-full items-center gap-4">
                   <Image
                     source={page.image}
                     accessible
@@ -193,20 +192,18 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
                   <Typography className="!text-muted max-w-[290px] text-center text-xs leading-[17px]">
                     {page.description}
                   </Typography>
-                  <Pressable
+                  <Button
                     testID={`onboarding-action-${index}`}
-                    accessibilityRole="button"
                     accessibilityLabel={
                       index === ONBOARDING_PAGES.length - 1 ? "Get started" : "Continue"
                     }
                     onPress={() => handleAction(index)}
-                    className="bg-ink"
-                    style={({ pressed }) => [styles.action, pressed && styles.actionPressed]}
+                    className="h-[50px] w-full rounded-2xl border-continuous bg-ink"
                   >
-                    <Typography className="!text-on-ink text-sm">
+                    <Button.Label className="text-sm text-on-ink">
                       {index === ONBOARDING_PAGES.length - 1 ? "Get Started" : "Continue"}
-                    </Typography>
-                  </Pressable>
+                    </Button.Label>
+                  </Button>
                 </View>
               </View>
             ))}
@@ -216,54 +213,3 @@ export function Onboarding({ onComplete }: { onComplete: () => void | Promise<vo
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  progressRow: {
-    flexDirection: "row",
-    gap: 4,
-    height: 8,
-    marginHorizontal: 16,
-  },
-  progressBar: {
-    flex: 1,
-    height: 8,
-    overflow: "hidden",
-    borderRadius: 99,
-  },
-  progressFill: {
-    borderRadius: 99,
-  },
-  viewport: {
-    flex: 1,
-    overflow: "hidden",
-  },
-  pageTrack: {
-    flex: 1,
-    flexDirection: "row",
-  },
-  page: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  pageContent: {
-    width: "100%",
-    alignItems: "center",
-    gap: 16,
-  },
-  action: {
-    width: "100%",
-    height: 50,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-    borderCurve: "continuous",
-  },
-  actionPressed: {
-    opacity: 0.72,
-  },
-});

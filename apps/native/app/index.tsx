@@ -1,11 +1,9 @@
 import { Redirect } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { Skeleton } from "heroui-native";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCSSVariable } from "uniwind";
 
 import { Onboarding } from "@/components/layout/onboarding/onboarding";
 import { SignIn } from "@/components/layout/sign-in";
@@ -16,8 +14,7 @@ const ONBOARDING_STORAGE_KEY = "zius-onboarding-complete";
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const page = useCSSVariable("--page") as string;
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session } = authClient.useSession();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -55,24 +52,6 @@ export default function LoginScreen() {
     return <Onboarding onComplete={completeOnboarding} />;
   }
 
-  if (isPending) {
-    return (
-      <View className="flex-1 items-center justify-center bg-page">
-        <View
-          className="w-full max-w-[420px] gap-4 px-4"
-          accessible
-          accessibilityLabel="Loading sign in"
-          accessibilityState={{ busy: true }}
-        >
-          <Skeleton className="h-8 w-20 self-center rounded-lg" />
-          {[0, 1, 2].map((item) => (
-            <Skeleton key={item} className="h-14 w-full rounded-2xl" />
-          ))}
-        </View>
-      </View>
-    );
-  }
-
   if (session?.user.emailVerified) {
     return <Redirect href="/home" />;
   }
@@ -80,18 +59,14 @@ export default function LoginScreen() {
   return (
     <KeyboardAwareScrollView
       bottomOffset={16}
-      style={{ flex: 1, backgroundColor: page }}
+      className="flex-1 bg-page"
       contentInsetAdjustmentBehavior="automatic"
       keyboardDismissMode="interactive"
       keyboardShouldPersistTaps="handled"
+      contentContainerClassName="flex-grow items-center justify-center bg-page px-4"
       contentContainerStyle={{
-        flexGrow: 1,
-        alignItems: "center",
-        justifyContent: "center",
         paddingTop: Math.max(insets.top, 24) + 27,
         paddingBottom: Math.max(insets.bottom, 24),
-        paddingHorizontal: 16,
-        backgroundColor: page,
       }}
     >
       <SignIn />

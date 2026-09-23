@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  StyleSheet,
   useWindowDimensions,
   type LayoutChangeEvent,
   type StyleProp,
@@ -117,6 +116,7 @@ export function SpotlightContainer({
   offset = 12,
   edgePadding = 16,
   onLayout,
+  className,
   style,
   pointerEvents,
   ...props
@@ -195,18 +195,10 @@ export function SpotlightContainer({
       collapsable={false}
       pointerEvents={pointerEvents ?? "box-none"}
       onLayout={handleLayout}
-      style={[style, styles.container, animatedStyle]}
+      className={`absolute left-0 top-0 z-2 ${className ?? ""}`}
+      style={[style, animatedStyle]}
     >
       {children}
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    left: 0,
-    position: "absolute",
-    top: 0,
-    zIndex: 2,
-  },
-});

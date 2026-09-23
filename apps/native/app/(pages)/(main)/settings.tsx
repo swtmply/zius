@@ -1,7 +1,8 @@
 import { ChevronLeftFreeIcons, Edit02Icon } from "@hugeicons/core-free-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { ActivityIndicator, Keyboard, Pressable, ScrollView, TextInput, View } from "react-native";
-import { Button, Typography, Switch, useToast } from "heroui-native";
+import { ActivityIndicator, Keyboard, ScrollView, View } from "react-native";
+import { Button, Input, PressableFeedback, Typography, Switch, useToast } from "heroui-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Icon } from "@/components/icon";
@@ -18,6 +19,7 @@ import { clearPersistedQueryCache } from "@/utils/trpc";
 
 export default function Settings() {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const { toast } = useToast();
   const { data: session } = authClient.useSession();
@@ -126,6 +128,7 @@ export default function Settings() {
 
     setDraftName(name);
     setIsEditing(false);
+    void queryClient.invalidateQueries();
     Keyboard.dismiss();
     toast.show({
       component: (props) => (
@@ -183,21 +186,21 @@ export default function Settings() {
             <Typography selectable className="flex-1 text-2xl font-semibold text-ink">
               Settings
             </Typography>
-            <Pressable
+            <Button
+              isIconOnly
+              variant="ghost"
               accessibilityLabel={isEditing ? "Save name" : "Edit name"}
-              accessibilityRole="button"
               accessibilityState={{ busy: isSaving, expanded: isEditing }}
-              disabled={isSaving || isSigningOut}
-              hitSlop={12}
+              isDisabled={isSaving || isSigningOut}
               onPress={() => (isEditing ? void saveName() : startEditing())}
-              className="active:opacity-55 disabled:opacity-55"
+              className="size-12 rounded-full"
             >
               {isSaving ? (
                 <ActivityIndicator colorClassName="accent-ink" size="small" />
               ) : (
                 <Icon colorClassName="accent-ink" icon={Edit02Icon} size={24} />
               )}
-            </Pressable>
+            </Button>
           </View>
 
           <Typography selectable className="text-sm text-ink">
@@ -210,41 +213,44 @@ export default function Settings() {
                   <Typography selectable className="text-sm text-ink">
                     Name
                   </Typography>
-                  <TextInput
+                  <Input
                     accessibilityLabel="Name"
                     autoFocus
-                    editable={!isSaving}
+                    isDisabled={isSaving}
                     onChangeText={setDraftName}
                     onSubmitEditing={() => void saveName()}
                     placeholder="Your name"
-                    placeholderTextColorClassName="accent-muted"
+                    placeholderColorClassName="accent-muted"
                     returnKeyType="done"
-                    className="flex-1 py-0 text-right text-sm text-ink"
+                    background={null}
+                    className="flex-1 h-[50px] border-0 bg-transparent py-0 text-right text-sm text-ink android:border-0"
                     value={draftName}
                   />
                 </View>
                 <View className="flex-row items-center justify-end gap-4 pt-4">
-                  <Pressable
-                    accessibilityRole="button"
-                    disabled={isSaving}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    isDisabled={isSaving}
                     onPress={cancelEditing}
-                    className="active:opacity-55"
+                    className="h-9 min-h-0"
                   >
-                    <Typography className="text-sm text-supporting">Cancel</Typography>
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
+                    <Button.Label className="text-sm text-supporting">Cancel</Button.Label>
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
                     accessibilityState={{ busy: isSaving }}
-                    disabled={isSaving}
+                    isDisabled={isSaving}
                     onPress={() => void saveName()}
-                    className="h-9 min-w-18 items-center justify-center rounded-xl bg-danger px-4 active:opacity-72"
+                    className="h-9 min-h-0 min-w-18 rounded-xl bg-danger px-4"
                   >
                     {isSaving ? (
                       <ActivityIndicator colorClassName="accent-danger-foreground" size="small" />
                     ) : (
-                      <Typography className="text-sm text-danger-foreground">Save</Typography>
+                      <Button.Label className="text-sm text-danger-foreground">Save</Button.Label>
                     )}
-                  </Pressable>
+                  </Button>
                 </View>
               </View>
             ) : (
@@ -325,7 +331,7 @@ export default function Settings() {
                   />
                 </View>
               </View>
-              <Pressable
+              <PressableFeedback
                 accessibilityLabel="Show persistent debug toast"
                 accessibilityRole="button"
                 onPress={() =>
@@ -341,33 +347,33 @@ export default function Settings() {
                     ),
                   })
                 }
-                className="min-h-[50px] justify-center rounded-2xl border-continuous bg-panel px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)] active:opacity-72"
+                className="min-h-[50px] justify-center rounded-2xl border-continuous bg-panel px-4 shadow-[0_9px_26px_rgba(0,0,0,0.12)]"
               >
                 <View className="min-h-[50px] flex-row items-center gap-4">
                   <Typography selectable={false} className="flex-1 text-[14px] text-ink">
                     Show persistent debug toast
                   </Typography>
                 </View>
-              </Pressable>
+              </PressableFeedback>
             </>
           ) : null}
 
           <Typography selectable className="text-[14px] text-danger">
             Danger Zone
           </Typography>
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            variant="danger"
             accessibilityState={{ busy: isSigningOut }}
-            disabled={isSigningOut || isSaving}
+            isDisabled={isSigningOut || isSaving}
             onPress={() => void signOut()}
-            className="h-[50px] items-center justify-center rounded-2xl bg-danger active:opacity-72 disabled:opacity-72"
+            className="h-[50px] rounded-2xl bg-danger disabled:opacity-72"
           >
             {isSigningOut ? (
               <ActivityIndicator colorClassName="accent-danger-foreground" />
             ) : (
-              <Typography className="text-sm text-danger-foreground">Logout</Typography>
+              <Button.Label className="text-sm text-danger-foreground">Logout</Button.Label>
             )}
-          </Pressable>
+          </Button>
 
           <View className="gap-1 rounded-2xl border border-danger bg-danger/10 p-4">
             <Typography selectable className="text-sm text-danger">
@@ -377,13 +383,13 @@ export default function Settings() {
               When you delete your account, expenses currently attached to you will not be deleted.
               You will no longer be able to access any of your data.
             </Typography>
-            <Pressable
-              accessibilityRole="button"
+            <Button
+              variant="danger"
               onPress={() => setDeletionMessage("Account deletion is not available yet.")}
-              className="h-[50px] items-center justify-center rounded-2xl bg-danger active:opacity-72"
+              className="h-[50px] rounded-2xl bg-danger"
             >
-              <Typography className="text-sm text-danger-foreground">Delete Account</Typography>
-            </Pressable>
+              <Button.Label className="text-sm text-danger-foreground">Delete Account</Button.Label>
+            </Button>
             {deletionMessage ? (
               <Typography
                 selectable

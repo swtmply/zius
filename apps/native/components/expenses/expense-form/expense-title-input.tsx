@@ -1,5 +1,4 @@
-import { cn, Typography } from "heroui-native";
-import { TextInput, View } from "react-native";
+import { cn, InputGroup, TextField, Typography } from "heroui-native";
 
 type ExpenseTitleInputProps = {
   value: string;
@@ -19,32 +18,35 @@ export function ExpenseTitleInput({
   errorMessage,
 }: ExpenseTitleInputProps) {
   return (
-    <View className="gap-1">
-      <View
+    <TextField isInvalid={Boolean(errorMessage)} className="gap-1">
+      <InputGroup
         className={cn(
-          "bg-panel h-14 px-4 flex-row items-center gap-1 rounded-2xl border shadow-none",
+          "h-14 rounded-2xl border bg-panel shadow-none",
           errorMessage ? "border-danger" : "border-transparent",
         )}
       >
-        <Typography className="text-sm text-ink">{label}</Typography>
-        <TextInput
+        <InputGroup.Prefix isDecorative className="pl-4 pr-1">
+          <Typography className="text-sm text-ink">{label}</Typography>
+        </InputGroup.Prefix>
+        <InputGroup.Input
           value={value}
           onBlur={onBlur}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColorClassName="accent-muted"
+          placeholderColorClassName="accent-muted"
           accessibilityLabel={label}
           accessibilityHint={errorMessage}
           aria-invalid={Boolean(errorMessage)}
           returnKeyType="none"
-          className="flex-1 text-sm text-ink"
+          background={null}
+          className="h-14 rounded-2xl border-0 bg-transparent text-sm text-ink android:border-0"
         />
-      </View>
+      </InputGroup>
       {errorMessage ? (
         <Typography className="px-1 text-xs text-danger" accessibilityLiveRegion="polite">
           {errorMessage}
         </Typography>
       ) : null}
-    </View>
+    </TextField>
   );
 }

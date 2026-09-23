@@ -139,10 +139,7 @@ export function GroupPickerSelect({
             <BottomSheetScrollView
               className="flex-1"
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{
-                gap: 4,
-                paddingVertical: listPadding,
-              }}
+              contentContainerClassName="gap-1 py-2"
               showsVerticalScrollIndicator={false}
               onScroll={({ nativeEvent }) => {
                 const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
@@ -193,11 +190,7 @@ export function GroupPickerSelect({
                   >
                     {({ isSelected: itemIsSelected }) => (
                       <View
-                        className="min-h-12 flex-1 flex-row items-center justify-between rounded-xl border-ink px-2"
-                        style={{
-                          borderRadius: 12,
-                          borderWidth: itemIsSelected ? 1 : 0,
-                        }}
+                        className={`min-h-12 flex-1 flex-row items-center justify-between rounded-xl border-ink px-2 ${itemIsSelected ? "border" : "border-0"}`}
                       >
                         <Select.ItemLabel className="flex-1 text-sm text-ink" />
                         {itemIsSelected ? (
@@ -216,11 +209,7 @@ export function GroupPickerSelect({
                     >
                       {({ isSelected: itemIsSelected }) => (
                         <View
-                          className="min-h-12 flex-1 flex-row items-center justify-between rounded-xl border-ink px-2"
-                          style={{
-                            borderRadius: 12,
-                            borderWidth: itemIsSelected ? 1 : 0,
-                          }}
+                          className={`min-h-12 flex-1 flex-row items-center justify-between rounded-xl border-ink px-2 ${itemIsSelected ? "border" : "border-0"}`}
                         >
                           <Select.ItemLabel className="flex-1 text-sm text-ink" numberOfLines={1} />
                           {itemIsSelected ? (

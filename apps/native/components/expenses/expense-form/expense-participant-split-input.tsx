@@ -24,8 +24,7 @@ function SplitValue({
   return (
     <Typography
       selectable
-      className="shrink-0 text-right text-xs font-semibold text-ink"
-      style={{ fontVariant: ["tabular-nums"] }}
+      className="shrink-0 text-right text-xs font-semibold tabular-nums text-ink"
     >
       {splitMethod === "percentage"
         ? String(Number(value.toFixed(2)))

@@ -1,6 +1,6 @@
 import { Link } from "expo-router";
-import { Typography } from "heroui-native";
-import { Pressable, ScrollView, View } from "react-native";
+import { Button, Typography } from "heroui-native";
+import { ScrollView, View } from "react-native";
 
 export default function NotFoundScreen() {
   return (
@@ -17,9 +17,9 @@ export default function NotFoundScreen() {
           This page does not exist.
         </Typography>
         <Link href="/" asChild>
-          <Pressable className="h-12 items-center justify-center rounded-2xl bg-contrast-gradient px-6 active:opacity-72">
-            <Typography className="text-sm font-bold text-on-ink">Go home</Typography>
-          </Pressable>
+          <Button className="h-12 rounded-2xl bg-contrast-gradient px-6">
+            <Button.Label className="text-sm font-bold text-on-ink">Go home</Button.Label>
+          </Button>
         </Link>
       </View>
     </ScrollView>

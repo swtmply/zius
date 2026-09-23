@@ -16,7 +16,6 @@ import {
 const links = [
   { href: "/features", label: "Features" },
   { href: "/how-it-works", label: "How it works" },
-  { href: "/login", label: "Sign in" },
 ] as const;
 
 export function SiteHeader() {

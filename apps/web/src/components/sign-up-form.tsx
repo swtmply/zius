@@ -1,5 +1,6 @@
 import { useForm } from "@tanstack/react-form";
 import { Button } from "@zius/ui/components/button";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import z from "zod";
 
@@ -11,6 +12,7 @@ import Loader from "./loader";
 import { authCard, primaryButton } from "./marketing/styles";
 
 export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
+  const router = useRouter();
   const { isPending } = authClient.useSession();
 
   const form = useForm({
@@ -29,11 +31,11 @@ export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () 
           email: value.email,
           password: value.password,
           name: value.name,
-          callbackURL: "/login",
+          callbackURL: "/dashboard",
         },
         {
           onSuccess: () => {
-            onSwitchToSignIn();
+            router.replace(`/verify-email?email=${encodeURIComponent(value.email)}`);
             toast.success("Check your email", {
               id: toastId,
               description: "Verify your address before signing in.",
